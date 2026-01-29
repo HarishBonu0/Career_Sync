@@ -261,16 +261,22 @@ export default function GeneratedCoursePage() {
         console.log('💾 Course saved to localStorage');
 
         // Also try to send to backend
-        const userId = (() => {
+        const userStr = localStorage.getItem('careersync_user');
+        let userEmail = '';
+        let userId = null;
+        
+        if (userStr) {
           try {
-            const user = JSON.parse(localStorage.getItem('careersync_user') || '{}');
-            return user._id || user.id || localStorage.getItem('careersync_userId');
-          } catch {
-            return null;
+            const user = JSON.parse(userStr);
+            userId = user._id || user.id;
+            userEmail = user.email || '';
+            console.log('📧 Extracted user email:', userEmail, 'userId:', userId);
+          } catch (e) {
+            console.log('Failed to parse user:', e);
           }
-        })();
+        }
 
-        if (userId) {
+        if (userId && userEmail) {
           try {
             await fetch('http://localhost:5000/api/profile/enroll/course', {
               method: 'POST',
@@ -278,7 +284,7 @@ export default function GeneratedCoursePage() {
               credentials: 'include',
               body: JSON.stringify({
                 userId,
-                userEmail: localStorage.getItem('careersync_userEmail'),
+                userEmail,
                 courseId: courseData.id,
                 courseTitle: courseData.title,
                 courseModules: courseData.modules || []

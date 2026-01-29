@@ -7,9 +7,26 @@ export async function saveGeneratedCourse(course: any, userId?: string) {
   console.log('Saving course to MongoDB:', course.title)
   
   try {
-    // Get user from localStorage
-    const userStr = typeof window !== 'undefined' ? localStorage.getItem('careeros_user') : null
-    const user = userStr ? JSON.parse(userStr) : null
+    // Get user from localStorage - check multiple keys for compatibility
+    let user = null
+    const userStr = typeof window !== 'undefined' ? (
+      localStorage.getItem('careersync_user') || 
+      localStorage.getItem('careeros_user')
+    ) : null
+    
+    if (userStr) {
+      try {
+        user = JSON.parse(userStr)
+      } catch (e) {
+        console.error('Failed to parse user data:', e)
+      }
+    }
+    
+    const userEmail = user?.email || user?.userEmail
+    const extractedUserId = user?.id || user?._id || user?.user_id || userId
+    
+    console.log('📧 User email for course:', userEmail)
+    console.log('👤 User ID for course:', extractedUserId)
     
     const response = await fetch(`${BACKEND_API}/courses/save`, {
       method: 'POST',
@@ -17,7 +34,8 @@ export async function saveGeneratedCourse(course: any, userId?: string) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        userId: user?.id || user?.email || userId || 'guest',
+        userId: extractedUserId || 'guest',
+        userEmail: userEmail || null,
         title: course.title,
         description: course.description,
         level: course.difficulty || course.level,
