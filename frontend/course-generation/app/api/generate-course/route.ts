@@ -21,34 +21,24 @@ export async function POST(request: NextRequest) {
 
     // Helper function to generate specific YouTube search queries per module
     const generateModuleVideoSearch = (moduleTitle: string, moduleTopic: string, moduleNum: number, totalModules: number) => {
-      // Create progressively advanced searches based on module position
-      const progressLevel = Math.floor((moduleNum / totalModules) * 3) // 0, 1, 2, or 3
+      // Clean up module topic - remove "Module X:" prefix
+      const cleanTopic = moduleTopic.replace(/^Module\s*\d+[:\s]*/i, '').trim()
       
-      const levelKeywords = {
-        0: ['beginner', 'basics', 'fundamentals', 'introduction', 'getting started', 'start'],
-        1: ['intermediate', 'advanced', 'practical', 'real-world', 'hands-on', 'working'],
-        2: ['advanced', 'expert', 'deep dive', 'professional', 'production', 'optimization'],
-        3: ['mastery', 'expert', 'system design', 'architecture', 'best practices', 'patterns'],
+      // Determine difficulty level based on module position
+      const progressPercentage = (moduleNum / totalModules)
+      let difficultyLevel: 'beginner' | 'intermediate' | 'advanced'
+      
+      if (progressPercentage < 0.35) {
+        difficultyLevel = 'beginner'
+      } else if (progressPercentage < 0.75) {
+        difficultyLevel = 'intermediate'
+      } else {
+        difficultyLevel = 'advanced'
       }
       
-      const levelKey = Math.min(progressLevel, 3) as keyof typeof levelKeywords
-      const keywords = levelKeywords[levelKey]
-      const keywordIndex = (moduleNum - 1) % keywords.length
-      const keyword = keywords[keywordIndex]
-      
-      // Extract main topic from module title
-      const cleanTopic = moduleTopic.replace(/module\s*\d+[:\s]*/i, '').trim()
-      
-      // Generate specific search query with tutorial/course keywords
-      const searchQueries = [
-        `${cleanTopic} ${keyword} tutorial`,
-        `how to learn ${cleanTopic} ${keyword}`,
-        `${cleanTopic} complete guide`,
-        `${cleanTopic} step by step`,
-        `${cleanTopic} for ${keyword} developers`,
-      ]
-      
-      return searchQueries[moduleNum % searchQueries.length]
+      // Build targeted search query - focus on the SPECIFIC module topic
+      // Don't try to combine with course title, as that dilutes the search
+      return `${cleanTopic} tutorial ${difficultyLevel}`
     }
 
     // Helper function to generate reading materials for a module
