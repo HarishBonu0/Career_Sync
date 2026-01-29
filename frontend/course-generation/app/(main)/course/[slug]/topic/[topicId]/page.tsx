@@ -204,12 +204,46 @@ export default function TopicPage() {
 
   const topic = moduleData || mockTopics[0]
 
-  const markAsCompleted = () => {
+  const markAsCompleted = async () => {
     setCompleted(true)
     const completedTopics = JSON.parse(localStorage.getItem('completedTopics') || '[]')
     if (!completedTopics.includes(topicId)) {
       completedTopics.push(topicId)
       localStorage.setItem('completedTopics', JSON.stringify(completedTopics))
+      
+      // Update progress in backend
+      try {
+        const userStr = localStorage.getItem('careeros_user')
+        const user = userStr ? JSON.parse(userStr) : null
+        const enrolledCourses = JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]')
+        
+        if (user && enrolledCourses.length > 0) {
+          const generatedCourse = localStorage.getItem('generatedCourse')
+          const courseData = generatedCourse ? JSON.parse(generatedCourse) : null
+          
+          if (courseData) {
+            // Find the enrollment for this course
+            const enrollment = enrolledCourses.find((e: any) => e.title === courseData.title)
+            const totalModules = courseData.modules?.length || 1
+            const progress = Math.round((completedTopics.length / totalModules) * 100)
+            
+            // Update in backend
+            await fetch(`http://localhost:5000/api/profile/progress/course/${enrollment?.id || 'new'}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                progress,
+                completed: progress === 100,
+                completedModules: completedTopics
+              })
+            })
+            
+            console.log('📊 Progress updated in backend:', progress + '%')
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update progress in backend:', error)
+      }
     }
   }
 
