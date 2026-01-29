@@ -45,8 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json()
-        setUser(data.user)
+        const userData = data.user || data
+        setUser(userData)
         setIsAuthenticated(true)
+        // Store user data for other apps to access
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('careersync_user', JSON.stringify(userData))
+        }
       } else {
         setUser(null)
         setIsAuthenticated(false)
@@ -70,7 +75,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json()
-        setUser(data.user)
+        const userData = data.user || data
+        
+        // Store token if provided
+        if (data.token && typeof window !== 'undefined') {
+          localStorage.setItem('careersync_token', data.token)
+          console.log('✅ Token stored:', data.token.substring(0, 20) + '...')
+        }
+        
+        // Store user data
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('careersync_user', JSON.stringify(userData))
+          console.log('✅ User stored:', userData)
+        }
+        
+        setUser(userData)
         setIsAuthenticated(true)
         return true
       }
@@ -89,6 +108,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
     } catch (error) {
       console.error('Logout error:', error)
+    }
+    
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('careersync_token')
+      localStorage.removeItem('careersync_user')
     }
     
     setUser(null)

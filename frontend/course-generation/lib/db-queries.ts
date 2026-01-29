@@ -22,8 +22,55 @@ export async function saveGeneratedCourse(course: any, userId?: string) {
       }
     }
     
-    const userEmail = user?.email || user?.userEmail
-    const extractedUserId = user?.id || user?._id || user?.user_id || userId
+    let userEmail = user?.email || user?.userEmail
+    let extractedUserId = user?.id || user?._id || user?.user_id || userId
+    
+    // CRITICAL: If we still don't have user info, fetch from backend using token
+    if (!userEmail || !extractedUserId || extractedUserId === 'guest') {
+      console.log('⚠️ User info incomplete, fetching from backend...')
+      try {
+        // Try multiple token key variants
+        const tokenStr = 
+          localStorage.getItem('careersync_token') ||
+          localStorage.getItem('Career_Sync_token') ||
+          localStorage.getItem('Career Sync_token') ||
+          localStorage.getItem('token')
+        
+        if (tokenStr) {
+          console.log('📍 Found token:', tokenStr.substring(0, 20) + '...')
+          const meResponse = await fetch(`${BACKEND_API}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${tokenStr}`,
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+          })
+          if (meResponse.ok) {
+            const meData = await meResponse.json()
+            console.log('✅ Backend response:', meData)
+            if (meData.user) {
+              userEmail = meData.user.email
+              extractedUserId = meData.user.id || meData.user._id
+              console.log('✅ Fetched from backend - email:', userEmail, 'id:', extractedUserId)
+              // Update localStorage for future use
+              localStorage.setItem('careersync_user', JSON.stringify(meData.user))
+            } else if (meData.id) {
+              // Direct user data in response
+              userEmail = meData.email
+              extractedUserId = meData.id
+              console.log('✅ Got direct user from backend - email:', userEmail, 'id:', extractedUserId)
+              localStorage.setItem('careersync_user', JSON.stringify(meData))
+            }
+          } else {
+            console.log('❌ Backend returned:', meResponse.status, meResponse.statusText)
+          }
+        } else {
+          console.log('❌ No token found in localStorage')
+        }
+      } catch (fetchErr) {
+        console.log('Could not fetch from backend:', fetchErr)
+      }
+    }
     
     console.log('📧 User email for course:', userEmail)
     console.log('👤 User ID for course:', extractedUserId)

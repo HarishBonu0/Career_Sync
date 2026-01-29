@@ -1,0 +1,30 @@
+// Check localStorage structure in browser console
+// Run this in browser console (F12):
+
+console.log('=== CHECKING LOCALSTORAGE ===');
+const user = JSON.parse(localStorage.getItem('careersync_user') || '{}');
+console.log('Full user object:', user);
+console.log('user.id:', user.id);
+console.log('user._id:', user._id);
+console.log('user.email:', user.email);
+console.log('user.email:', user.email);
+
+// All keys
+Object.keys(user).forEach(key => {
+  console.log(`user.${key}: ${user[key]}`);
+});
+
+// Also check careeros_user
+const careeros_user = JSON.parse(localStorage.getItem('careeros_user') || '{}');
+console.log('\ncareeros_user:', careeros_user);
+
+// Check token
+console.log('careersync_token:', localStorage.getItem('careersync_token'));
+
+// Check all localStorage
+console.log('\n=== ALL LOCALSTORAGE ===');
+Object.keys(localStorage).forEach(key => {
+  if (key.includes('user') || key.includes('career') || key.includes('token')) {
+    console.log(`${key}: ${localStorage.getItem(key).substring(0, 100)}`);
+  }
+});
