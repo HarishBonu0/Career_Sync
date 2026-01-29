@@ -392,28 +392,12 @@
             color: var(--text-secondary);
         }
     </style>
+    <!-- Shared Header: injected at runtime via shared-auth.js -->
+    <script type="module" src="./api-auth.js"></script>
 </head>
 
 <body>
-    <!-- Header -->
-    <header class="careeros-header">
-        <div class="careeros-header-container">
-            <a href="http://localhost:4173" class="careeros-brand">
-                <div class="careeros-brand-icon">C</div>
-                <span>CareerOS</span>
-            </a>
-
-            <nav class="careeros-nav-links">
-                <a href="http://localhost:3002" class="careeros-nav-link">📚 Course Gen</a>
-                <a href="http://localhost:5173" class="careeros-nav-link">🗺️ Roadmaps</a>
-                <a href="http://localhost:3001" class="careeros-nav-link">✅ Evaluator</a>
-            </nav>
-
-            <div class="careeros-nav-auth">
-                <button id="logout-btn" class="careeros-btn careeros-btn-secondary">Sign Out</button>
-            </div>
-        </div>
-    </header>
+    <!-- Shared Header will be injected automatically by /shared-header.js -->
 
     <!-- Profile Content -->
     <main class="profile-container">
@@ -672,5 +656,6 @@
         loadProfile();
     </script>
 </body>
+
 
 </html>

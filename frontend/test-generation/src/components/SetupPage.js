@@ -39,15 +39,13 @@ const SetupPage = () => {
     }
   };
 
+  const goHome = () => {
+    window.location.href = 'http://localhost:4173';
+  };
+
   return (
     <div className="unfold-container">
-      {/* Header */}
-      <header className="unfold-header">
-        <div className="logo">°/°</div>
-        <div className="header-actions">
-          <button className="upgrade-btn">upgrade</button>
-        </div>
-      </header>
+      {/* Shared Header injected by shared-header.js */}
 
       {/* Main Content */}
       <main className="unfold-main">

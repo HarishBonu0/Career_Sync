@@ -12,8 +12,22 @@ const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
 const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
 const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY;
 
+// Cookie configuration
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  path: '/'
+};
+
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Helper function to set auth cookie
+function setAuthCookie(res, token) {
+  res.cookie('careeros_token', token, COOKIE_OPTIONS);
 }
 
 // Register/Signup endpoint
@@ -34,9 +48,9 @@ router.post('/register', async (req, res) => {
     const user = await User.create({ email, passwordHash, name, phone });
 
     const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    setAuthCookie(res, token);
     res.json({ 
       message: 'User registered successfully',
-      token,
       user: { id: user._id, email: user.email, name: user.name }
     });
   } catch (error) {
@@ -68,14 +82,13 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    user.lastLoginAt = new Date();
-    await user.save();
+    await user.recordLogin();
 
     const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    setAuthCookie(res, token);
     res.json({ 
       message: 'Login successful',
-      token,
-      user: { id: user._id, email: user.email, name: user.name }
+      user: user.toSafeObject()
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -145,16 +158,15 @@ router.post('/login-otp', async (req, res) => {
       return res.status(401).json({ error: 'Invalid OTP' });
     }
 
-    user.lastLoginAt = new Date();
     user.otpCode = undefined;
     user.otpExpiresAt = undefined;
-    await user.save();
+    await user.recordLogin();
 
     const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    setAuthCookie(res, token);
     res.json({
       message: 'Login successful',
-      token,
-      user: { id: user._id, email: user.email, name: user.name }
+      user: user.toSafeObject()
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -186,7 +198,32 @@ router.post('/verify', async (req, res) => {
 
 // Logout endpoint
 router.post('/logout', (req, res) => {
+  res.clearCookie('careeros_token', { path: '/' });
   res.json({ message: 'Logout successful' });
+});
+
+// Get current user endpoint (check authentication)
+router.get('/me', async (req, res) => {
+  try {
+    const token = req.cookies.careeros_token;
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id).select('email name');
+    
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    res.json({ 
+      user: { id: user._id, email: user.email, name: user.name }
+    });
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
 });
 
 // Reset password endpoint
@@ -225,9 +262,9 @@ router.post('/reset-password', async (req, res) => {
 
     // Generate token for auto-login
     const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    setAuthCookie(res, token);
     res.json({ 
       message: 'Password reset successful',
-      token,
       user: { id: user._id, email: user.email, name: user.name }
     });
   } catch (error) {
@@ -236,31 +273,55 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-// Signup alias
-router.post('/signup', async (req, res) => {
+// Google Sign-In endpoint
+router.post('/google-signin', async (req, res) => {
   try {
-    const { email, password, name, phone } = req.body;
+    const { credential, email, name, google_id, picture } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    if (!credential || !email) {
+      return res.status(400).json({ error: 'Invalid Google credential' });
     }
 
-    const existing = await User.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ error: 'User already exists' });
+    // Find or create user
+    let user = await User.findByEmail(email);
+    
+    if (!user) {
+      // Create new user from Google data
+      user = await User.create({
+        email,
+        name: name || email.split('@')[0],
+        provider: 'google',
+        status: 'active',
+        passwordHash: '', // No password for OAuth users
+        metadata: {
+          google_id,
+          picture,
+          oauth: true
+        }
+      });
+    } else if (user.provider !== 'google') {
+      // User exists with different provider, update to linked account
+      user.metadata = user.metadata || {};
+      user.metadata.google_id = google_id;
+      user.metadata.picture = picture;
+      await user.save();
     }
 
-    const passwordHash = await bcryptjs.hash(password, 10);
-    const user = await User.create({ email, passwordHash, name, phone });
+    // Record login
+    await user.recordLogin();
 
+    // Generate JWT token
     const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ 
-      message: 'User registered successfully',
-      token,
-      user: { id: user._id, email: user.email, name: user.name }
+    setAuthCookie(res, token);
+
+    res.json({
+      message: 'Google Sign-In successful',
+      user: user.toSafeObject()
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Google Sign-In error:', error.message);
+    res.status(500).json({ error: 'Google Sign-In failed: ' + error.message });
   }
 });
+
 export default router;

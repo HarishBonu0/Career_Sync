@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { SimulationInput, SimulationResult } from '../types/index';
-import Header from '../components/Layout/Header';
+// Header removed in favor of shared header injection
 import Footer from '../components/Layout/Footer';
 import SimulationForm from '../components/Form/SimulationForm';
 import APIConfigurationModal from '../components/Modals/APIConfigurationModal';
@@ -43,7 +43,7 @@ export default function HomePage({ onSimulationComplete }: HomePageProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Header onConfigClick={() => setIsModalOpen(true)} />
+      {/* Shared header injected via /shared-header.js; config modal can be opened from page content if needed */}
 
       <main style={{ flex: 1, padding: '2rem 1.5rem' }}>
         <SimulationForm onSubmit={handleSubmit} isLoading={isLoading} />

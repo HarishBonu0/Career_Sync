@@ -75,18 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const result = await login(email, password);
 
         if (result.success) {
-            localStorage.setItem('careeros_user', JSON.stringify({ 
-                email: result.user.email,
-                id: result.user.id,
-                name: result.user.name || result.user.email.split('@')[0]
-            }));
-            localStorage.setItem('careeros_token', result.token);
-            
-            // Force immediate redirect
             console.log('Login successful, redirecting...');
-            setTimeout(() => {
-                window.location.href = 'http://localhost:4173/';
-            }, 100);
+            // Cookie is set by backend, just redirect
+            window.location.href = 'http://localhost:4173/';
         } else {
             setButtonLoading(submitBtn, false);
             showError(forms.login, result.error || 'Invalid email or password');
@@ -120,14 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.success) {
             console.log('Registration successful:', result);
             
-            // Store user data and token
-            localStorage.setItem('careeros_user', JSON.stringify({ 
-                email: result.user.email,
-                id: result.user.id,
-                name: result.user.name || name || result.user.email.split('@')[0]
-            }));
-            localStorage.setItem('careeros_token', result.token);
-            
             setButtonLoading(submitBtn, false);
             
             // Show success message
@@ -136,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             successDiv.textContent = 'Account created successfully! Redirecting...';
             forms.signup.insertBefore(successDiv, forms.signup.firstChild);
             
-            // Redirect to home page
+            // Redirect to home page (cookie is set by backend)
             setTimeout(() => {
                 window.location.href = 'http://localhost:4173/';
             }, 1000);
@@ -174,12 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const result = await loginWithOtp(email, otp);
         setButtonLoading(btn, false);
         if (result.success) {
-            localStorage.setItem('careeros_user', JSON.stringify({ 
-                email: result.user.email,
-                id: result.user.id,
-                name: result.user.name || result.user.email.split('@')[0]
-            }));
-            localStorage.setItem('careeros_token', result.token);
+            // Cookie is set by backend, just redirect
             window.location.href = '/';
         } else {
             showError(forms.verify, result.error || 'Invalid OTP');
@@ -202,6 +180,8 @@ function initializeGoogleSignIn() {
                 console.log('✅ Google Sign-In initialized successfully');
             } catch (error) {
                 console.error('❌ Error initializing Google Sign-In:', error);
+                console.warn('⚠️ Google Sign-In may not work. Please configure Google OAuth in Google Cloud Console');
+                disableGoogleSignInButtons();
             }
         } else {
             console.log('⏳ Waiting for Google SDK to load...');
@@ -233,35 +213,61 @@ function initializeGoogleSignIn() {
     }
 }
 
+function disableGoogleSignInButtons() {
+    const googleSignInBtn = document.getElementById('google-signin-btn');
+    const googleSignUpBtn = document.getElementById('google-signup-btn');
+    
+    if (googleSignInBtn) {
+        googleSignInBtn.disabled = true;
+        googleSignInBtn.style.opacity = '0.5';
+        googleSignInBtn.style.cursor = 'not-allowed';
+        googleSignInBtn.title = 'Google Sign-In not configured. Please use email/password.';
+    }
+    
+    if (googleSignUpBtn) {
+        googleSignUpBtn.disabled = true;
+        googleSignUpBtn.style.opacity = '0.5';
+        googleSignUpBtn.style.cursor = 'not-allowed';
+        googleSignUpBtn.title = 'Google Sign-In not configured. Please use email/password.';
+    }
+}
+
 function triggerGoogleSignIn() {
     console.log('Triggering Google Sign-In...');
     
     if (typeof google === 'undefined' || !google.accounts) {
         console.error('❌ Google Sign-In SDK not loaded');
-        alert('Google Sign-In is loading. Please wait a moment and try again.');
-        
-        // Try to reinitialize
-        setTimeout(() => {
-            initializeGoogleSignIn();
-        }, 1000);
+        alert('Google Sign-In is not available. Please use email/password to sign in instead.');
         return;
     }
     
     try {
+        // Use renderButton instead of prompt to avoid FedCM warnings
+        google.accounts.id.renderButton(
+            document.getElementById('google-signin-btn') || document.body,
+            {
+                type: 'standard',
+                size: 'large',
+                text: 'signin',
+                locale: 'en',
+                error_callback: () => {
+                    console.error('Google Sign-In button rendering failed');
+                    alert('Google Sign-In is not properly configured.\n\nPlease use email/password instead.\n\nTo enable Google OAuth:\n1. Go to Google Cloud Console\n2. Create an OAuth 2.0 Client ID\n3. Add http://localhost:4173 to authorized origins\n4. Update GOOGLE_CLIENT_ID in auth.js');
+                }
+            }
+        );
+        
+        // Alternatively, try the one-tap UI which is more reliable
         google.accounts.id.prompt((notification) => {
-            console.log('Google prompt notification:', notification);
-            
             if (notification.isNotDisplayed()) {
-                console.log('Prompt not displayed, using alternative flow');
-                // Show a message to user
-                alert('Please enable pop-ups or click the button again to sign in with Google.');
+                console.log('One-tap prompt not displayed');
             } else if (notification.isSkippedMoment()) {
-                console.log('User skipped the moment');
+                console.log('User dismissed the sign-in prompt');
             }
         });
     } catch (error) {
         console.error('Error triggering Google Sign-In:', error);
-        alert('Unable to start Google Sign-In. Please try using email/password instead.');
+        alert('Google Sign-In error: ' + error.message + '\n\nPlease use email/password instead.');
     }
 }
 
@@ -273,51 +279,34 @@ async function handleGoogleSignIn(response) {
         
         console.log('Google Sign-In successful:', payload);
 
-        // Create user object from Google data
-        const user = {
-            id: payload.sub,
-            email: payload.email,
-            name: payload.name,
-            picture: payload.picture,
-            email_verified: payload.email_verified,
-            google_id: payload.sub,
-        };
+        // Send credential to backend for verification and cookie-based auth
+        const result = await fetch('http://localhost:5000/api/auth/google-signin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ 
+                credential,
+                email: payload.email,
+                name: payload.name,
+                picture: payload.picture,
+                google_id: payload.sub
+            })
+        });
 
-        // Store user data in localStorage
-        localStorage.setItem('careeros_user', JSON.stringify({
-            email: user.email,
-            id: user.google_id,
-            name: user.name,
-            picture: user.picture,
-            google_id: user.google_id,
-            email_verified: user.email_verified
-        }));
-        
-        // Generate a simple token (in production, you should get this from your backend)
-        localStorage.setItem('careeros_token', `google_${credential}`);
-        
-        // Optional: Send to backend to register/verify user
-        try {
-            await fetch('http://localhost:5000/api/auth/google-signin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    credential,
-                    user: user
-                })
-            });
-        } catch (backendError) {
-            console.warn('Backend registration skipped:', backendError);
+        const data = await result.json();
+
+        if (!result.ok) {
+            throw new Error(data.error || 'Google Sign-In failed');
         }
 
-        // Redirect to home
+        // Backend sets the cookie, just redirect
         console.log('Google Sign-In successful, redirecting...');
         setTimeout(() => {
             window.location.href = 'http://localhost:4173/';
         }, 100);
     } catch (error) {
         console.error('Error handling Google Sign-In:', error);
-        alert('Failed to sign in with Google. Please try again.');
+        alert('Failed to sign in with Google: ' + error.message + '. Please try email/password instead.');
     }
 }
 

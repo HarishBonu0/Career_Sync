@@ -114,12 +114,14 @@ const TestPage = () => {
   const answeredCount = Object.keys(answers).length;
   const progress = (answeredCount / questions.length) * 100;
 
+  const goHome = () => {
+    window.location.href = 'http://localhost:4173';
+  };
+
   if (loading) {
     return (
       <div className="container-main">
-        <header className="app-header">
-          <h1>📚 Knowledge Assessment Platform</h1>
-        </header>
+        {/* Shared Header injected by shared-header.js */}
         <div className="loading-section">
           <div className="loader"></div>
           <p className="loading-text">Generating your personalized test questions...</p>

@@ -83,15 +83,12 @@ const ResultPage = () => {
 
   const handleRetake = () => {
     sessionStorage.clear();
-    navigate('/');
+    window.location.href = 'http://localhost:4173';
   };
 
   return (
     <div className="container-main">
-      <header className="app-header">
-        <h1>📊 Test Results</h1>
-        <p className="app-subtitle">{courseName} - {difficulty}</p>
-      </header>
+      {/* Shared Header injected by shared-header.js */}
 
       <div className="results-section">
         {/* Score Card */}

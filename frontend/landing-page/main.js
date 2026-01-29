@@ -1,4 +1,8 @@
 import { api } from './scripts/api.js';
+import { getCurrentUser, logout } from '../shared/auth.js';
+
+// Initialize header component
+import '../shared/header-component.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Module Links Configuration
@@ -34,21 +38,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     await checkAuthState();
 
     async function checkAuthState() {
-        // Check localStorage auth
-        const localUser = localStorage.getItem('careeros_user');
-        const token = localStorage.getItem('careeros_token');
-
-        if (token && localUser) {
+        // Check cookie-based auth via API
+        const response = await getCurrentUser();
+        
+        if (response.success && response.user) {
             // User is LOGGED IN
-            const displayUser = JSON.parse(localUser);
-            const userEmail = displayUser.email || '';
-            const userInitial = userEmail.charAt(0).toUpperCase() || 'U';
+            const userEmail = response.user.email || '';
+            const userName = response.user.name || userEmail.split('@')[0];
 
             // Update Nav
             if (navAuthContainer) {
                 navAuthContainer.innerHTML = `
                     <div class="user-menu">
-                        <div class="user-avatar" title="${userEmail}">${userInitial}</div>
+                        <span class="user-name" title="${userEmail}">${userName}</span>
                         <button id="btn-logout" class="logout-btn">Sign Out</button>
                     </div>
                 `;
@@ -69,12 +71,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function handleLogout() {
         if (confirm('Are you sure you want to sign out?')) {
             // Sign out - clear auth
-            await api.signOut();
+            await logout();
             
             // Refresh state
             await checkAuthState();
             
-            // Optional: Reload page to clear any other state
+            // Reload page to clear any other state
             window.location.reload();
         }
     }
@@ -83,10 +85,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Navbar active state on scroll
 window.addEventListener('scroll', () => {
     const navbar = document.querySelector('.navbar');
-    if (window.scrollY > 50) {
-        navbar.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
-    } else {
-        navbar.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.08)';
+    if (navbar) {
+        if (window.scrollY > 50) {
+            navbar.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
+        } else {
+            navbar.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.08)';
+        }
     }
 });
 

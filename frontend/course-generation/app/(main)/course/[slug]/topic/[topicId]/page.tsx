@@ -106,12 +106,16 @@ export default function TopicPage() {
           console.log('🔗 Will navigate to: /course-generated/' + extractedCourseId)
         } else {
           console.warn('⚠️ No courseId found in module data')
-          // Fallback: try to get courseId from other sources
+          // Fallback: try to get courseId from generatedCourse in localStorage
           const generatedCourse = localStorage.getItem('generatedCourse')
           if (generatedCourse) {
             try {
               const courseData = JSON.parse(generatedCourse)
-              console.log('📦 Found generatedCourse, attempting to extract ID')
+              if (courseData.id || courseData.courseId) {
+                const fallbackId = courseData.id || courseData.courseId
+                setCourseId(fallbackId)
+                console.log('✅ Course ID extracted from generatedCourse:', fallbackId)
+              }
             } catch (e) {
               console.error('Failed to parse generatedCourse')
             }
@@ -155,9 +159,24 @@ export default function TopicPage() {
         console.error('Error getting course title:', e)
       }
       
-      // Use course title + topic for more relevant videos
-      const searchQuery = courseTitle ? `${courseTitle} ${topic.title} tutorial` : `${topic.title} tutorial course`
-      console.log('🎥 Searching for video:', searchQuery)
+      // Use the specific youtubeSearch query from the module data if available
+      // This ensures each module gets videos relevant to its specific content
+      let searchQuery = ''
+      if (moduleData?.youtubeSearch) {
+        // Use the specific search query generated for this module
+        searchQuery = moduleData.youtubeSearch
+        console.log('🎥 Using module-specific search query:', searchQuery)
+      } else if (courseTitle) {
+        // Fallback to course title + topic for more relevant videos
+        searchQuery = `${courseTitle} ${topic.title} tutorial`
+        console.log('🎥 Using fallback search query:', searchQuery)
+      } else {
+        // Final fallback
+        searchQuery = `${topic.title} tutorial course`
+        console.log('🎥 Using generic search query:', searchQuery)
+      }
+      
+      console.log('🎥 Final search query for video:', searchQuery)
       
       const video = await getYouTubeVideoForTopic(searchQuery)
       setYoutubeVideo(video)
@@ -226,7 +245,7 @@ export default function TopicPage() {
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="container-custom py-4">
           <Link
-            href={`/course/${courseSlug}`}
+            href={courseId ? `/course-generated/${courseId}` : `/course/${courseSlug}`}
             className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />

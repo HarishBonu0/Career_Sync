@@ -1,234 +1,228 @@
-# CareerOS - AI-Powered Career Evolution Platform
+# CareerOS - AI-Powered Career Development Platform
 
-## Quick Start (Development)
+An intelligent, comprehensive platform for career growth and skill development powered by AI and modern web technologies.
+
+## 🎯 Features
+
+- **AI-Powered Course Generation** - Automatically create personalized learning courses
+- **Career Roadmap Visualization** - Interactive path planning for career progression
+- **Skill Assessment System** - AI-generated evaluations and progress tracking
+- **Unified Authentication** - Secure user management and login persistence
+- **Multi-Module Architecture** - Modular frontend and centralized backend
+
+## 🏗️ Architecture
+
+### Backend
+- **Node.js + Express** - RESTful API server (Port 5000)
+- **MongoDB Atlas** - Cloud database for user data and courses
+- **JWT Authentication** - Secure token-based sessions
+- **Email Service** - OTP verification via EmailJS
+
+### Frontend
+Four integrated applications:
+
+| App | Framework | Port | Purpose |
+|-----|-----------|------|---------|
+| Landing Page | Vite + Vanilla JS | 4173 | Entry point & authentication |
+| Course Generation | Next.js | 3002 | AI course builder interface |
+| Roadmap Generator | React + Vite | 5173 | Career path visualization |
+| Skill Evaluator | Vanilla JS | 3001 | Assessment & testing |
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 16+ and npm
-- MongoDB Atlas account (or local MongoDB)
-- Email service configured (EmailJS for OTP)
+- Node.js 16+
+- npm or yarn
+- MongoDB Atlas account
+- EmailJS account (for OTP)
 
-### 1. Install Dependencies
+### Installation
 
 ```bash
-# Install proxy server dependencies
-npm install http-proxy-middleware express
+# Clone the repository
+git clone <repository-url>
+cd "Project Expo"
 
-# Install backend dependencies
-cd backend/main-app/backend
-npm install
-
-# Install frontend dependencies
-cd ../../../frontend/landing-page
-npm install
-
-cd ../course-generation
-npm install
-
-cd ../roadmap
-npm install
-
-cd ../test-generation
-npm install
+# Install all dependencies
+npm run install:all
 ```
 
-### 2. Configure Environment
+### Environment Setup
 
-Create `.env` file in `backend/main-app/backend/`:
+Create `.env` in `backend/main-app/backend/`:
 
 ```env
 PORT=5000
 NODE_ENV=development
-JWT_SECRET=your-secret-key-change-in-production
+JWT_SECRET=your-secret-key-here
 MONGODB_URI=your-mongodb-atlas-connection-string
 
-# EmailJS for OTP
+# EmailJS Configuration
 EMAILJS_SERVICE_ID=your_service_id
 EMAILJS_TEMPLATE_ID=your_template_id
 EMAILJS_PUBLIC_KEY=your_public_key
 EMAILJS_PRIVATE_KEY=your_private_key
 ```
 
-### 3. Start All Services
+### Running Locally
 
-Option A - Use the deployment script:
+**Option 1: Start All Services**
 ```bash
-node deploy.js
+npm run start:all
 ```
 
-Option B - Manual startup:
+**Option 2: Start Individually**
 ```bash
-# Terminal 1: Backend API
-cd backend/main-app/backend
-npm start
+# Terminal 1 - Backend
+npm run start:backend
 
-# Terminal 2: Landing Page
-cd frontend/landing-page
+# Terminal 2 - All Frontends
+cd frontend
 npm run dev
-
-# Terminal 3: Course Generator
-cd frontend/course-generation
-npm run dev
-
-# Terminal 4: Roadmap
-cd frontend/roadmap
-npm run dev
-
-# Terminal 5: Evaluator
-cd frontend/test-generation
-npm run dev
-
-# Terminal 6: Reverse Proxy (Production-like routing)
-node proxy-server.js
 ```
 
-### 4. Access the Application
-
-**Development (with individual ports):**
+**Access Points:**
 - Landing Page: http://localhost:4173
-- Course Generator: http://localhost:3002
+- Course Generation: http://localhost:3002
 - Roadmap: http://localhost:5173
-- Evaluator: http://localhost:3001
-- Backend API: http://localhost:5000
+- Skill Evaluator: http://localhost:3001
 
-**Production-like (with reverse proxy):**
-- Main Application: http://localhost:8080
-- All modules accessible via clean paths:
-  - `/` - Landing page
-  - `/auth` - Authentication
-  - `/course-generator` - Course generation
-  - `/roadmap` - Career roadmaps
-  - `/evaluator` - Skill evaluator
-  - `/api/*` - Backend API
-
-## Features
-
-### Authentication
-- ✅ Email/Password sign up and login
-- ✅ OTP-based email verification
-- ✅ Password reset via email OTP
-- ✅ Persistent sessions across modules
-- 🔄 Social login (Google, LinkedIn) - Coming soon
-
-### Core Modules
-- **Course Generator**: AI-powered course creation
-- **Roadmap**: Career path visualization and planning
-- **Skill Evaluator**: Knowledge testing and assessment
-- **Landing Page**: Main navigation and user dashboard
-
-### User Experience
-- ✅ Unified header/footer across all modules
-- ✅ Consistent authentication state
-- ✅ Fast OTP delivery (async email sending)
-- ✅ Mobile-responsive design
-- ✅ Clean, deployment-ready routing
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 Project Expo/
 ├── backend/
-│   └── main-app/backend/       # Express API server
-│       ├── routes/             # API routes
-│       ├── models/             # MongoDB models
-│       ├── services/           # Business logic
-│       └── db/                 # Database config
+│   └── main-app/
+│       ├── backend/              # Express server
+│       │   ├── server.js
+│       │   ├── controllers/      # Request handlers
+│       │   ├── models/           # MongoDB schemas
+│       │   ├── routes/           # API endpoints
+│       │   ├── middleware/       # Auth & validation
+│       │   ├── services/         # Business logic
+│       │   └── package.json
+│       └── database/
+│           └── schema.sql        # Database setup
+│
 ├── frontend/
-│   ├── landing-page/           # Main landing page (Vite)
-│   ├── course-generation/      # Course generator (Next.js)
-│   ├── roadmap/                # Career roadmaps (Vite + React)
-│   ├── test-generation/        # Skill evaluator (Vite)
-│   └── shared-header.js        # Shared navigation component
-├── proxy-server.js             # Reverse proxy for clean routing
-├── deploy.js                   # Automated deployment script
-└── README.md                   # This file
+│   ├── landing-page/             # Main entry (Vite)
+│   ├── course-generation/        # AI courses (Next.js)
+│   ├── roadmap/                  # Career paths (React)
+│   ├── test-generation/          # Skill tests (Vanilla JS)
+│   ├── shared/                   # Shared components
+│   └── package.json
+│
+├── db/                           # Database utilities
+│   ├── supabaseClient.ts
+│   └── queries/
+│
+├── scripts/                      # Setup & deployment
+├── nginx.conf                    # Web server config
+└── README.md
 ```
 
-## Deployment
+## 🔐 Authentication Flow
 
-### Production Build
+1. User registers/logs in on Landing Page
+2. Backend validates credentials and issues JWT
+3. JWT stored in localStorage with expiration
+4. All API requests include token in headers
+5. Middleware verifies token on protected routes
+6. OTP sent via EmailJS for verification
 
-1. Build all frontend modules:
+## 📊 API Endpoints
+
+### Authentication
+```
+POST   /api/auth/register         - User registration
+POST   /api/auth/login            - User login
+POST   /api/auth/verify-otp       - OTP verification
+POST   /api/auth/refresh          - Token refresh
+```
+
+### Courses
+```
+GET    /api/courses               - List all courses
+POST   /api/courses               - Create course
+GET    /api/courses/:id           - Get course details
+PUT    /api/courses/:id           - Update course
+```
+
+### Users
+```
+GET    /api/users/profile         - Get user profile
+PUT    /api/users/profile         - Update profile
+GET    /api/users/progress        - Get learning progress
+```
+
+## 🛠️ Development
+
+### Available Scripts
+
 ```bash
-cd frontend/landing-page && npm run build
-cd ../course-generation && npm run build
-cd ../roadmap && npm run build
-cd ../test-generation && npm run build
+npm run install:all               # Install all dependencies
+npm run start:all                 # Start backend + all frontends
+npm run start:backend             # Backend only
+npm run start:landing             # Landing page only
+npm run start:course              # Course generation only
+npm run start:roadmap             # Roadmap only
+npm run start:evaluator           # Skill evaluator only
 ```
 
-2. Configure reverse proxy (Nginx or Node.js proxy-server.js)
+### Tech Stack
+- **Runtime:** Node.js
+- **Backend:** Express.js
+- **Database:** MongoDB
+- **Frontend Frameworks:** Next.js, React, Vite
+- **Authentication:** JWT
+- **Email Service:** EmailJS
+- **Styling:** Tailwind CSS, CSS Modules
 
-3. Set production environment variables
+## 📦 Deployment
 
-4. Deploy to your hosting platform (Vercel, Netlify, AWS, etc.)
-
-### Environment Variables (Production)
-
-```env
-PORT=5000
-NODE_ENV=production
-JWT_SECRET=strong-random-secret
-MONGODB_URI=mongodb+srv://...
-EMAILJS_SERVICE_ID=...
-EMAILJS_TEMPLATE_ID=...
-EMAILJS_PUBLIC_KEY=...
-EMAILJS_PRIVATE_KEY=...
+### Render.yaml Configuration
+```bash
+# Automatic deployment via render.yaml
+# Push to main branch to trigger deployment
 ```
 
-## Tech Stack
+### Docker
+```bash
+# Build and run with Docker
+docker-compose up --build
+```
 
-- **Frontend**: React, Next.js, Vite, TypeScript
-- **Backend**: Node.js, Express
-- **Database**: MongoDB Atlas
-- **Authentication**: JWT, bcrypt
-- **Email**: EmailJS
-- **Styling**: CSS, Tailwind CSS
+## 🐛 Troubleshooting
 
-## Development Roadmap
-
-### Completed ✅
-- Unified authentication across modules
-- OTP verification page
-- Password reset flow
-- Reverse proxy for clean routing
-- Async OTP email sending for better performance
-
-### In Progress 🔄
-- Progress tracking for courses/roadmaps/tests
-- User roles (admin, student, guest)
-- Course enrollment and certificates
-- Mobile responsiveness improvements
-- Accessibility enhancements (WCAG)
-
-### Planned 📋
-- Social login (Google, LinkedIn)
-- API rate limiting and security
-- User feedback and ratings
-- Real-time notifications
-- Analytics dashboard
-
-## Support
-
-For issues, feature requests, or questions:
-1. Check the documentation in each module's folder
-2. Review the troubleshooting section below
-3. Contact the development team
-
-## Troubleshooting
-
-### MongoDB Connection Issues
-- Ensure your IP is whitelisted in MongoDB Atlas Network Access
+**MongoDB Connection Issues:**
 - Verify connection string in `.env`
-- Check MongoDB Atlas cluster status
+- Check IP whitelist in MongoDB Atlas
+- Ensure database user has proper permissions
 
-### OTP Not Received
-- Verify EmailJS credentials in `.env`
-- Check spam/junk folder
-- Ensure email template is correctly configured in EmailJS dashboard
+**Port Conflicts:**
+- Change ports in respective `vite.config.js` or `package.json`
+- Update API endpoints if ports change
 
-### Port Already in Use
-- Change ports in respective `package.json` or `.env` files
-- Kill processes using the ports: `npx kill-port 5000 4173 3002 5173 3001`
+**JWT Issues:**
+- Clear localStorage and re-login
+- Verify JWT_SECRET matches between requests
+- Check token expiration time
 
-## License
+## 🤝 Contributing
 
-© 2026 CareerOS. All rights reserved.
+1. Create a feature branch
+2. Make your changes
+3. Commit with clear messages
+4. Push and create a Pull Request
+
+## 📄 License
+
+This project is proprietary and confidential.
+
+## 📧 Support
+
+For issues or questions, contact the development team.
+
+---
+
+**Last Updated:** January 2026 | **Version:** 1.0.0

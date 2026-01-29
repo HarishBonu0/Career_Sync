@@ -1,30 +1,12 @@
 // Backend API auth for Landing Page
 const API_BASE = 'http://localhost:5000/api';
 
-// Mock users for fallback
-const MOCK_USERS_KEY = 'careeros_mock_users';
-
-function getMockUsers() {
-  const users = localStorage.getItem(MOCK_USERS_KEY);
-  return users ? JSON.parse(users) : [];
-}
-
-function saveMockUser(user) {
-  const users = getMockUsers();
-  users.push(user);
-  localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
-}
-
-function findMockUser(email, password) {
-  const users = getMockUsers();
-  return users.find(u => u.email === email && u.password === password);
-}
-
 export async function register(email, password, name = '') {
   try {
     const resp = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ email, password, name })
     });
     
@@ -34,32 +16,10 @@ export async function register(email, password, name = '') {
     }
     
     const data = await resp.json();
-    return { success: true, user: data.user, token: data.token };
+    return { success: true, user: data.user };
   } catch (error) {
-    console.warn('Backend unavailable, using mock auth:', error.message);
-    
-    // Check if user already exists
-    const existingUsers = getMockUsers();
-    if (existingUsers.find(u => u.email === email)) {
-      return { success: false, error: 'Email already registered' };
-    }
-    
-    // Create mock user
-    const mockUser = {
-      id: 'mock_' + Date.now(),
-      email,
-      password,
-      name: name || email.split('@')[0],
-      created_at: new Date().toISOString()
-    };
-    
-    saveMockUser(mockUser);
-    
-    return { 
-      success: true, 
-      user: { id: mockUser.id, email: mockUser.email, name: mockUser.name },
-      token: 'mock_token_' + Date.now()
-    };
+    console.error('Registration network error:', error);
+    return { success: false, error: `Network error: ${error.message}. Make sure the backend is running at ${API_BASE}` };
   }
 }
 
@@ -68,62 +28,86 @@ export async function login(email, password) {
     const resp = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ email, password })
     });
-    
-    const data = await resp.json().catch(() => ({}));
-    
+
     if (!resp.ok) {
-      return { success: false, error: data.error || 'Invalid email or password' };
+      const err = await resp.json().catch(() => ({ error: 'Login failed' }));
+      return { success: false, error: err.error || 'Login failed' };
     }
-    
-    return { success: true, user: data.user, token: data.token };
+
+    const data = await resp.json();
+    return { success: true, user: data.user };
   } catch (error) {
-    console.warn('Backend unavailable, using mock auth:', error.message);
-    
-    // Try mock authentication
-    const mockUser = findMockUser(email, password);
-    
-    if (mockUser) {
-      return { 
-        success: true, 
-        user: { id: mockUser.id, email: mockUser.email, name: mockUser.name },
-        token: 'mock_token_' + Date.now()
-      };
-    }
-    
-    return { success: false, error: 'Invalid email or password. Backend is offline - please register first.' };
+    console.error('Login network error:', error);
+    console.error('API_BASE:', API_BASE);
+    return { success: false, error: `Network error: ${error.message}. Make sure the backend is running at ${API_BASE}` };
   }
 }
 
 export async function requestOtp(email) {
-  const resp = await fetch(`${API_BASE}/auth/request-otp`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok) {
-    return { success: false, error: data.error || 'Failed to send OTP' };
+  try {
+    const resp = await fetch(`${API_BASE}/auth/request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      return { success: false, error: data.error || 'Failed to send OTP' };
+    }
+    return { success: true, message: data.message || 'OTP sent to email' };
+  } catch (error) {
+    return { success: false, error: 'Network error. Please try again.' };
   }
-  return { success: true, message: data.message || 'OTP sent to email' };
 }
 
 export async function loginWithOtp(email, otp) {
-  const resp = await fetch(`${API_BASE}/auth/login-otp`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, otp })
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok) {
-    return { success: false, error: data.error || 'Invalid OTP' };
+  try {
+    const resp = await fetch(`${API_BASE}/auth/login-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, otp })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      return { success: false, error: data.error || 'Invalid OTP' };
+    }
+    return { success: true, user: data.user };
+  } catch (error) {
+    return { success: false, error: 'Network error. Please try again.' };
   }
-  return { success: true, user: data.user, token: data.token };
 }
 
 export async function logout() {
-  localStorage.removeItem('careeros_user');
-  localStorage.removeItem('careeros_token');
+  try {
+    await fetch(`${API_BASE}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
   return { success: true };
+}
+
+export async function getCurrentUser() {
+  try {
+    const resp = await fetch(`${API_BASE}/auth/me`, {
+      credentials: 'include'
+    });
+    
+    if (!resp.ok) {
+      return { success: false, user: null };
+    }
+    
+    const data = await resp.json();
+    return { success: true, user: data.user };
+  } catch (error) {
+    console.error('Get current user error:', error);
+    return { success: false, user: null };
+  }
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { SimulationResult } from '../types/index';
-import Header from '../components/Layout/Header';
+// Header removed in favor of shared header injection
 import Footer from '../components/Layout/Footer';
 import SimulationResults from '../components/Results/SimulationResults';
 import APIConfigurationModal from '../components/Modals/APIConfigurationModal';
@@ -15,11 +15,7 @@ export default function ResultsPage({ result, onNewSimulation }: ResultsPageProp
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Header
-        onConfigClick={() => setIsModalOpen(true)}
-        showNewSimulation={true}
-        onNewSimulation={onNewSimulation}
-      />
+      {/* Shared header injected via /shared-header.js; new simulation controls remain in page body */}
 
       <main style={{ flex: 1 }}>
         <SimulationResults result={result} />

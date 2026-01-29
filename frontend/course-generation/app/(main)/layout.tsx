@@ -1,7 +1,7 @@
 'use client'
 
-import Navbar from '@/components/layout/Navbar'
 import { AuthProvider } from '@/contexts/AuthContext'
+import Header from '@/components/Header'
 
 export default function MainLayout({
   children,
@@ -10,9 +10,9 @@ export default function MainLayout({
 }) {
   return (
     <AuthProvider>
-      <div className="min-h-screen">
-        <Navbar />
-        <main>{children}</main>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1">{children}</main>
       </div>
     </AuthProvider>
   )

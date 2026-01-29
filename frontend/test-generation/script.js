@@ -18,7 +18,7 @@ const testSection = document.getElementById('testSection');
 const resultsSection = document.getElementById('resultsSection');
 
 // Gemini API Key (from backend .env)
-const GEMINI_API_KEY = 'AIzaSyCca7oAUkgPecwj-8i7Ee-LdzJLY9exKjk';
+const GEMINI_API_KEY = 'AIzaSyApZrvMqVKe3PQFvZaf9XJf9sIGjwgiJhM';
 
 // Initialize Event Listeners
 function init() {
