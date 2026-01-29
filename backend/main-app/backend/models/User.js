@@ -97,8 +97,7 @@ const userSchema = new mongoose.Schema({
   timestamps: true 
 });
 
-// Indexes
-userSchema.index({ email: 1 });
+// Indexes (email index removed - already unique in schema)
 userSchema.index({ status: 1 });
 userSchema.index({ createdAt: 1 });
 

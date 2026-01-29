@@ -57,8 +57,11 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
+    // Handle guest users - set to null if guest
+    const userData = (user && user !== 'guest') ? user : null;
+
     const course = await Course.create({
-      user: user || null,
+      user: userData,
       title,
       description: description || '',
       level: level || 'beginner',
@@ -87,8 +90,11 @@ router.post('/save', async (req, res) => {
       return res.status(400).json({ error: 'title is required' });
     }
 
+    // Handle guest users - don't save to database for guest, or set user to null
+    const userData = (userId && userId !== 'guest') ? userId : null;
+
     const newCourse = await Course.create({
-      user: userId || null,
+      user: userData,
       generation: generationId,
       title: courseData.title,
       description: courseData.description || '',
