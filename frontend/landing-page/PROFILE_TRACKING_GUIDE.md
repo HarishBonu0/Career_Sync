@@ -36,7 +36,7 @@ const courseData = {
 };
 
 // Save to profile
-window.CareerOSProfile.saveCourse(courseData);
+window.careersyncProfile.saveCourse(courseData);
 ```
 
 ### 3. Update Course Progress
@@ -44,7 +44,7 @@ window.CareerOSProfile.saveCourse(courseData);
 When user completes a module:
 ```javascript
 // Update progress (e.g., completed 3 out of 10 modules = 30%)
-window.CareerOSProfile.updateCourseProgress(
+window.careersyncProfile.updateCourseProgress(
     'course-id',  // Course ID
     30,           // Progress percentage
     3             // Completed modules
@@ -67,7 +67,7 @@ const roadmapData = {
     duration: '6 months'
 };
 
-window.CareerOSProfile.saveRoadmap(roadmapData);
+window.careersyncProfile.saveRoadmap(roadmapData);
 ```
 
 ### 5. Update Roadmap Progress
@@ -75,7 +75,7 @@ window.CareerOSProfile.saveRoadmap(roadmapData);
 When user completes a stage:
 ```javascript
 // Update progress (e.g., completed 2 out of 6 stages = 33%)
-window.CareerOSProfile.updateRoadmapProgress(
+window.careersyncProfile.updateRoadmapProgress(
     'roadmap-id',  // Roadmap ID
     33,            // Progress percentage
     2              // Completed stages
@@ -97,7 +97,7 @@ const evaluationData = {
     timeTaken: '25 min'
 };
 
-window.CareerOSProfile.saveEvaluation(evaluationData);
+window.careersyncProfile.saveEvaluation(evaluationData);
 ```
 
 ## Example Integration
@@ -113,7 +113,7 @@ fetch('http://localhost:5000/api/courses/generate', {
 .then(response => response.json())
 .then(data => {
     // Save to profile
-    window.CareerOSProfile.saveCourse({
+    window.careersyncProfile.saveCourse({
         id: data.generationId,
         title: data.courseName,
         courseName: data.courseName,
@@ -133,7 +133,7 @@ fetch('http://localhost:5000/api/courses/generate', {
 ### Roadmap Page
 ```javascript
 // After generating roadmap
-const savedRoadmap = window.CareerOSProfile.saveRoadmap({
+const savedRoadmap = window.careersyncProfile.saveRoadmap({
     id: Date.now().toString(),
     title: careerGoal,
     careerGoal: careerGoal,
@@ -152,7 +152,7 @@ console.log('Roadmap saved:', savedRoadmap);
 ```javascript
 // After submitting test
 const result = calculateScore();
-window.CareerOSProfile.saveEvaluation({
+window.careersyncProfile.saveEvaluation({
     id: Date.now().toString(),
     topic: testTopic,
     title: testTopic,
@@ -227,9 +227,9 @@ The profile page includes sample data that appears on first load. You can:
 
 ## LocalStorage Keys
 
-- `careeros_enrolled_courses` - Array of course objects
-- `careeros_saved_roadmaps` - Array of roadmap objects
-- `careeros_evaluations` - Array of evaluation objects
+- `careersync_enrolled_courses` - Array of course objects
+- `careersync_saved_roadmaps` - Array of roadmap objects
+- `careersync_evaluations` - Array of evaluation objects
 
 ## Notes
 
@@ -237,3 +237,4 @@ The profile page includes sample data that appears on first load. You can:
 - Status changes to 'completed' when progress reaches 100%
 - All timestamps are stored in ISO format
 - Data persists in browser localStorage
+

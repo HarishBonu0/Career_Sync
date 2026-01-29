@@ -281,9 +281,9 @@
         });
 
         function checkAuthenticationStatus() {
-            const user = localStorage.getItem('careeros_user');
-            const token = localStorage.getItem('careeros_token');
-            const authContainer = document.querySelector('.careeros-nav-auth');
+            const user = localStorage.getItem('careersync_user');
+            const token = localStorage.getItem('careersync_token');
+            const authContainer = document.querySelector('.careersync-nav-auth');
             
             if (!authContainer) return;
 
@@ -302,7 +302,7 @@
                                 </span>
                                 <span style="font-weight: 500;">${displayName}</span>
                             </a>
-                            <button onclick="handleLogout()" class="careeros-btn careeros-btn-danger">
+                            <button onclick="handleLogout()" class="careersync-btn careersync-btn-danger">
                                 Sign Out
                             </button>
                         </div>
@@ -318,24 +318,24 @@
 
         function showSignInButton(container) {
             container.innerHTML = `
-                <a href="/auth.html" class="careeros-btn careeros-btn-primary">
+                <a href="/auth.html" class="careersync-btn careersync-btn-primary">
                     Sign In
                 </a>
             `;
         }
 
         function saveUserProfileData() {
-            const user = localStorage.getItem('careeros_user');
+            const user = localStorage.getItem('careersync_user');
             if (user) {
                 try {
                     const userData = JSON.parse(user);
                     const profileData = {
                         ...userData,
                         lastAccessed: new Date().toISOString(),
-                        visitCount: (parseInt(localStorage.getItem('careeros_profile_visits') || '0') + 1)
+                        visitCount: (parseInt(localStorage.getItem('careersync_profile_visits') || '0') + 1)
                     };
-                    localStorage.setItem('careeros_profile_data', JSON.stringify(profileData));
-                    localStorage.setItem('careeros_profile_visits', profileData.visitCount.toString());
+                    localStorage.setItem('careersync_profile_data', JSON.stringify(profileData));
+                    localStorage.setItem('careersync_profile_visits', profileData.visitCount.toString());
                 } catch (e) {
                     console.error('Error saving profile data:', e);
                 }
@@ -343,10 +343,10 @@
         }
 
         function handleLogout() {
-            localStorage.removeItem('careeros_user');
-            localStorage.removeItem('careeros_token');
-            localStorage.removeItem('careeros_auth');
-            localStorage.removeItem('careeros_profile_data');
+            localStorage.removeItem('careersync_user');
+            localStorage.removeItem('careersync_token');
+            localStorage.removeItem('careersync_auth');
+            localStorage.removeItem('careersync_profile_data');
             window.location.href = '/auth.html';
         }
     </script>

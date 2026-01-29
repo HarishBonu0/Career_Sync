@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Store user data in localStorage
             if (result.user) {
-                localStorage.setItem('careeros_user', JSON.stringify(result.user));
+                localStorage.setItem('careersync_user', JSON.stringify(result.user));
             }
             
             // Redirect to profile page
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Store user data in localStorage
             if (result.user) {
-                localStorage.setItem('careeros_user', JSON.stringify(result.user));
+                localStorage.setItem('careersync_user', JSON.stringify(result.user));
             }
             
             setButtonLoading(submitBtn, false);
@@ -335,3 +335,4 @@ function parseJwt(token) {
         return null;
     }
 }
+

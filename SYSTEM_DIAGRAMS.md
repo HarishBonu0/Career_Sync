@@ -74,7 +74,7 @@
 │            MONGODB ATLAS (Cloud Database)                           │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
-│  Database: CareerOs                                                 │
+│  Database: CareerSync                                               │
 │  ┌────────────────────────────────────────────────────────────┐    │
 │  │  Collections                                              │    │
 │  │  ├─ users                      [user accounts]           │    │

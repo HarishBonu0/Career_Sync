@@ -184,7 +184,7 @@ To fully utilize this feature, frontend needs to:
 
 2. **Store device list locally** ✓
    ```javascript
-   localStorage.setItem('careeros_devices', JSON.stringify(devices));
+   localStorage.setItem('careersync_devices', JSON.stringify(devices));
    ```
 
 3. **Periodically sync** ✓

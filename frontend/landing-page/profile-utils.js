@@ -1,4 +1,4 @@
-// CareerOS Profile Utilities - Enhanced with Backend Integration
+// careersync Profile Utilities - Enhanced with Backend Integration
 // Helper functions to track courses, roadmaps, and evaluations progress
 // All operations sync with backend database
 
@@ -6,19 +6,19 @@ const API_BASE = 'http://localhost:5000/api';
 
 // Helper to get user ID from localStorage
 function getUserId() {
-    const user = JSON.parse(localStorage.getItem('careeros_user') || '{}');
-    return user._id || user.id || localStorage.getItem('careeros_userId');
+    const user = JSON.parse(localStorage.getItem('careersync_user') || '{}');
+    return user._id || user.id || localStorage.getItem('careersync_userId');
 }
 
 // Helper to get user email from localStorage
 function getUserEmail() {
-    const user = JSON.parse(localStorage.getItem('careeros_user') || '{}');
-    return user.email || localStorage.getItem('careeros_userEmail');
+    const user = JSON.parse(localStorage.getItem('careersync_user') || '{}');
+    return user.email || localStorage.getItem('careersync_userEmail');
 }
 
 // Save course to profile (backend + localStorage)
 async function saveCourseToProfile(courseData) {
-    const enrolledCourses = JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]');
+    const enrolledCourses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
     
     const courseEntry = {
         id: courseData.id || courseData.courseId || Date.now().toString(),
@@ -45,7 +45,7 @@ async function saveCourseToProfile(courseData) {
         enrolledCourses.push(courseEntry);
     }
     
-    localStorage.setItem('careeros_enrolled_courses', JSON.stringify(enrolledCourses));
+    localStorage.setItem('careersync_enrolled_courses', JSON.stringify(enrolledCourses));
     console.log('Course saved to profile:', courseEntry.title);
     
     // Send to backend
@@ -71,7 +71,7 @@ async function saveCourseToProfile(courseData) {
                 const backendResult = await response.json();
                 courseEntry._id = backendResult._id; // Store backend ID
                 enrolledCourses[existingIndex >= 0 ? existingIndex : enrolledCourses.length - 1] = courseEntry;
-                localStorage.setItem('careeros_enrolled_courses', JSON.stringify(enrolledCourses));
+                localStorage.setItem('careersync_enrolled_courses', JSON.stringify(enrolledCourses));
                 console.log('Course synced to backend');
                 return backendResult;
             }
@@ -85,7 +85,7 @@ async function saveCourseToProfile(courseData) {
 
 // Update course progress (backend + localStorage)
 async function updateCourseProgress(courseId, progress, completedModules) {
-    const enrolledCourses = JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]');
+    const enrolledCourses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
     const courseIndex = enrolledCourses.findIndex(c => c.id === courseId || c.title === courseId);
     
     if (courseIndex >= 0) {
@@ -98,7 +98,7 @@ async function updateCourseProgress(courseId, progress, completedModules) {
             enrolledCourses[courseIndex].completedAt = new Date().toISOString();
         }
         
-        localStorage.setItem('careeros_enrolled_courses', JSON.stringify(enrolledCourses));
+        localStorage.setItem('careersync_enrolled_courses', JSON.stringify(enrolledCourses));
         console.log('Course progress updated:', progress + '%');
         
         // Send to backend
@@ -133,7 +133,7 @@ async function updateCourseProgress(courseId, progress, completedModules) {
 
 // Save roadmap to profile (backend + localStorage)
 async function saveRoadmapToProfile(roadmapData) {
-    const savedRoadmaps = JSON.parse(localStorage.getItem('careeros_saved_roadmaps') || '[]');
+    const savedRoadmaps = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
     
     const roadmapEntry = {
         id: roadmapData.id || roadmapData.roadmapId || Date.now().toString(),
@@ -160,7 +160,7 @@ async function saveRoadmapToProfile(roadmapData) {
         savedRoadmaps.push(roadmapEntry);
     }
     
-    localStorage.setItem('careeros_saved_roadmaps', JSON.stringify(savedRoadmaps));
+    localStorage.setItem('careersync_saved_roadmaps', JSON.stringify(savedRoadmaps));
     console.log('Roadmap saved to profile:', roadmapEntry.title);
     
     // Send to backend
@@ -186,7 +186,7 @@ async function saveRoadmapToProfile(roadmapData) {
                 const backendResult = await response.json();
                 roadmapEntry._id = backendResult._id;
                 savedRoadmaps[existingIndex >= 0 ? existingIndex : savedRoadmaps.length - 1] = roadmapEntry;
-                localStorage.setItem('careeros_saved_roadmaps', JSON.stringify(savedRoadmaps));
+                localStorage.setItem('careersync_saved_roadmaps', JSON.stringify(savedRoadmaps));
                 console.log('Roadmap synced to backend');
                 return backendResult;
             }
@@ -200,7 +200,7 @@ async function saveRoadmapToProfile(roadmapData) {
 
 // Update roadmap progress (backend + localStorage)
 async function updateRoadmapProgress(roadmapId, progress, completedStages) {
-    const savedRoadmaps = JSON.parse(localStorage.getItem('careeros_saved_roadmaps') || '[]');
+    const savedRoadmaps = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
     const roadmapIndex = savedRoadmaps.findIndex(r => r.id === roadmapId || r.title === roadmapId);
     
     if (roadmapIndex >= 0) {
@@ -213,7 +213,7 @@ async function updateRoadmapProgress(roadmapId, progress, completedStages) {
             savedRoadmaps[roadmapIndex].completedAt = new Date().toISOString();
         }
         
-        localStorage.setItem('careeros_saved_roadmaps', JSON.stringify(savedRoadmaps));
+        localStorage.setItem('careersync_saved_roadmaps', JSON.stringify(savedRoadmaps));
         console.log('Roadmap progress updated:', progress + '%');
         
         // Send to backend
@@ -247,7 +247,7 @@ async function updateRoadmapProgress(roadmapId, progress, completedStages) {
 
 // Save skill evaluation to profile (backend + localStorage)
 async function saveEvaluationToProfile(evaluationData) {
-    const completedEvaluations = JSON.parse(localStorage.getItem('careeros_evaluations') || '[]');
+    const completedEvaluations = JSON.parse(localStorage.getItem('careersync_evaluations') || '[]');
     
     const evaluationEntry = {
         id: evaluationData.id || Date.now().toString(),
@@ -263,7 +263,7 @@ async function saveEvaluationToProfile(evaluationData) {
     };
     
     completedEvaluations.push(evaluationEntry);
-    localStorage.setItem('careeros_evaluations', JSON.stringify(completedEvaluations));
+    localStorage.setItem('careersync_evaluations', JSON.stringify(completedEvaluations));
     console.log('Evaluation saved to profile:', evaluationEntry.topic);
     
     // Send to backend
@@ -291,7 +291,7 @@ async function saveEvaluationToProfile(evaluationData) {
                 const backendResult = await response.json();
                 evaluationEntry._id = backendResult._id;
                 completedEvaluations[completedEvaluations.length - 1] = evaluationEntry;
-                localStorage.setItem('careeros_evaluations', JSON.stringify(completedEvaluations));
+                localStorage.setItem('careersync_evaluations', JSON.stringify(completedEvaluations));
                 console.log('Evaluation synced to backend');
                 return backendResult;
             }
@@ -321,13 +321,13 @@ async function getProfileData() {
                 
                 // Update localStorage with backend data
                 if (backendData.courses) {
-                    localStorage.setItem('careeros_enrolled_courses', JSON.stringify(backendData.courses));
+                    localStorage.setItem('careersync_enrolled_courses', JSON.stringify(backendData.courses));
                 }
                 if (backendData.roadmaps) {
-                    localStorage.setItem('careeros_saved_roadmaps', JSON.stringify(backendData.roadmaps));
+                    localStorage.setItem('careersync_saved_roadmaps', JSON.stringify(backendData.roadmaps));
                 }
                 if (backendData.evaluations) {
-                    localStorage.setItem('careeros_evaluations', JSON.stringify(backendData.evaluations));
+                    localStorage.setItem('careersync_evaluations', JSON.stringify(backendData.evaluations));
                 }
                 
                 return backendData;
@@ -339,15 +339,15 @@ async function getProfileData() {
     
     // Fallback to localStorage
     return {
-        courses: JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]'),
-        roadmaps: JSON.parse(localStorage.getItem('careeros_saved_roadmaps') || '[]'),
-        evaluations: JSON.parse(localStorage.getItem('careeros_evaluations') || '[]')
+        courses: JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]'),
+        roadmaps: JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]'),
+        evaluations: JSON.parse(localStorage.getItem('careersync_evaluations') || '[]')
     };
 }
 
 // Export functions for use in other pages
 if (typeof window !== 'undefined') {
-    window.CareerOSProfile = {
+    window.careersyncProfile = {
         saveCourse: saveCourseToProfile,
         updateCourseProgress: updateCourseProgress,
         saveRoadmap: saveRoadmapToProfile,
@@ -356,3 +356,4 @@ if (typeof window !== 'undefined') {
         getProfileData: getProfileData
     };
 }
+

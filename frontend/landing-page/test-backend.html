@@ -105,7 +105,7 @@
             // Test 3: Cookie Status
             html += '<div class="test"><h3>Test 3: Cookie Status</h3>';
             html += `<p>Current cookies: <code>${document.cookie || '(no cookies)'}</code></p>`;
-            if (document.cookie.includes('careeros_token')) {
+            if (document.cookie.includes('careersync_token')) {
                 html = html.replace('<div class="test">', '<div class="test success">');
                 html += '<p>✅ Auth cookie is set!</p>';
             } else {
@@ -119,3 +119,4 @@
     </script>
 </body>
 </html>
+

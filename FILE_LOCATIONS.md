@@ -92,10 +92,10 @@ frontend/
 └── course-generation/
     └─ course-integration.js                [NEW - Ready to use]
        ├─ handleCourseEnrollment()
-       │  └─ Calls: CareerOSProfile.saveCourse()
+       │  └─ Calls: careersyncProfile.saveCourse()
        │
        ├─ handleModuleCompletion()
-       │  └─ Calls: CareerOSProfile.updateCourseProgress()
+       │  └─ Calls: careersyncProfile.updateCourseProgress()
        │
        ├─ handleCourseCompletion()
        │  └─ Marks course as 100% complete
@@ -119,10 +119,10 @@ frontend/
 └── roadmap/
     └─ roadmap-integration.js               [NEW - Ready to use]
        ├─ handleRoadmapEnrollment()
-       │  └─ Calls: CareerOSProfile.saveRoadmap()
+       │  └─ Calls: careersyncProfile.saveRoadmap()
        │
        ├─ handleStageCompletion()
-       │  └─ Calls: CareerOSProfile.updateRoadmapProgress()
+       │  └─ Calls: careersyncProfile.updateRoadmapProgress()
        │
        ├─ handleRoadmapProgressUpdate()
        │  └─ Manual progress tracking
@@ -148,7 +148,7 @@ frontend/
        │  └─ Initialize test state
        │
        ├─ handleTestSubmission()
-       │  └─ Calls: CareerOSProfile.saveEvaluation()
+       │  └─ Calls: careersyncProfile.saveEvaluation()
        │
        ├─ handleTestSave()
        │  └─ Save progress on exit
@@ -328,7 +328,7 @@ profile.html (auto-refresh every 5 sec)
 → Check: `backend/routes/profile.js`
 
 **See database**
-→ MongoDB Atlas → CareerOs → userenrollments
+→ MongoDB Atlas → careersync → userenrollments
 
 ---
 
@@ -393,3 +393,4 @@ test-database-integration.html = Test everything here
 **Everything is in place and ready to go! 🎉**
 
 Start with: `test-database-integration.html` to verify everything works.
+

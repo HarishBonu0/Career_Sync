@@ -74,8 +74,8 @@
 
     <script>
         function displayAuthStatus() {
-            const user = localStorage.getItem('careeros_user');
-            const token = localStorage.getItem('careeros_token');
+            const user = localStorage.getItem('careersync_user');
+            const token = localStorage.getItem('careersync_token');
             const statusDiv = document.getElementById('auth-status');
             
             if (user && token) {
@@ -127,7 +127,7 @@
 
         function displayUserData() {
             const container = document.getElementById('user-data');
-            const user = localStorage.getItem('careeros_user');
+            const user = localStorage.getItem('careersync_user');
             
             if (!user) {
                 container.innerHTML = '<div class="data-block">No user data found</div>';
@@ -144,9 +144,9 @@
 
         function clearAuth() {
             if (confirm('Are you sure you want to clear all authentication data?')) {
-                localStorage.removeItem('careeros_user');
-                localStorage.removeItem('careeros_token');
-                localStorage.removeItem('careeros_auth');
+                localStorage.removeItem('careersync_user');
+                localStorage.removeItem('careersync_token');
+                localStorage.removeItem('careersync_auth');
                 localStorage.removeItem('user');
                 localStorage.removeItem('token');
                 alert('Authentication data cleared!');
@@ -168,3 +168,4 @@
     </script>
 </body>
 </html>
+

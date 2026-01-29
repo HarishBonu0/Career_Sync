@@ -52,7 +52,7 @@ const createHeaderHTML = (user, authenticated) => {
             font-size: 20px;
             font-weight: 600;
             color: #111827;
-          ">CareerOS</span>
+          ">careersync</span>
         </a>
 
         <!-- Navigation -->
@@ -203,3 +203,4 @@ if (document.readyState === 'loading') {
 setInterval(initHeader, 10000);
 
 export { initHeader };
+

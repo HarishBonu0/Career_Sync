@@ -22,15 +22,15 @@ export const api = {
   },
 
   async signOut() {
-    localStorage.removeItem('careeros_token')
-    localStorage.removeItem('careeros_user')
-    localStorage.removeItem('careeros_auth')
+    localStorage.removeItem('careersync_token')
+    localStorage.removeItem('careersync_user')
+    localStorage.removeItem('careersync_auth')
     return { success: true }
   },
 
   // Courses
   async getCourses(userId) {
-    const token = localStorage.getItem('careeros_token')
+    const token = localStorage.getItem('careersync_token')
     const url = userId ? `${API_BASE_URL}/courses?userId=${userId}` : `${API_BASE_URL}/courses`
     const response = await fetch(url, {
       headers: {
@@ -42,7 +42,7 @@ export const api = {
   },
 
   async createCourse(courseData) {
-    const token = localStorage.getItem('careeros_token')
+    const token = localStorage.getItem('careersync_token')
     const response = await fetch(`${API_BASE_URL}/courses`, {
       method: 'POST',
       headers: {
@@ -56,7 +56,7 @@ export const api = {
 
   // Roadmaps
   async getRoadmaps(userId) {
-    const token = localStorage.getItem('careeros_token')
+    const token = localStorage.getItem('careersync_token')
     const url = userId ? `${API_BASE_URL}/roadmaps?userId=${userId}` : `${API_BASE_URL}/roadmaps`
     const response = await fetch(url, {
       headers: {
@@ -68,7 +68,7 @@ export const api = {
   },
 
   async createRoadmap(roadmapData) {
-    const token = localStorage.getItem('careeros_token')
+    const token = localStorage.getItem('careersync_token')
     const response = await fetch(`${API_BASE_URL}/roadmaps`, {
       method: 'POST',
       headers: {
@@ -82,7 +82,7 @@ export const api = {
 
   // Skills
   async getSkills() {
-    const token = localStorage.getItem('careeros_token')
+    const token = localStorage.getItem('careersync_token')
     const response = await fetch(`${API_BASE_URL}/skills`, {
       headers: {
         'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ export const api = {
   },
 
   async evaluateSkill(skillData) {
-    const token = localStorage.getItem('careeros_token')
+    const token = localStorage.getItem('careersync_token')
     const response = await fetch(`${API_BASE_URL}/skills/evaluate`, {
       method: 'POST',
       headers: {
@@ -107,3 +107,4 @@ export const api = {
 }
 
 export default api
+

@@ -29,7 +29,7 @@ async function handleCourseEnrollment(courseData) {
         };
         
         // Save to backend and localStorage
-        const result = await CareerOSProfile.saveCourse(enrollmentData);
+        const result = await careersyncProfile.saveCourse(enrollmentData);
         
         if (result) {
             console.log('Course enrollment successful:', result);
@@ -75,7 +75,7 @@ async function handleModuleCompletion(courseId, moduleIndex, totalModules) {
         const progress = (completedModules / totalModules) * 100;
         
         // Update backend
-        const result = await CareerOSProfile.updateCourseProgress(
+        const result = await careersyncProfile.updateCourseProgress(
             enrollmentData.enrollmentId,
             Math.round(progress),
             completedModules
@@ -119,7 +119,7 @@ async function handleCourseCompletion(courseId) {
         }
         
         // Update to 100% completion
-        const result = await CareerOSProfile.updateCourseProgress(
+        const result = await careersyncProfile.updateCourseProgress(
             enrollmentData.enrollmentId,
             100,
             enrollmentData.totalModules
@@ -242,3 +242,4 @@ Add these buttons to your course page:
 */
 
 export { handleCourseEnrollment, handleModuleCompletion, handleCourseCompletion, showToast };
+

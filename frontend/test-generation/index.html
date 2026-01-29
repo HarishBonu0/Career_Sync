@@ -168,41 +168,41 @@
     <script>
         // Update auth UI for evaluator page
         function updateEvaluatorAuthUI() {
-            const authContainer = document.getElementById('careeros-nav-auth');
+            const authContainer = document.getElementById('careersync-nav-auth');
             if (!authContainer) return;
 
-            const user = localStorage.getItem('careeros_user');
-            const token = localStorage.getItem('careeros_token');
+            const user = localStorage.getItem('careersync_user');
+            const token = localStorage.getItem('careersync_token');
 
             if (user && token) {
                 try {
                     const userData = JSON.parse(user);
                     authContainer.innerHTML = `
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <span class="careeros-user-info">
+                            <span class="careersync-user-info">
                                 👤 ${userData.full_name || userData.email || 'User'}
                             </span>
-                            <button id="careeros-logout-btn" class="careeros-btn careeros-btn-danger">
+                            <button id="careersync-logout-btn" class="careersync-btn careersync-btn-danger">
                                 Sign Out
                             </button>
                         </div>
                     `;
 
-                    const logoutBtn = document.getElementById('careeros-logout-btn');
+                    const logoutBtn = document.getElementById('careersync-logout-btn');
                     if (logoutBtn) {
                         logoutBtn.addEventListener('click', (e) => {
                             e.preventDefault();
-                            localStorage.removeItem('careeros_user');
-                            localStorage.removeItem('careeros_token');
-                            localStorage.removeItem('careeros_auth');
+                            localStorage.removeItem('careersync_user');
+                            localStorage.removeItem('careersync_token');
+                            localStorage.removeItem('careersync_auth');
                             window.location.href = 'http://localhost:4173/auth.html';
                         });
                     }
                 } catch (e) {
                     console.error('Invalid user data:', e);
-                    localStorage.removeItem('careeros_user');
-                    localStorage.removeItem('careeros_token');
-                    localStorage.removeItem('careeros_auth');
+                    localStorage.removeItem('careersync_user');
+                    localStorage.removeItem('careersync_token');
+                    localStorage.removeItem('careersync_auth');
                 }
             } else {
                 // Don't show Sign In button, leave empty
@@ -216,7 +216,7 @@
 
         // Also update auth UI when storage changes from other tabs
         window.addEventListener('storage', (e) => {
-            if (e.key === 'careeros_user' || e.key === 'careeros_token') {
+            if (e.key === 'careersync_user' || e.key === 'careersync_token') {
                 updateEvaluatorAuthUI();
             }
         });
@@ -233,15 +233,15 @@
 
             // Listen for storage changes
             window.addEventListener('storage', function(e) {
-                if (e.key === 'careeros_user' || e.key === 'careeros_token') {
+                if (e.key === 'careersync_user' || e.key === 'careersync_token') {
                     checkEvaluatorAuth();
                 }
             });
         });
 
         function checkEvaluatorAuth() {
-            const user = localStorage.getItem('careeros_user');
-            const token = localStorage.getItem('careeros_token');
+            const user = localStorage.getItem('careersync_user');
+            const token = localStorage.getItem('careersync_token');
             
             if (user && token) {
                 console.log('User authenticated on test page');
@@ -252,7 +252,7 @@
         }
 
         function updateAuthUI(user) {
-            const authContainer = document.getElementById('careeros-nav-auth');
+            const authContainer = document.getElementById('careersync-nav-auth');
             if (!authContainer) return;
 
             if (user) {
@@ -267,7 +267,7 @@
                             </span>
                             <span style="font-weight: 500;">${displayName}</span>
                         </a>
-                        <button onclick="handleLogout()" class="careeros-btn careeros-btn-danger">
+                        <button onclick="handleLogout()" class="careersync-btn careersync-btn-danger">
                             Sign Out
                         </button>
                     </div>
@@ -279,17 +279,17 @@
         }
 
         function saveUserData() {
-            const user = localStorage.getItem('careeros_user');
+            const user = localStorage.getItem('careersync_user');
             if (user) {
                 try {
                     const userData = JSON.parse(user);
                     const profileData = {
                         ...userData,
                         lastAccessed: new Date().toISOString(),
-                        visitCount: (parseInt(localStorage.getItem('careeros_profile_visits') || '0') + 1)
+                        visitCount: (parseInt(localStorage.getItem('careersync_profile_visits') || '0') + 1)
                     };
-                    localStorage.setItem('careeros_profile_data', JSON.stringify(profileData));
-                    localStorage.setItem('careeros_profile_visits', profileData.visitCount.toString());
+                    localStorage.setItem('careersync_profile_data', JSON.stringify(profileData));
+                    localStorage.setItem('careersync_profile_visits', profileData.visitCount.toString());
                 } catch (e) {
                     console.error('Error saving profile data:', e);
                 }
@@ -297,12 +297,13 @@
         }
 
         function handleLogout() {
-            localStorage.removeItem('careeros_user');
-            localStorage.removeItem('careeros_token');
-            localStorage.removeItem('careeros_auth');
-            localStorage.removeItem('careeros_profile_data');
+            localStorage.removeItem('careersync_user');
+            localStorage.removeItem('careersync_token');
+            localStorage.removeItem('careersync_auth');
+            localStorage.removeItem('careersync_profile_data');
             window.location.href = 'http://localhost:4173/auth.html';
         }
     </script>
 </body>
 </html>
+

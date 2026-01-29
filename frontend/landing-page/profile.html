@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CareerOS | My Profile</title>
+    <title>careersync | My Profile</title>
     <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%234F46E5'/%3E%3Ccircle cx='16' cy='16' r='6' fill='white'/%3E%3C/svg%3E">
 
@@ -36,7 +36,7 @@
             min-height: 100vh;
         }
 
-        .careeros-header {
+        .careersync-header {
             position: sticky;
             top: 0;
             z-index: 100;
@@ -47,7 +47,7 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
-        .careeros-header-container {
+        .careersync-header-container {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -57,7 +57,7 @@
             height: 100%;
         }
 
-        .careeros-brand {
+        .careersync-brand {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -67,7 +67,7 @@
             font-weight: 700;
         }
 
-        .careeros-brand-icon {
+        .careersync-brand-icon {
             width: 28px;
             height: 28px;
             border-radius: 6px;
@@ -80,14 +80,14 @@
             font-size: 0.75rem;
         }
 
-        .careeros-nav-links {
+        .careersync-nav-links {
             display: flex;
             gap: 32px;
             flex: 1;
             justify-content: center;
         }
 
-        .careeros-nav-link {
+        .careersync-nav-link {
             color: var(--text-secondary);
             font-weight: 500;
             text-decoration: none;
@@ -95,17 +95,17 @@
             transition: color 0.2s;
         }
 
-        .careeros-nav-link:hover {
+        .careersync-nav-link:hover {
             color: var(--brand-primary);
         }
 
-        .careeros-nav-auth {
+        .careersync-nav-auth {
             display: flex;
             gap: 16px;
             align-items: center;
         }
 
-        .careeros-btn {
+        .careersync-btn {
             padding: 10px 20px;
             border: none;
             border-radius: 6px;
@@ -116,12 +116,12 @@
             transition: all 0.2s;
         }
 
-        .careeros-btn-secondary {
+        .careersync-btn-secondary {
             background: rgba(79, 70, 229, 0.1);
             color: var(--brand-primary);
         }
 
-        .careeros-btn-secondary:hover {
+        .careersync-btn-secondary:hover {
             background: rgba(79, 70, 229, 0.2);
         }
 
@@ -490,7 +490,7 @@
                 grid-template-columns: 1fr;
             }
 
-            .careeros-nav-links {
+            .careersync-nav-links {
                 display: none;
             }
         }
@@ -591,8 +591,8 @@
         // Debug logging
         console.log('Profile page loaded');
         console.log('LocalStorage keys:', Object.keys(localStorage));
-        console.log('careeros_user:', localStorage.getItem('careeros_user'));
-        console.log('careeros_token:', localStorage.getItem('careeros_token'));
+        console.log('careersync_user:', localStorage.getItem('careersync_user'));
+        console.log('careersync_token:', localStorage.getItem('careersync_token'));
         console.log('Cookies:', document.cookie);
 
         // Helper function to get cookie value
@@ -606,11 +606,11 @@
         async function loadProfile() {
             try {
                 // Check multiple auth storage methods
-                let user = localStorage.getItem('careeros_user');
-                let token = localStorage.getItem('careeros_token');
+                let user = localStorage.getItem('careersync_user');
+                let token = localStorage.getItem('careersync_token');
                 
                 // Also check cookies (backend sets cookies)
-                const cookieToken = getCookie('careeros_token');
+                const cookieToken = getCookie('careersync_token');
                 
                 console.log('Initial auth check - user:', !!user, 'token:', !!token, 'cookieToken:', !!cookieToken);
                 
@@ -620,7 +620,7 @@
                     console.log('Fallback user check:', !!user);
                 }
                 if (!token) {
-                    token = localStorage.getItem('token') || localStorage.getItem('careeros_auth') || cookieToken;
+                    token = localStorage.getItem('token') || localStorage.getItem('careersync_auth') || cookieToken;
                     console.log('Fallback token check:', !!token);
                 }
 
@@ -640,7 +640,7 @@
                             console.log('Fetched user from backend:', data);
                             if (data.user || data.data) {
                                 user = JSON.stringify(data.user || data.data);
-                                localStorage.setItem('careeros_user', user);
+                                localStorage.setItem('careersync_user', user);
                                 token = cookieToken;
                                 console.log('User data stored in localStorage');
                             }
@@ -689,7 +689,7 @@
                             console.log('Additional backend fetch:', data);
                             if (data.user || data.data) {
                                 user = JSON.stringify(data.user || data.data);
-                                localStorage.setItem('careeros_user', user);
+                                localStorage.setItem('careersync_user', user);
                             }
                             console.log('Fetched user from backend');
                         }
@@ -719,9 +719,9 @@
                 displayCachedProfile(userData);
 
                 // Increment visit count
-                let visitCount = parseInt(localStorage.getItem('careeros_profile_visits') || '0');
+                let visitCount = parseInt(localStorage.getItem('careersync_profile_visits') || '0');
                 visitCount++;
-                localStorage.setItem('careeros_profile_visits', visitCount.toString());
+                localStorage.setItem('careersync_profile_visits', visitCount.toString());
                 console.log('Profile visit count:', visitCount);
 
                 // Then try to fetch additional data from backend if available
@@ -792,10 +792,10 @@
             if (avatarEl) avatarEl.textContent = initials;
             if (nameEl) nameEl.textContent = displayName;
             if (emailEl) emailEl.textContent = email;
-            if (bioEl) bioEl.textContent = profile.bio || 'Welcome to CareerOS! Start creating courses, roadmaps, and taking evaluations.';
+            if (bioEl) bioEl.textContent = profile.bio || 'Welcome to careersync! Start creating courses, roadmaps, and taking evaluations.';
             
             // Show visit count
-            const visitCount = profile.visitCount || localStorage.getItem('careeros_profile_visits') || 0;
+            const visitCount = profile.visitCount || localStorage.getItem('careersync_profile_visits') || 0;
             const lastAccessed = profile.lastAccessed ? new Date(profile.lastAccessed).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Today';
             
             document.getElementById('profile-joined').textContent = profile.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recently';
@@ -803,9 +803,9 @@
             document.getElementById('profile-active-days').textContent = `${visitCount} visits`;
 
             // Get enrolled courses from localStorage
-            const enrolledCourses = JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]');
-            const savedRoadmaps = JSON.parse(localStorage.getItem('careeros_saved_roadmaps') || '[]');
-            const completedEvaluations = JSON.parse(localStorage.getItem('careeros_evaluations') || '[]');
+            const enrolledCourses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
+            const savedRoadmaps = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
+            const completedEvaluations = JSON.parse(localStorage.getItem('careersync_evaluations') || '[]');
 
             // Update stats
             document.getElementById('stat-courses').textContent = enrolledCourses.length;
@@ -964,7 +964,7 @@
             document.getElementById('profile-role').textContent = profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
             
             // Include visit count in active days
-            const visitCount = localStorage.getItem('careeros_profile_visits') || 0;
+            const visitCount = localStorage.getItem('careersync_profile_visits') || 0;
             document.getElementById('profile-active-days').textContent = `${profile.stats.activeDays} days | ${visitCount} visits`;
 
             // Update stats
@@ -1016,10 +1016,10 @@
             const logoutBtn = document.getElementById('logout-btn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', () => {
-                    localStorage.removeItem('careeros_profile_data');
-                    localStorage.removeItem('careeros_user');
-                    localStorage.removeItem('careeros_token');
-                    localStorage.removeItem('careeros_auth');
+                    localStorage.removeItem('careersync_profile_data');
+                    localStorage.removeItem('careersync_user');
+                    localStorage.removeItem('careersync_token');
+                    localStorage.removeItem('careersync_auth');
                     window.location.href = 'http://localhost:4173/auth.html';
                 });
             }
@@ -1027,7 +1027,7 @@
 
         // Initialize sample data for testing if no data exists
         function initializeSampleData() {
-            const courses = JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]');
+            const courses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
             if (courses.length === 0) {
                 // Add sample courses for demo
                 const sampleCourses = [
@@ -1061,7 +1061,7 @@
                         completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
                     }
                 ];
-                localStorage.setItem('careeros_enrolled_courses', JSON.stringify(sampleCourses));
+                localStorage.setItem('careersync_enrolled_courses', JSON.stringify(sampleCourses));
                 
                 // Add sample roadmaps
                 const sampleRoadmaps = [
@@ -1080,7 +1080,7 @@
                         status: 'in-progress'
                     }
                 ];
-                localStorage.setItem('careeros_saved_roadmaps', JSON.stringify(sampleRoadmaps));
+                localStorage.setItem('careersync_saved_roadmaps', JSON.stringify(sampleRoadmaps));
                 
                 // Add sample evaluations
                 const sampleEvaluations = [
@@ -1105,7 +1105,7 @@
                         timeTaken: '18 min'
                     }
                 ];
-                localStorage.setItem('careeros_evaluations', JSON.stringify(sampleEvaluations));
+                localStorage.setItem('careersync_evaluations', JSON.stringify(sampleEvaluations));
                 
                 console.log('Sample data initialized for testing');
             }
@@ -1118,7 +1118,7 @@
         // Auto-refresh profile data every 5 seconds to sync with backend updates
         setInterval(async () => {
             try {
-                let user = localStorage.getItem('careeros_user');
+                let user = localStorage.getItem('careersync_user');
                 if (user) {
                     const userData = JSON.parse(user);
                     const userId = userData.id || userData._id;
@@ -1131,9 +1131,9 @@
                             const data = await response.json();
                             if (data.courses || data.roadmaps || data.evaluations) {
                                 // Update localStorage and refresh display
-                                if (data.courses) localStorage.setItem('careeros_enrolled_courses', JSON.stringify(data.courses));
-                                if (data.roadmaps) localStorage.setItem('careeros_saved_roadmaps', JSON.stringify(data.roadmaps));
-                                if (data.evaluations) localStorage.setItem('careeros_evaluations', JSON.stringify(data.evaluations));
+                                if (data.courses) localStorage.setItem('careersync_enrolled_courses', JSON.stringify(data.courses));
+                                if (data.roadmaps) localStorage.setItem('careersync_saved_roadmaps', JSON.stringify(data.roadmaps));
+                                if (data.evaluations) localStorage.setItem('careersync_evaluations', JSON.stringify(data.evaluations));
                                 // Refresh profile display
                                 displayCachedProfile(userData);
                             }
@@ -1149,3 +1149,4 @@
 
 
 </html>
+
