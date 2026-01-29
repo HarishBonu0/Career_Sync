@@ -17,7 +17,7 @@ router.post('/generate', async (req, res) => {
 
     // Get skill info
     const { data: skill, error: skillError } = await supabase
-      .from('skills')
+      .from('test_skills')
       .select('*')
       .eq('id', skillId)
       .single();
@@ -80,7 +80,7 @@ router.post('/generate', async (req, res) => {
 
     // Prepare questions for Supabase
     const questionsToInsert = questions.map(q => ({
-      skill_id: skillId,
+      test_skill_id: skillId,
       level: level,
       main_topic: q.mainTopic,
       sub_topic: q.subTopic,
@@ -93,7 +93,7 @@ router.post('/generate', async (req, res) => {
 
     // Insert questions
     const { data: insertedQuestions, error: insertError } = await supabase
-      .from('questions')
+      .from('test_questions')
       .insert(questionsToInsert)
       .select();
 
@@ -130,9 +130,9 @@ router.post('/test', async (req, res) => {
 
     // Get all questions for this skill and level
     const { data: allQuestions, error: questionsError } = await supabase
-      .from('questions')
+      .from('test_questions')
       .select('*')
-      .eq('skill_id', skillId)
+      .eq('test_skill_id', skillId)
       .eq('level', level);
 
     if (questionsError) {
@@ -155,7 +155,7 @@ router.post('/test', async (req, res) => {
       .from('test_attempts')
       .insert([{
         user_id: userIdToUse,
-        skill_id: skillId,
+        test_skill_id: skillId,
         level: level,
         status: 'in-progress',
         started_at: new Date().toISOString(),

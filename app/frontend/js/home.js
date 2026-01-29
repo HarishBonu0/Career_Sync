@@ -26,13 +26,26 @@ function navigateTo(path) {
     window.location.href = '/auth';
     return;
   }
-  window.location.href = path;
+  
+  // Map paths to module URLs
+  const moduleUrls = {
+    '/course': 'http://localhost:3005',  // Course Generation Module (Next.js)
+    '/roadmap': 'http://localhost:5173', // Roadmap Module (Vite)
+    '/skill-eval': 'http://localhost:3001' // Test Generation/Evaluator Module
+  };
+  
+  // If it's a module, open in new tab
+  if (moduleUrls[path]) {
+    window.open(moduleUrls[path], '_blank');
+  } else {
+    window.location.href = path;
+  }
 }
 
 function navigateToAuth() {
   const user = getUser();
   if (user) {
-    window.location.href = '/course';
+    // Open course module in new tab\n    window.open('http://localhost:3005', '_blank');
   } else {
     window.location.href = '/auth';
   }
@@ -48,6 +61,12 @@ function handleLogout() {
     window.location.href = '/';
   }
 }
+
+// Export functions globally for onclick handlers
+window.navigateTo = navigateTo;
+window.navigateToAuth = navigateToAuth;
+window.handleLogout = handleLogout;
+window.logout = logout;
 
 window.navigateTo = navigateTo;
 window.navigateToAuth = navigateToAuth;

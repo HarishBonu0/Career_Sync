@@ -6,12 +6,12 @@ async function initializeDatabase() {
   try {
     // Check if tables exist by trying to query them
     const { error: skillsError } = await supabase
-      .from('skills')
+      .from('test_skills')
       .select('id')
       .limit(1);
 
     const { error: questionsError } = await supabase
-      .from('questions')
+      .from('test_questions')
       .select('id')
       .limit(1);
 
@@ -34,17 +34,17 @@ async function initializeDatabase() {
     console.log('⚠️ Tables not found. Please create them manually in Supabase SQL Editor.');
     console.log('\nRun this SQL in your Supabase dashboard:\n');
     console.log(`
--- Create Skills Table
-CREATE TABLE IF NOT EXISTS skills (
+-- Create Test Skills Table (renamed to avoid conflict with main app skills table)
+CREATE TABLE IF NOT EXISTS test_skills (
   id BIGSERIAL PRIMARY KEY,
   skill_name TEXT NOT NULL UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create Questions Table
-CREATE TABLE IF NOT EXISTS questions (
+-- Create Test Questions Table
+CREATE TABLE IF NOT EXISTS test_questions (
   id BIGSERIAL PRIMARY KEY,
-  skill_id BIGINT REFERENCES skills(id) ON DELETE CASCADE,
+  test_skill_id BIGINT REFERENCES test_skills(id) ON DELETE CASCADE,
   level TEXT NOT NULL,
   main_topic TEXT,
   sub_topic TEXT,
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS questions (
 CREATE TABLE IF NOT EXISTS test_attempts (
   id BIGSERIAL PRIMARY KEY,
   user_id TEXT NOT NULL,
-  skill_id BIGINT REFERENCES skills(id) ON DELETE CASCADE,
+  test_skill_id BIGINT REFERENCES test_skills(id) ON DELETE CASCADE,
   level TEXT NOT NULL,
   status TEXT DEFAULT 'in-progress',
   score NUMERIC(5,2),
@@ -70,8 +70,9 @@ CREATE TABLE IF NOT EXISTS test_attempts (
 );
 
 -- Create Indexes
-CREATE INDEX IF NOT EXISTS idx_questions_skill_level ON questions(skill_id, level);
+CREATE INDEX IF NOT EXISTS idx_test_questions_skill_level ON test_questions(test_skill_id, level);
 CREATE INDEX IF NOT EXISTS idx_test_attempts_user ON test_attempts(user_id);
+CREATE INDEX IF NOT EXISTS idx_test_attempts_skill ON test_attempts(test_skill_id);
     `);
     
     return false;

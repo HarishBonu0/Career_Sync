@@ -13,7 +13,7 @@ router.post('/', async (req, res) => {
 
     // Check if skill exists
     const { data: existingSkills, error: searchError } = await supabase
-      .from('skills')
+      .from('test_skills')
       .select('*')
       .ilike('skill_name', skillName)
       .limit(1);
@@ -28,7 +28,7 @@ router.post('/', async (req, res) => {
 
     // Create new skill
     const { data: newSkill, error: insertError } = await supabase
-      .from('skills')
+      .from('test_skills')
       .insert([{ skill_name: skillName, created_at: new Date().toISOString() }])
       .select()
       .single();
@@ -50,7 +50,7 @@ router.get('/search/:name', async (req, res) => {
     const { name } = req.params;
 
     const { data, error } = await supabase
-      .from('skills')
+      .from('test_skills')
       .select('*')
       .ilike('skill_name', `%${name}%`);
 

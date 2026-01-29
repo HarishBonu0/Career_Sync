@@ -24,9 +24,9 @@ router.post('/submit', async (req, res) => {
 
     // Get questions for this attempt
     const { data: questions, error: questionsError } = await supabase
-      .from('questions')
+      .from('test_questions')
       .select('*')
-      .eq('skill_id', attempt.skill_id)
+      .eq('test_skill_id', attempt.test_skill_id)
       .eq('level', attempt.level);
 
     if (questionsError) {

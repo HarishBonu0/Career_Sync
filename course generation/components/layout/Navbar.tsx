@@ -32,8 +32,8 @@ export default function Navbar() {
         {/* Navigation Links */}
         <nav style={navbarStyles.navLinks}>
           <a 
-            href="#"
-            onClick={(e) => { e.preventDefault(); handleModuleNav('course'); }}
+            href="http://localhost:3005"
+            onClick={(e) => handleNavClick(e, 3005)}
             style={{
               ...navbarStyles.navLink,
               color: hoveredLink === 'course' ? '#4f46e5' : '#374151',
