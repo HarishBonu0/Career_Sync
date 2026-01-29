@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - CareerOS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* RESET & BASE */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F7F9FC;
+            color: #0F172A;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* LAYOUT */
+        .auth-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 24px;
+        }
+
+        .auth-card {
+            background: #FFFFFF;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
+            border: 1px solid #E2E8F0;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+            font-weight: 600;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: #0F172A;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 20px;
+            height: 20px;
+            background: #0F172A;
+            border-radius: 4px;
+        }
+
+        /* VIEWS */
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* TYPOGRAPHY */
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-align: center;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748B;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        /* FORM ELEMENTS */
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #334155;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 14px;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            transition: border-color 0.15s;
+            color: #0F172A;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #0F172A;
+            box-shadow: 0 0 0 1px #0F172A;
+        }
+
+        button.primary {
+            width: 100%;
+            padding: 10px;
+            background: #0F172A;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        button.primary:hover {
+            background: #334155;
+        }
+
+        /* LINKS */
+        .links {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748B;
+        }
+
+        a,
+        button.link-btn {
+            color: #0F172A;
+            text-decoration: none;
+            font-weight: 500;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: inherit;
+            padding: 0;
+        }
+
+        a:hover,
+        button.link-btn:hover {
+            text-decoration: underline;
+        }
+
+        .otp-display {
+            background: #F1F5F9;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 20px;
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+            color: #0F172A;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="auth-container">
+        <a href="index.html" class="logo">
+            <div class="logo-icon"></div>
+            CareerOS
+        </a>
+
+        <div class="auth-card">
+
+            <!-- LOGIN VIEW -->
+            <div id="view-login" class="view active">
+                <h1>Sign in to your account</h1>
+                <p class="subtitle">Welcome back to the platform</p>
+
+                <form id="form-login">
+                    <div class="input-group">
+                        <label>Email address</label>
+                        <input type="email" id="login-email" required placeholder="name@work.com">
+                    </div>
+                    <div class="input-group">
+                        <div style="display:flex; justify-content:space-between;">
+                            <label>Password</label>
+                            <button type="button" class="link-btn"
+                                style="font-size:12px; color:#64748B; font-weight:normal;"
+                                onclick="switchView('forgot')">Forgot password?</button>
+                        </div>
+                        <input type="password" id="login-password" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="primary">Sign in</button>
+                </form>
+
+                <div class="links">
+                    Don't have an account? <button type="button" class="link-btn" onclick="switchView('signup')">Create
+                        account</button>
+                </div>
+            </div>
+
+            <!-- SIGNUP VIEW -->
+            <div id="view-signup" class="view">
+                <h1>Create your account</h1>
+                <p class="subtitle">Start your career simulations today</p>
+
+                <form id="form-signup">
+                    <div class="input-group">
+                        <label>Email address</label>
+                        <input type="email" id="signup-email" required placeholder="name@work.com">
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="signup-password" required placeholder="Create a strong password">
+                    </div>
+                    <button type="submit" class="primary">Create account</button>
+                </form>
+
+                <div class="links">
+                    Already have an account? <button type="button" class="link-btn" onclick="switchView('login')">Sign
+                        in</button>
+                </div>
+            </div>
+
+            <!-- FORGOT PASSWORD VIEW -->
+            <div id="view-forgot" class="view">
+                <h1>Reset password</h1>
+                <p class="subtitle">Enter your email to receive a code</p>
+
+                <form id="form-forgot">
+                    <div class="input-group">
+                        <label>Email address</label>
+                        <input type="email" id="forgot-email" required placeholder="name@work.com">
+                    </div>
+                    <button type="submit" class="primary">Send OTP Code</button>
+                </form>
+
+                <div class="links">
+                    <button type="button" class="link-btn" onclick="switchView('login')">Back to sign in</button>
+                </div>
+            </div>
+
+            <!-- VERIFY OTP VIEW -->
+            <div id="view-verify" class="view">
+                <h1>Check your email</h1>
+                <p class="subtitle">We sent a 6-digit code to your email.</p>
+
+                <div id="otp-sim-display" class="otp-display" style="display:none;"></div>
+
+                <form id="form-verify">
+                    <div class="input-group">
+                        <label>6-Digit Code</label>
+                        <input type="text" id="verify-otp" required placeholder="123456" maxlength="6"
+                            style="text-align:center; letter-spacing:4px;">
+                    </div>
+                    <div class="input-group">
+                        <label>New Password</label>
+                        <input type="password" id="new-password" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="primary">Reset password</button>
+                </form>
+
+                <div class="links">
+                    <button type="button" class="link-btn" onclick="switchView('forgot')">Resend Code</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- STATE MANAGEMENT ---
+        let generatedOTP = null;
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + viewId).classList.add('active');
+        }
+
+        // --- LOGIN FLOW ---
+        document.getElementById('form-login').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            // Mock Login
+            localStorage.setItem('careeros_user', JSON.stringify({ email: email }));
+            window.location.href = '/';
+        });
+
+        // --- SIGNUP FLOW ---
+        document.getElementById('form-signup').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('signup-email').value;
+            // Mock Signup
+            localStorage.setItem('careeros_user', JSON.stringify({ email: email }));
+            window.location.href = '/';
+        });
+
+        // --- FORGOT PASSWORD FLOW ---
+        document.getElementById('form-forgot').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('forgot-email').value;
+
+            // Generate Mock OTP
+            generatedOTP = Math.floor(100000 + Math.random() * 900000);
+            console.log(`[AUTH-SIM] OTP for ${email}: ${generatedOTP}`);
+            alert(`Simulated Email: Your OTP Code is ${generatedOTP}`);
+
+            // Show View
+            switchView('verify');
+        });
+
+        // --- VERIFY FLOW ---
+        document.getElementById('form-verify').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const inputOTP = document.getElementById('verify-otp').value;
+
+            if (inputOTP === String(generatedOTP)) {
+                alert('Password reset successfully. Please sign in with your new password.');
+                switchView('login');
+            } else {
+                alert('Invalid OTP code. Please try again.');
+            }
+        });
+    </script>
+
+</body>
+
+</html>

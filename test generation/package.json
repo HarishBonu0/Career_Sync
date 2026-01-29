@@ -1,0 +1,42 @@
+{
+  "name": "knowledge-assessment-app",
+  "version": "1.0.0",
+  "description": "AI-powered knowledge assessment platform using Gemini API",
+  "main": "serve.js",
+  "proxy": "http://localhost:5000",
+  "scripts": {
+    "start": "node serve.js",
+    "serve": "node serve.js",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "server": "cd backend && npm run dev",
+    "dev": "node serve.js"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "react-scripts": "5.0.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

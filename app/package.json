@@ -1,0 +1,32 @@
+{
+  "name": "skillroute-ai",
+  "version": "1.0.0",
+  "description": "SkillRoute AI - Career Intelligence Platform",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ..",
+    "dev": "concurrently -k -n backend,frontend -c cyan,blue \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm start",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "echo \"Backend is ready for deployment\"",
+    "start": "cd backend && npm start",
+    "preview": "cd frontend && npm run preview"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": "16.x || 18.x || 20.x"
+  },
+  "keywords": [
+    "AI",
+    "Career",
+    "Education",
+    "Course Generator",
+    "Skill Assessment"
+  ],
+  "author": "SkillRoute AI",
+  "license": "MIT"
+}

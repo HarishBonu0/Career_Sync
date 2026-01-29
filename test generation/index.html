@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareerOS | Skill Evaluator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- NAVBAR -->
+    <header class="navbar">
+        <div class="container nav-inner">
+            <!-- Brand -->
+            <a href="http://localhost:4173" class="brand">
+                <div class="brand-icon"></div>
+                CareerOS
+            </a>
+
+            <!-- Navigation Links -->
+            <nav class="nav-links">
+                <a href="http://localhost:3000" class="nav-link">Course Gen</a>
+                <a href="http://localhost:5173" class="nav-link">Roadmap Generator</a>
+                <a href="http://localhost:3001" class="nav-link">Evaluator</a>
+            </nav>
+
+            <!-- Dynamic Auth Area -->
+            <div id="nav-auth-container" class="nav-auth">
+                <a href="http://localhost:4173/auth.html" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Sign In</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+    <div class="container">
+        <!-- Header Section -->
+        <header class="page-header">
+            <h1>📚 Skill Evaluator</h1>
+            <p class="subtitle">Test your knowledge with AI-generated questions</p>
+        </header>
+
+        <!-- Setup Section -->
+        <section id="setupSection" class="section">
+            <div class="input-group">
+                <label for="courseInput">Enter Topic Name</label>
+                <input 
+                    type="text" 
+                    id="courseInput" 
+                    placeholder="e.g., Python, Java, Machine Learning, DBMS..." 
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="difficulty-group">
+                <label>Select Difficulty Level</label>
+                <div class="button-group">
+                    <button type="button" class="difficulty-btn" data-level="easy" onclick="handleDifficultyClick('easy')">
+                        <span class="emoji">🟢</span>
+                        Easy
+                    </button>
+                    <button type="button" class="difficulty-btn" data-level="medium" onclick="handleDifficultyClick('medium')">
+                        <span class="emoji">🟡</span>
+                        Medium
+                    </button>
+                    <button type="button" class="difficulty-btn" data-level="hard" onclick="handleDifficultyClick('hard')">
+                        <span class="emoji">🔴</span>
+                        Hard
+                    </button>
+                </div>
+            </div>
+
+            <button id="attemptTestBtn" class="primary-btn" disabled>
+                Attempt Test
+            </button>
+        </section>
+
+        <!-- Loading Section -->
+        <section id="loadingSection" class="section hidden">
+            <div class="loader"></div>
+            <p class="loading-text">Generating your personalized test questions...</p>
+            <p class="loading-subtext">This may take a few moments</p>
+        </section>
+
+        <!-- Test Section -->
+        <section id="testSection" class="section hidden">
+            <div class="test-header">
+                <h2 id="testTitle">Test Questions</h2>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+                <p class="progress-text" id="progressText">Answered: 0/0</p>
+            </div>
+
+            <div id="questionsContainer"></div>
+
+            <button id="submitTestBtn" class="primary-btn" disabled>
+                Submit Test
+            </button>
+        </section>
+
+        <!-- Results Section -->
+        <section id="resultsSection" class="section hidden">
+            <div class="results-header">
+                <h2>📊 Test Results</h2>
+                <div class="score-card">
+                    <div class="score-circle">
+                        <div class="score-value" id="scoreValue">0/20</div>
+                        <div class="score-percentage" id="scorePercentage">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-details" id="resultsDetails"></div>
+
+            <div class="analysis-section" id="analysisSection"></div>
+
+            <button id="retakeTestBtn" class="primary-btn">
+                Take Another Test
+            </button>
+        </section>
+    </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer-premium">
+        <div class="container">
+            <div class="footer-top">
+                <div class="grid grid-3">
+                    <div>
+                        <h4 class="footer-heading">Product</h4>
+                        <ul class="footer-links">
+                            <li><a href="#">Features</a></li>
+                            <li><a href="#">Pricing</a></li>
+                            <li><a href="#">Security</a></li>
+                            <li><a href="#">Enterprise</a></li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 class="footer-heading">Resources</h4>
+                        <ul class="footer-links">
+                            <li><a href="#">Documentation</a></li>
+                            <li><a href="#">API Reference</a></li>
+                            <li><a href="#">Blog</a></li>
+                            <li><a href="#">Community</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="newsletter-col">
+                        <h4 class="footer-heading">Stay Ahead</h4>
+                        <p class="text-xs text-tertiary" style="margin-bottom: 1rem;">
+                            Join our intelligence network. No spam, just signals.
+                        </p>
+                        <form id="newsletter-form" class="newsletter-form">
+                            <input type="email" id="newsletter-email" placeholder="enter@email.com" class="newsletter-input"
+                                required>
+                            <button type="submit" class="newsletter-btn">→</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <div class="text-xs text-tertiary">
+                    © 2026 CareerOS Inc. All rights reserved.
+                </div>
+                <div class="flex gap-4 text-xs text-tertiary">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
