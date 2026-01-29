@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, BookOpen, Clock, Target, CheckCircle, Download } from 'lucide-react'
+import { ArrowLeft, BookOpen, Target, CheckCircle, Download } from 'lucide-react'
 import Link from 'next/link'
 import { supabaseClient } from '../../../../../db/supabaseClient'
 
@@ -15,6 +15,13 @@ interface Module {
   activities: string[]
   project?: string
   assessment?: string
+  readingMaterials?: Array<{
+    title: string
+    source: string
+    url: string
+    difficulty?: string
+    estimatedReadTime?: string
+  }>
 }
 
 interface Resource {
@@ -49,14 +56,64 @@ export default function GeneratedCoursePage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  // Helper function to ensure reading materials exist
+  const ensureReadingMaterials = (modules: Module[]): Module[] => {
+    return modules.map((module, idx) => {
+      if (!module.readingMaterials || module.readingMaterials.length === 0) {
+        const moduleTopic = module.title.replace('Module ', '').replace(/^\d+:\s*/, '')
+        return {
+          ...module,
+          readingMaterials: [
+            {
+              title: `GeeksforGeeks - ${moduleTopic}`,
+              source: 'GeeksforGeeks',
+              url: `https://www.geeksforgeeks.org/search/?q=${encodeURIComponent(moduleTopic)}`,
+              difficulty: 'beginner',
+              estimatedReadTime: idx < 3 ? '20 mins' : '30 mins',
+            },
+            {
+              title: `${moduleTopic} - Official Documentation`,
+              source: 'Official Documentation',
+              url: `https://docs.example.com/${moduleTopic.toLowerCase().replace(/\s+/g, '-')}`,
+              difficulty: 'intermediate',
+              estimatedReadTime: '25 mins',
+            },
+            {
+              title: `${moduleTopic} Tutorial - Medium`,
+              source: 'Medium',
+              url: `https://medium.com/search?q=${encodeURIComponent(moduleTopic)}`,
+              difficulty: 'beginner',
+              estimatedReadTime: '15 mins',
+            },
+            {
+              title: `${moduleTopic} Guide - Dev.to`,
+              source: 'Dev.to',
+              url: `https://dev.to/search?q=${encodeURIComponent(moduleTopic)}`,
+              difficulty: 'intermediate',
+              estimatedReadTime: '20 mins',
+            },
+          ]
+        }
+      }
+      return module
+    })
+  }
+
   useEffect(() => {
     const loadCourse = async () => {
       console.log('Loading course from localStorage...')
       const courseData = typeof window !== 'undefined' ? localStorage.getItem('generatedCourse') : null
       if (courseData) {
         try {
-          const parsedCourse = JSON.parse(courseData)
+          let parsedCourse = JSON.parse(courseData)
           if (parsedCourse && parsedCourse.title) {
+            // Ensure all modules have reading materials
+            if (parsedCourse.modules) {
+              parsedCourse.modules = ensureReadingMaterials(parsedCourse.modules)
+            }
+            console.log('📚 Course loaded. Modules:', parsedCourse.modules?.length)
+            console.log('📚 First module has reading materials:', !!parsedCourse.modules?.[0]?.readingMaterials)
+            console.log('📚 Reading materials count:', parsedCourse.modules?.[0]?.readingMaterials?.length || 0)
             setCourse(parsedCourse)
             setLoading(false)
             return
@@ -249,52 +306,129 @@ export default function GeneratedCoursePage() {
         </div>
 
         {/* Topics List */}
-        <div className="space-y-8">
+        <div className="space-y-6">
           {course.modules && course.modules.length > 0 ? (
-            course.modules.map((module, index) => (
-              <div key={module.id} className="bg-white border border-gray-200 rounded-3xl p-10 hover:shadow-md transition-all">
-                <div className="mb-5">
-                  <span className="inline-block text-[11px] font-semibold text-gray-500 uppercase tracking-wide px-4 py-1.5 bg-gray-50 rounded-full border border-gray-200">
-                    TOPIC {String(index + 1).padStart(2, '0')}
-                  </span>
-                </div>
-                
-                <h3 className="text-3xl font-bold text-gray-900 mb-5 tracking-tight leading-tight">
-                  {module.title}
-                </h3>
-                
-                <p className="text-[15px] text-gray-600 leading-relaxed mb-8">
-                  {module.description}
+            <>
+              <div className="mb-8">
+                <p className="text-gray-600 text-lg">
+                  This course is divided into <span className="font-bold text-gray-900">{course.modules.length} comprehensive modules</span>, each designed to progressively build your skills.
                 </p>
-
-                <button 
-                  className="inline-flex items-center gap-2 bg-[#0c4a6e] hover:bg-[#0a3d5c] text-white font-medium text-[15px] px-5 py-2.5 rounded-lg transition-colors"
-                  onClick={() => {
-                    // Store module data and navigate to topic page
-                    const moduleData = {
-                      ...module,
-                      courseTitle: course.title,
-                      moduleIndex: index,
-                      courseId: params.id
-                    }
-                    localStorage.setItem(`module_${index + 1}`, JSON.stringify(moduleData))
-                    // Use course title as slug for URL
-                    const courseSlug = course.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-                    router.push(`/course/${courseSlug}/topic/${index + 1}`)
-                  }}
-                >
-                  Start
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
               </div>
-            ))
+              
+              {course.modules.map((module, index) => (
+                <div key={module.id} className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-8 hover:border-gray-300 hover:shadow-lg transition-all duration-300">
+                  {/* Module Header */}
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 text-white font-bold text-lg">
+                          {index + 1}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="inline-block text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-3 py-1 bg-white rounded-full border border-gray-200 mb-3">
+                          Module {String(index + 1).padStart(2, '0')}
+                        </span>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2 leading-tight">
+                          {module.title}
+                        </h3>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Module Description */}
+                  <p className="text-[15px] text-gray-700 leading-relaxed mb-6 ml-16">
+                    {module.description}
+                  </p>
+
+                  {/* Module Details Grid */}
+                  <div className="ml-16 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    {/* Topics */}
+                    {module.topics && module.topics.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Topics Covered</h4>
+                        <ul className="space-y-2">
+                          {module.topics.map((topic, idx) => (
+                            <li key={idx} className="text-[14px] text-gray-700 flex items-start">
+                              <span className="inline-block w-2 h-2 rounded-full bg-blue-600 mt-2 mr-3 flex-shrink-0"></span>
+                              {topic}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Activities */}
+                    {module.activities && module.activities.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Activities & Exercises</h4>
+                        <ul className="space-y-2">
+                          {module.activities.map((activity, idx) => (
+                            <li key={idx} className="text-[14px] text-gray-700 flex items-start">
+                              <span className="inline-block w-2 h-2 rounded-full bg-green-600 mt-2 mr-3 flex-shrink-0"></span>
+                              {activity}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Module Project */}
+                  {module.project && (
+                    <div className="ml-16 bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                      <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
+                        <Target className="w-4 h-4 mr-2" />
+                        Module Project
+                      </h4>
+                      <p className="text-[14px] text-blue-800">{module.project}</p>
+                    </div>
+                  )}
+
+                  {/* Start Button */}
+                  <div className="ml-16">
+                    <button 
+                      className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[14px] px-6 py-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                      onClick={() => {
+                        // Ensure courseId is a string, not an array
+                        const courseIdValue = Array.isArray(params.id) ? params.id[0] : params.id
+                        
+                        const moduleData = {
+                          ...module,
+                          courseTitle: course.title,
+                          moduleIndex: index,
+                          courseId: courseIdValue
+                        }
+                        
+                        console.log('💾 Storing module data:', {
+                          moduleNumber: index + 1,
+                          courseId: courseIdValue,
+                          moduleTitle: module.title,
+                          hasReadingMaterials: !!module.readingMaterials,
+                          readingMaterialsCount: module.readingMaterials?.length || 0
+                        })
+                        
+                        localStorage.setItem(`module_${index + 1}`, JSON.stringify(moduleData))
+                        
+                        const courseSlug = course.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+                        console.log('🚀 Navigating to topic:', `/course/${courseSlug}/topic/${index + 1}`)
+                        router.push(`/course/${courseSlug}/topic/${index + 1}`)
+                      }}
+                    >
+                      Start Module
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </>
           ) : (
             // Fallback for courses without structured modules
-            <div className="bg-white border border-gray-200 rounded-3xl p-10">
+            <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-10">
               <div className="mb-5">
-                <span className="inline-block text-[11px] font-semibold text-gray-500 uppercase tracking-wide px-4 py-1.5 bg-gray-50 rounded-full border border-gray-200">
+                <span className="inline-block text-[11px] font-semibold text-gray-500 uppercase tracking-wide px-4 py-1.5 bg-white rounded-full border border-gray-200">
                   COURSE CONTENT
                 </span>
               </div>
@@ -308,24 +442,33 @@ export default function GeneratedCoursePage() {
               </div>
               
               <button 
-                className="inline-flex items-center gap-2 bg-[#0c4a6e] hover:bg-[#0a3d5c] text-white font-medium text-[15px] px-5 py-2.5 rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[14px] px-6 py-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                 onClick={() => {
-                  // Store course content and navigate
+                  // Ensure courseId is a string, not an array
+                  const courseIdValue = Array.isArray(params.id) ? params.id[0] : params.id
+                  
                   const moduleData = {
                     title: course.title,
                     description: course.description,
                     content: course.rawContent || course.description,
                     courseTitle: course.title,
                     moduleIndex: 0,
-                    courseId: params.id
+                    courseId: courseIdValue
                   }
+                  
+                  console.log('💾 Storing fallback module data:', {
+                    moduleNumber: 1,
+                    courseId: courseIdValue,
+                    courseTitle: course.title
+                  })
+                  
                   localStorage.setItem('module_1', JSON.stringify(moduleData))
-                  // Use course title as slug for URL
                   const courseSlug = course.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+                  console.log('🚀 Navigating to topic:', `/course/${courseSlug}/topic/1`)
                   router.push(`/course/${courseSlug}/topic/1`)
                 }}
               >
-                Start
+                Start Course
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
@@ -372,23 +515,24 @@ export default function GeneratedCoursePage() {
             {/* Resources */}
             {course.resources && course.resources.length > 0 && (
               <div className="mt-12 pt-8 border-t border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-6">📚 CURATED LEARNING RESOURCES</h3>
-                <p className="text-gray-600 mb-6">High-quality, hand-picked resources to supplement your learning and provide quick reference materials.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">📚 COMPLETE LEARNING RESOURCES</h3>
+                <p className="text-xs text-gray-500 mb-6">Direct links to comprehensive documentation, courses, and learning materials for this topic</p>
+                <div className="space-y-2">
                   {course.resources.map((resource, index) => (
                     <a
                       key={index}
                       href={resource.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="border border-gray-200 rounded-lg p-5 hover:shadow-md hover:border-blue-300 transition-all group cursor-pointer"
+                      className="flex items-center justify-between p-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg transition-all group"
                     >
-                      <div className="text-xs text-blue-600 uppercase font-semibold mb-2">{resource.type}</div>
-                      <h4 className="font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">{resource.title}</h4>
-                      <p className="text-sm text-gray-600 mb-3">{resource.description}</p>
-                      <div className="text-sm text-blue-600 font-medium group-hover:gap-2 inline-flex items-center gap-1 transition-all">
-                        View Resource <span>→</span>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className="text-xs text-blue-600 uppercase font-semibold bg-blue-50 px-2 py-1 rounded whitespace-nowrap">{resource.type}</span>
+                        <h4 className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors truncate">{resource.title}</h4>
                       </div>
+                      <svg className="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
                     </a>
                   ))}
                 </div>

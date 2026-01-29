@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     });
+});
 
     // Check Auth State
     await checkAuthState();
@@ -61,24 +62,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('btn-logout').addEventListener('click', handleLogout);
             }
 
-            // Update Hero CTA label only; click stays bound to module navigation
-            if (heroBtn) {
-                heroBtn.textContent = 'Launch Course Generator';
-            }
-
-        } else {
-            // User is LOGGED OUT
-            if (navAuthContainer) {
-                navAuthContainer.innerHTML = `
-                    <a href="/auth.html" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Sign In</a>
-                `;
-            }
-
-            if (heroBtn) {
-                heroBtn.textContent = 'Start Intelligence Engine';
-            }
-        }
+// Navbar active state on scroll
+window.addEventListener('scroll', () => {
+    const navbar = document.querySelector('.navbar');
+    if (window.scrollY > 50) {
+        navbar.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
+    } else {
+        navbar.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.08)';
     }
+});
+
+// Mobile menu toggle (if needed)
+const navLinks = document.querySelector('.nav-links');
+
+// Add animation on scroll for cards
+const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+};
 
     async function handleLogout() {
         if (confirm('Are you sure you want to sign out?')) {
@@ -94,7 +95,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Optional: Reload page to clear any other state
             window.location.reload();
         }
-    }
+    });
+}, observerOptions);
 
-    console.log('CareerOS: Auth State Checked.');
+// Observe feature cards and module cards
+document.querySelectorAll('.feature-card, .module-card, .step').forEach(card => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+    observer.observe(card);
 });
+
+// Log module status
+console.log('CareerOS Landing Page loaded successfully');
+console.log('Available modules:');
+console.log('- Course Generator: http://localhost:3000');
+console.log('- Skill Evaluator: http://localhost:3001');
+console.log('- Roadmap Generator: http://localhost:5173');

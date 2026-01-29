@@ -262,6 +262,9 @@ export default function GenerateCoursePage() {
 
       // Store locally as a fallback
       console.log('Storing course in localStorage...')
+      console.log('📚 Modules count:', data.course.modules?.length)
+      console.log('📚 First module has reading materials:', !!data.course.modules?.[0]?.readingMaterials)
+      console.log('📚 Reading materials count:', data.course.modules?.[0]?.readingMaterials?.length || 0)
       localStorage.setItem('generatedCourse', JSON.stringify({ ...data.course, id: courseId }))
       console.log('Course stored. Data length:', localStorage.getItem('generatedCourse')?.length)
       
@@ -338,23 +341,25 @@ export default function GenerateCoursePage() {
         <div className="pt-32 pb-20 px-4">
           <div className="max-w-3xl mx-auto">
             <h1 className="text-2xl font-normal text-gray-800 mb-12 leading-relaxed">
-              here is what i have understood about you so far, {userName.toLowerCase()}, to design a {topic.toLowerCase()} course that really fits you.
+              Here's what I've understood about you so far, {userName.toLowerCase()}, to design a {topic.toLowerCase()} course that really fits you.
             </h1>
 
             {/* Conversational Review */}
             <div className="space-y-8 text-gray-700 leading-relaxed">
               {/* 1. Identity and Background */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">1. your identity and background</h3>
-                <div className="space-y-2 ml-4">
-                  <p>- your name is {userName.toLowerCase()}.</p>
-                  <p>- you are learning {topic.toLowerCase()} with experience level: {experience.toLowerCase()}.</p>
+                <h3 className="font-semibold text-gray-900 mb-3">1. Your Identity and Background</h3>
+                <div className="space-y-2 ml-6">
+                  <p className="text-gray-700">Your name is {userName.toLowerCase()}.</p>
+                  <p className="text-gray-700">You are learning {topic.toLowerCase()} with experience level: <span className="font-medium">{experience.toLowerCase()}</span>.</p>
                   {experience.toLowerCase().includes('beginner') && (
                     <>
-                      <p>- you are new to {topic.toLowerCase()}, so we will start from the basics:</p>
-                      <p className="ml-4">- fundamental concepts</p>
-                      <p className="ml-4">- core principles</p>
-                      <p className="ml-4">- building blocks</p>
+                      <p className="text-gray-700 mt-3">Since you're new to {topic.toLowerCase()}, we'll start from the basics:</p>
+                      <div className="ml-4 space-y-1">
+                        <p className="text-gray-600">• Fundamental concepts</p>
+                        <p className="text-gray-600">• Core principles</p>
+                        <p className="text-gray-600">• Building blocks</p>
+                      </div>
                     </>
                   )}
                 </div>
@@ -362,112 +367,116 @@ export default function GenerateCoursePage() {
 
               {/* 2. Main Goals */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">2. your main goals with {topic.toLowerCase()}</h3>
-                <div className="space-y-2 ml-4">
-                  <p>- your current goal is: {goal.toLowerCase()}.</p>
+                <h3 className="font-semibold text-gray-900 mb-3">2. Your Main Goals with {topic.toLowerCase()}</h3>
+                <div className="space-y-2 ml-6">
+                  <p className="text-gray-700">Your current goal is: <span className="font-medium">{goal.toLowerCase()}</span>.</p>
                   {goal.toLowerCase().includes('strong fundamentals') && (
                     <>
-                      <p>- you want to build a strong base in {topic.toLowerCase()} first.</p>
-                      <p>- you want to reach a solid understanding level, which for you means:</p>
-                      <p className="ml-4">- mastering beginner to intermediate topics</p>
-                      <p className="ml-4">- understanding core concepts deeply</p>
-                      <p className="ml-4">- being able to apply knowledge practically</p>
+                      <p className="text-gray-700 mt-3">You want to build a strong foundation in {topic.toLowerCase()} first.</p>
+                      <p className="text-gray-700">You want to reach a solid understanding level, which means:</p>
+                      <div className="ml-4 space-y-1">
+                        <p className="text-gray-600">• Mastering beginner to intermediate topics</p>
+                        <p className="text-gray-600">• Understanding core concepts deeply</p>
+                        <p className="text-gray-600">• Being able to apply knowledge practically</p>
+                      </div>
                     </>
                   )}
                   {goal.toLowerCase().includes('interview') && (
-                    <p>- interview preparation is your focus, so we'll emphasize problem-solving patterns.</p>
+                    <p className="text-gray-700 mt-3">Interview preparation is your focus, so we'll emphasize problem-solving patterns.</p>
                   )}
                 </div>
               </div>
 
               {/* 3. Learning Style */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">3. your learning style</h3>
-                <div className="space-y-2 ml-4">
-                  <p>- your preferred learning style: {learningStyle.toLowerCase()}.</p>
+                <h3 className="font-semibold text-gray-900 mb-3">3. Your Learning Style</h3>
+                <div className="space-y-2 ml-6">
+                  <p className="text-gray-700">Your preferred learning style: <span className="font-medium">{learningStyle.toLowerCase()}</span>.</p>
                   {learningStyle.toLowerCase().includes('visual') && (
                     <>
-                      <p>- you like visuals and analogies to understand concepts.</p>
-                      <p className="ml-4">- you prefer to first feel the concept intuitively.</p>
-                      <p className="ml-4">- you want to see diagrams, mental pictures, or everyday life analogies.</p>
-                      <p>- after understanding the concept visually, you like to then move to code.</p>
-                      <p>- you do not want heavy dry theory before intuition.</p>
+                      <p className="text-gray-700 mt-3">You like visuals and analogies to understand concepts.</p>
+                      <div className="ml-4 space-y-1">
+                        <p className="text-gray-600">• First understand the concept intuitively</p>
+                        <p className="text-gray-600">• See diagrams, mental pictures, or everyday analogies</p>
+                        <p className="text-gray-600">• Then move to code and implementation</p>
+                      </div>
+                      <p className="text-gray-700 mt-2">You prefer not to start with heavy, dry theory.</p>
                     </>
                   )}
                   {learningStyle.toLowerCase().includes('practical') && (
-                    <p>- you prefer hands-on exercises and real coding practice.</p>
+                    <p className="text-gray-700 mt-3">You prefer hands-on exercises and real coding practice.</p>
                   )}
                   {learningStyle.toLowerCase().includes('mixed') && (
-                    <p>- you enjoy a combination of visual aids, practical exercises, and written explanations.</p>
+                    <p className="text-gray-700 mt-3">You enjoy a combination of visual aids, practical exercises, and written explanations.</p>
                   )}
                 </div>
               </div>
 
               {/* 4. Time Commitment */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">4. your time commitment</h3>
-                <div className="space-y-2 ml-4">
-                  <p>- you can spend {timeCommitment.toLowerCase()} on {topic.toLowerCase()}.</p>
-                  <p>- this is enough to make steady and serious progress.</p>
-                  <p>- we can safely design weekly goals that assume consistent effort.</p>
-                  <p>- we'll structure the course to be completed in: {timeline.toLowerCase()}.</p>
+                <h3 className="font-semibold text-gray-900 mb-3">4. Your Time Commitment</h3>
+                <div className="space-y-2 ml-6">
+                  <p className="text-gray-700">You can dedicate <span className="font-medium">{timeCommitment.toLowerCase()}</span> to learning {topic.toLowerCase()}.</p>
+                  <p className="text-gray-700">This is enough to make steady and serious progress.</p>
+                  <p className="text-gray-700">We can design weekly goals with consistent effort in mind.</p>
+                  <p className="text-gray-700">We'll structure the course to be completed in: <span className="font-medium">{timeline.toLowerCase()}</span>.</p>
                 </div>
               </div>
 
               {/* 5. Areas of Interest */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">5. your areas of interest</h3>
-                <div className="space-y-2 ml-4">
-                  <p>- you're interested in: {interests.toLowerCase()}.</p>
-                  <p>- we'll focus on these areas throughout the course.</p>
+                <h3 className="font-semibold text-gray-900 mb-3">5. Your Areas of Interest</h3>
+                <div className="space-y-2 ml-6">
+                  <p className="text-gray-700">You're interested in: <span className="font-medium">{interests.toLowerCase()}</span>.</p>
+                  <p className="text-gray-700">We'll focus on these areas throughout the course.</p>
                 </div>
               </div>
 
               {/* 6. Learning Preference */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">6. your learning preference</h3>
-                <div className="space-y-2 ml-4">
-                  <p>- you prefer: {preference.toLowerCase()}.</p>
+                <h3 className="font-semibold text-gray-900 mb-3">6. Your Learning Preference</h3>
+                <div className="space-y-2 ml-6">
+                  <p className="text-gray-700">You prefer: <span className="font-medium">{preference.toLowerCase()}</span>.</p>
                   {preference.toLowerCase().includes('real-world') && (
-                    <p>- we'll include practical, real-world projects throughout.</p>
+                    <p className="text-gray-700">We'll include practical, real-world projects throughout.</p>
                   )}
                   {preference.toLowerCase().includes('mix') && (
-                    <p>- we'll balance theoretical foundations with practical applications.</p>
+                    <p className="text-gray-700">We'll balance theoretical foundations with practical applications.</p>
                   )}
                 </div>
               </div>
 
               {/* 7. Progress Tracking */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">7. progress tracking</h3>
-                <div className="space-y-2 ml-4">
-                  <p>- you want to track progress with: {tracking.toLowerCase()}.</p>
-                  <p>- we'll incorporate these throughout the course.</p>
+                <h3 className="font-semibold text-gray-900 mb-3">7. Progress Tracking</h3>
+                <div className="space-y-2 ml-6">
+                  <p className="text-gray-700">You want to track progress with: <span className="font-medium">{tracking.toLowerCase()}</span>.</p>
+                  <p className="text-gray-700">We'll incorporate these throughout the course.</p>
                 </div>
               </div>
 
               {/* 8. Specific Focus */}
               {specificFocus && specificFocus !== 'Not answered' && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">8. specific focus</h3>
-                  <div className="space-y-2 ml-4">
-                    <p>- you mentioned: {specificFocus.toLowerCase()}.</p>
-                    <p>- we'll make sure to address this in your personalized course.</p>
+                  <h3 className="font-semibold text-gray-900 mb-3">8. Specific Focus</h3>
+                  <div className="space-y-2 ml-6">
+                    <p className="text-gray-700">You mentioned: <span className="font-medium">{specificFocus.toLowerCase()}</span>.</p>
+                    <p className="text-gray-700">We'll make sure to address this in your personalized course.</p>
                   </div>
                 </div>
               )}
 
               {/* Course Plan Summary */}
-              <div className="pt-6 border-t border-gray-200">
-                <p className="text-gray-800">
-                  this is the picture i have of you now as a learner. next, i can turn this understanding into a step by step, 
-                  weekly {topic.toLowerCase()} plan tailored to your style.
+              <div className="pt-8 border-t border-gray-200">
+                <p className="text-gray-800 leading-relaxed">
+                  This is the picture I have of you now as a learner. Next, I can turn this understanding into a step-by-step, 
+                  weekly {topic.toLowerCase()} plan tailored to your learning style.
                 </p>
               </div>
 
               <div className="pt-4">
                 <p className="text-gray-600 italic">
-                  if anything above feels inaccurate or if you want to adjust your goals or style, tell me and i will adapt it.
+                  If anything above feels inaccurate, or if you want to adjust your goals or style, let me know and I'll adapt it.
                 </p>
               </div>
             </div>
