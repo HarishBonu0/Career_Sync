@@ -547,8 +547,14 @@
         function displayCourse() {
             if (!currentCourse) return;
 
+            console.log('=== DISPLAYING COURSE ===');
+            console.log('Course:', currentCourse);
+            console.log('Modules:', currentCourse.modules);
+
             const courseId = currentCourse._id || currentCourse.id || `course_${currentCourse.title}`;
             const modules = currentCourse.modules || [];
+            
+            console.log('Total modules:', modules.length);
             
             // Update sidebar header
             document.getElementById('sidebar-course-title').textContent = currentCourse.title;
@@ -591,6 +597,14 @@
             if (index < 0 || index >= modules.length) return;
 
             const module = modules[index];
+            
+            console.log('=== DISPLAYING MODULE ===');
+            console.log('Module index:', index);
+            console.log('Module data:', module);
+            console.log('Module topics:', module.topics);
+            console.log('Module activities:', module.activities);
+            console.log('Module readingMaterials:', module.readingMaterials);
+            
             const courseId = currentCourse._id || currentCourse.id || `course_${currentCourse.title}`;
             const moduleId = module.id || module._id || `module_${index}`;
 
@@ -621,6 +635,7 @@
 
             // Topics section
             if (topics.length > 0) {
+                console.log('Building topics section with', topics.length, 'topics');
                 contentHTML += `<div class="topics-section">
                     <div class="section-title">📝 Topics to Learn</div>`;
                 
@@ -631,6 +646,8 @@
                     // Handle both string topics and object topics
                     const topicTitle = typeof topic === 'string' ? topic : (topic.title || topic.name || `Topic ${topicIndex + 1}`);
                     const topicDesc = typeof topic === 'object' ? (topic.description || topic.content || '') : '';
+                    
+                    console.log(`Topic ${topicIndex}:`, topicTitle, 'Description:', topicDesc);
                     
                     contentHTML += `
                         <div class="topic-item ${isCompleted ? 'completed' : ''}" id="topic-${topicIndex}">
@@ -651,6 +668,8 @@
                 });
                 
                 contentHTML += `</div>`;
+            } else {
+                console.log('No topics found for this module');
             }
 
             // Activities section
@@ -720,15 +739,20 @@
 
             // If no content at all
             if (!contentHTML) {
+                console.log('No content HTML generated!');
                 contentHTML = `
                     <div class="empty-state">
                         <h3>No content available for this module yet</h3>
                         <p>Content will be added soon.</p>
                     </div>
                 `;
+            } else {
+                console.log('Content HTML length:', contentHTML.length);
             }
 
+            console.log('Setting content body HTML...');
             contentBody.innerHTML = contentHTML;
+            console.log('Content body updated!');
 
             // Update navigation buttons
             document.getElementById('prev-btn').disabled = index === 0;
