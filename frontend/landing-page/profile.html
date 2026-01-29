@@ -830,7 +830,7 @@
                             <div>
                                 <p class="item-title">${course.title || 'Course'}</p>
                                 <div class="item-meta">
-                                    <span class="meta-tag">📚 ${course.modules?.length || course.totalModules || 10} modules</span>
+                                    <span class="meta-tag">📚 ${(course.modules && course.modules.length) || course.totalModules || 10} modules</span>
                                     <span class="meta-tag">⏱️ ${course.duration || '4 weeks'}</span>
                                     <span class="meta-tag">📊 ${course.level || 'Intermediate'}</span>
                                 </div>
@@ -839,7 +839,7 @@
                         </div>
                         <div class="progress-container">
                             <div class="progress-header">
-                                <span class="progress-label">${Math.floor(((course.progress || 0) / 100) * (course.modules?.length || 10))} of ${course.modules?.length || course.totalModules || 10} completed</span>
+                                <span class="progress-label">${Math.floor(((course.progress || 0) / 100) * ((course.modules && course.modules.length) || 10))} of ${(course.modules && course.modules.length) || course.totalModules || 10} completed</span>
                                 <span class="progress-percent">${course.progress || 0}%</span>
                             </div>
                             <div class="progress-bar">
@@ -866,7 +866,7 @@
                                 <p class="item-title">${roadmap.title || 'Roadmap'}</p>
                                 <div class="item-meta">
                                     <span class="meta-tag">🎯 ${roadmap.targetRole || 'Career Path'}</span>
-                                    <span class="meta-tag">📍 ${roadmap.stages?.length || 5} stages</span>
+                                    <span class="meta-tag">📍 ${(roadmap.stages && roadmap.stages.length) || 5} stages</span>
                                     <span class="meta-tag">⏱️ ${roadmap.duration || '6 months'}</span>
                                 </div>
                             </div>
@@ -874,7 +874,7 @@
                         </div>
                         <div class="progress-container">
                             <div class="progress-header">
-                                <span class="progress-label">${Math.floor(((roadmap.progress || 0) / 100) * (roadmap.stages?.length || 5))} of ${roadmap.stages?.length || 5} completed</span>
+                                <span class="progress-label">${Math.floor(((roadmap.progress || 0) / 100) * ((roadmap.stages && roadmap.stages.length) || 5))} of ${(roadmap.stages && roadmap.stages.length) || 5} completed</span>
                                 <span class="progress-percent">${roadmap.progress || 0}%</span>
                             </div>
                             <div class="progress-bar">
@@ -894,18 +894,18 @@
             // Display Evaluations
             const evalContainer = document.getElementById('evaluations-container');
             if (evaluations && evaluations.length > 0) {
-                evalContainer.innerHTML = evaluations.map(eval => {
-                    const score = eval.score || eval.percentage || 0;
+                evalContainer.innerHTML = evaluations.map(evaluation => {
+                    const score = evaluation.score || evaluation.percentage || 0;
                     const passed = score >= 80;
                     return `
                         <div class="item-card">
                             <div class="item-header">
                                 <div>
-                                    <p class="item-title">${eval.title || eval.topic || 'Evaluation'}</p>
+                                    <p class="item-title">${evaluation.title || evaluation.topic || 'Evaluation'}</p>
                                     <div class="item-meta">
-                                        <span class="meta-tag">📝 ${eval.totalQuestions || 10} questions</span>
-                                        <span class="meta-tag">✅ ${eval.correctAnswers || 0} correct</span>
-                                        <span class="meta-tag">🕐 ${eval.completedAt ? new Date(eval.completedAt).toLocaleDateString() : 'Recent'}</span>
+                                        <span class="meta-tag">📝 ${evaluation.totalQuestions || 10} questions</span>
+                                        <span class="meta-tag">✅ ${evaluation.correctAnswers || 0} correct</span>
+                                        <span class="meta-tag">🕐 ${evaluation.completedAt ? new Date(evaluation.completedAt).toLocaleDateString() : 'Recent'}</span>
                                     </div>
                                 </div>
                                 <span class="item-badge" style="background: ${passed ? '#10B981' : '#EF4444'}">${passed ? 'Passed' : 'Retake'}</span>
