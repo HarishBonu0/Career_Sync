@@ -585,7 +585,178 @@
                 </div>
             </div>
         </div>
+        <!-- Modal for viewing course modules -->
+        <div id="modules-modal" class="modules-modal" style="display: none;">
+            <div class="modules-modal-content">
+                <div class="modules-modal-header">
+                    <h2 id="modules-title"></h2>
+                    <button class="modules-close-btn" onclick="closeModulesModal()">&times;</button>
+                </div>
+                <div class="modules-modal-body">
+                    <div id="modules-list"></div>
+                </div>
+                <div class="modules-modal-footer">
+                    <button class="btn-close-modal" onclick="closeModulesModal()">Close</button>
+                </div>
+            </div>
+        </div>
     </main>
+
+    <style>
+        .modules-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modules-modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modules-modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modules-modal-header h2 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 1.375rem;
+        }
+
+        .modules-close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--text-tertiary);
+            transition: color 0.2s;
+        }
+
+        .modules-close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .modules-modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .module-item {
+            padding: 16px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            background: #FAFAFA;
+            transition: all 0.2s;
+        }
+
+        .module-item:hover {
+            border-color: var(--brand-primary);
+            background: #F8F8FF;
+        }
+
+        .module-item.completed {
+            border-color: #10B981;
+            background: #F0FDF4;
+        }
+
+        .module-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .module-item-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .module-completion-checkbox {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            accent-color: var(--brand-primary);
+        }
+
+        .module-item-meta {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+            margin: 0;
+        }
+
+        .module-item-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin: 8px 0 0 0;
+            line-height: 1.4;
+        }
+
+        .modules-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn-close-modal {
+            padding: 10px 20px;
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-close-modal:hover {
+            background: var(--brand-secondary);
+        }
+    </style>
 
     <script>
         // Debug logging
@@ -602,6 +773,146 @@
             if (parts.length === 2) return parts.pop().split(';').shift();
             return null;
         }
+
+        // ==================== MODULE COMPLETION TRACKING ====================
+        
+        /**
+         * Get the storage key for a course's completed modules
+         */
+        function getCompletedModulesKey(courseId) {
+            return `careersync_course_${courseId}_completed_modules`;
+        }
+
+        /**
+         * Get list of completed module IDs for a course
+         */
+        function getCompletedModules(courseId) {
+            const key = getCompletedModulesKey(courseId);
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : [];
+        }
+
+        /**
+         * Get count of completed modules
+         */
+        function getCompletedModulesCount(courseId) {
+            return getCompletedModules(courseId).length;
+        }
+
+        /**
+         * Mark a module as completed
+         */
+        function markModuleCompleted(courseId, moduleId) {
+            const completed = getCompletedModules(courseId);
+            if (!completed.includes(moduleId)) {
+                completed.push(moduleId);
+                const key = getCompletedModulesKey(courseId);
+                localStorage.setItem(key, JSON.stringify(completed));
+                console.log(`✅ Module marked completed: ${moduleId}`);
+                // Refresh profile to update percentages
+                location.reload();
+            }
+        }
+
+        /**
+         * Unmark a module as completed
+         */
+        function unmarkModuleCompleted(courseId, moduleId) {
+            const completed = getCompletedModules(courseId);
+            const index = completed.indexOf(moduleId);
+            if (index > -1) {
+                completed.splice(index, 1);
+                const key = getCompletedModulesKey(courseId);
+                localStorage.setItem(key, JSON.stringify(completed));
+                console.log(`❌ Module unmarked: ${moduleId}`);
+                // Refresh profile to update percentages
+                location.reload();
+            }
+        }
+
+        /**
+         * Check if a module is completed
+         */
+        function isModuleCompleted(courseId, moduleId) {
+            return getCompletedModules(courseId).includes(moduleId);
+        }
+
+        /**
+         * Open modules modal and display course modules
+         */
+        function openModulesModal(courseId, courseTitle, modulesData) {
+            const modal = document.getElementById('modules-modal');
+            const titleElement = document.getElementById('modules-title');
+            const listElement = document.getElementById('modules-list');
+
+            titleElement.textContent = `📚 ${courseTitle}`;
+
+            // Ensure modulesData is an array
+            const modules = Array.isArray(modulesData) ? modulesData : [];
+            const completedModules = getCompletedModules(courseId);
+
+            if (modules.length === 0) {
+                listElement.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-tertiary);">No modules available for this course</div>';
+            } else {
+                listElement.innerHTML = modules.map((module, index) => {
+                    const moduleId = module.id || module._id || `module_${index}`;
+                    const isCompleted = completedModules.includes(moduleId);
+                    
+                    return `
+                        <div class="module-item ${isCompleted ? 'completed' : ''}">
+                            <div class="module-item-header">
+                                <div>
+                                    <p class="module-item-title">${module.title || `Module ${index + 1}`}</p>
+                                    <p class="module-item-meta">${module.duration || 'Duration not specified'}</p>
+                                </div>
+                                <input 
+                                    type="checkbox" 
+                                    class="module-completion-checkbox"
+                                    ${isCompleted ? 'checked' : ''}
+                                    onchange="handleModuleCheckbox(this, '${courseId}', '${moduleId}')"
+                                    title="Mark as completed"
+                                >
+                            </div>
+                            ${module.description ? `<p class="module-item-description">${module.description}</p>` : ''}
+                            ${module.topics && module.topics.length > 0 ? `
+                                <p class="module-item-meta" style="margin-top: 8px;">📝 ${module.topics.length} topics</p>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        /**
+         * Handle module checkbox change
+         */
+        function handleModuleCheckbox(checkbox, courseId, moduleId) {
+            if (checkbox.checked) {
+                markModuleCompleted(courseId, moduleId);
+            } else {
+                unmarkModuleCompleted(courseId, moduleId);
+            }
+        }
+
+        /**
+         * Close modules modal
+         */
+        function closeModulesModal() {
+            const modal = document.getElementById('modules-modal');
+            modal.style.display = 'none';
+        }
+
+        /**
+         * Close modal when clicking outside
+         */
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('modules-modal');
+            if (event.target === modal) {
+                closeModulesModal();
+            }
+        });
 
         async function loadProfile() {
             try {
@@ -824,34 +1135,40 @@
             // Display Courses
             const courseContainer = document.getElementById('courses-container');
             if (courses && courses.length > 0) {
-                courseContainer.innerHTML = courses.map(course => `
+                courseContainer.innerHTML = courses.map(course => {
+                    const totalModules = (course.modules && course.modules.length) || course.totalModules || 8;
+                    const courseId = course._id || course.id || `course_${course.title}`;
+                    const completedModules = getCompletedModulesCount(courseId);
+                    const progressPercentage = Math.round((completedModules / totalModules) * 100);
+                    
+                    return `
                     <div class="item-card">
                         <div class="item-header">
                             <div>
                                 <p class="item-title">${course.title || 'Course'}</p>
                                 <div class="item-meta">
-                                    <span class="meta-tag">📚 ${(course.modules && course.modules.length) || course.totalModules || 10} modules</span>
+                                    <span class="meta-tag">📚 ${totalModules} modules</span>
                                     <span class="meta-tag">⏱️ ${course.duration || '4 weeks'}</span>
                                     <span class="meta-tag">📊 ${course.level || 'Intermediate'}</span>
                                 </div>
                             </div>
-                            ${(course.progress || 0) >= 100 ? '<span class="item-badge">Completed</span>' : ''}
+                            ${progressPercentage >= 100 ? '<span class="item-badge">Completed</span>' : ''}
                         </div>
                         <div class="progress-container">
                             <div class="progress-header">
-                                <span class="progress-label">${Math.floor(((course.progress || 0) / 100) * ((course.modules && course.modules.length) || 10))} of ${(course.modules && course.modules.length) || course.totalModules || 10} completed</span>
-                                <span class="progress-percent">${course.progress || 0}%</span>
+                                <span class="progress-label">${completedModules} of ${totalModules} modules completed</span>
+                                <span class="progress-percent">${progressPercentage}%</span>
                             </div>
                             <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${course.progress || 0}%"></div>
+                                <div class="progress-fill" style="width: ${progressPercentage}%"></div>
                             </div>
                         </div>
                         <div class="item-actions">
-                            <a href="http://localhost:3002" class="btn-continue">${(course.progress || 0) > 0 ? '▶️ Continue' : '🚀 Start'}</a>
-                            <a href="http://localhost:3002" class="btn-view">View</a>
+                            <a href="http://localhost:3002" class="btn-continue">${progressPercentage > 0 ? '▶️ Continue' : '🚀 Start'}</a>
+                            <button class="btn-view" onclick="openModulesModal('${courseId}', '${course.title}', ${JSON.stringify(course.modules || []).replace(/'/g, "&#39;")})">View Modules</button>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             } else {
                 courseContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No courses yet</div><a href="http://localhost:3002" class="action-btn primary">Create Course</a></div>';
             }
