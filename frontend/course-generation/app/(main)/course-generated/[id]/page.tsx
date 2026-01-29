@@ -230,80 +230,88 @@ export default function GeneratedCoursePage() {
 
     setSaving(true)
     try {
-      // Prepare course data for profile integration
-      const courseData = {
-        id: typeof window !== 'undefined' ? `course-${Date.now()}` : `course-${Math.random()}`,
-        title: course.title,
-        courseName: course.title,
-        level: course.difficulty || 'Intermediate',
-        duration: course.duration || '4 weeks',
-        modules: course.modules || [],
-        totalModules: course.modules?.length || 0,
-        completedModules: 0,
-        progress: 0,
-        status: 'in-progress',
-        curriculum: course.modules || [],
-        enrolledAt: new Date().toISOString()
-      };
-
-      console.log('📚 Saving course to profile:', courseData);
-
-      // Check if profile-utils is available globally
-      if (typeof window !== 'undefined' && window.careersyncProfile) {
-        // Use the global profile utilities to save
-        const result = await window.careersyncProfile.saveCourse(courseData);
-        console.log('✅ Course saved via profile-utils:', result);
-      } else {
-        // Fallback: save to localStorage directly
-        const enrolledCourses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
-        enrolledCourses.push(courseData);
-        localStorage.setItem('careersync_enrolled_courses', JSON.stringify(enrolledCourses));
-        console.log('💾 Course saved to localStorage');
-
-        // Also try to send to backend
-        const userStr = localStorage.getItem('careersync_user');
-        let userEmail = '';
-        let userId = null;
-        
-        if (userStr) {
-          try {
-            const user = JSON.parse(userStr);
-            userId = user._id || user.id;
-            userEmail = user.email || '';
-            console.log('📧 Extracted user email:', userEmail, 'userId:', userId);
-          } catch (e) {
-            console.log('Failed to parse user:', e);
-          }
-        }
-
-        if (userId && userEmail) {
-          try {
-            await fetch('http://localhost:5000/api/profile/enroll/course', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({
-                userId,
-                userEmail,
-                courseId: courseData.id,
-                courseTitle: courseData.title,
-                courseModules: courseData.modules || []
-              })
-            });
-            console.log('✅ Course synced to backend');
-          } catch (backendError) {
-            console.log('Backend sync failed (non-critical):', backendError);
-          }
+      // Extract user data from localStorage
+      const userStr = localStorage.getItem('careersync_user')
+      let userId = null
+      let userEmail = null
+      
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr)
+          userId = user._id || user.id || user.id
+          userEmail = user.email
+          console.log('✅ Got user from localStorage:', { userId, userEmail })
+        } catch (e) {
+          console.error('Failed to parse user:', e)
         }
       }
 
-      setSaved(true);
-      alert('✅ Course saved successfully! You can now access it from your profile or "My Courses".');
+      // If still no user, try to fetch from backend
+      if (!userId || !userEmail) {
+        console.log('⚠️ User data incomplete, trying to fetch from backend...')
+        try {
+          const token = localStorage.getItem('careersync_token')
+          if (token) {
+            const response = await fetch('http://localhost:5000/api/auth/me', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              credentials: 'include'
+            })
+            if (response.ok) {
+              const data = await response.json()
+              userId = data.user?.id || data.id
+              userEmail = data.user?.email || data.email
+              console.log('✅ Fetched from backend:', { userId, userEmail })
+              // Save to localStorage for future use
+              localStorage.setItem('careersync_user', JSON.stringify(data.user || data))
+            }
+          }
+        } catch (err) {
+          console.log('Could not fetch from backend:', err)
+        }
+      }
+
+      console.log('\n📤 SAVING COURSE WITH:')
+      console.log('   userId:', userId)
+      console.log('   userEmail:', userEmail)
+      console.log('   title:', course.title)
+
+      // Send to backend courses/save endpoint (NOT enrollment!)
+      const saveResponse = await fetch('http://localhost:5000/api/courses/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          userId: userId || 'guest',
+          userEmail: userEmail || null,
+          title: course.title,
+          description: course.description,
+          level: course.difficulty || 'Intermediate',
+          duration: course.duration || '4 weeks',
+          modules: course.modules || [],
+          objectives: course.objectives || [],
+          resources: course.resources || [],
+          course: course
+        })
+      })
+
+      const saveData = await saveResponse.json()
+      console.log('Backend response:', saveData)
+
+      if (!saveResponse.ok) {
+        throw new Error(saveData.error || 'Failed to save course')
+      }
+
+      console.log('✅ Course saved successfully!')
+      setSaved(true)
+      alert('✅ Course saved successfully! You can now access it from your profile.')
       
-      // Optional: Redirect to profile after delay
+      // Redirect to profile after delay
       setTimeout(() => {
-        window.location.href = 'http://localhost:4173/profile.html';
-      }, 2000);
+        window.location.href = 'http://localhost:4173/profile.html'
+      }, 2000)
     } catch (error) {
       console.error('❌ Error saving course:', error)
       alert(error instanceof Error ? error.message : 'Failed to save course. Please try again.')
