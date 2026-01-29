@@ -849,15 +849,27 @@
             const activeDays = profile.stats?.activeDays || 0;
             document.getElementById('profile-active-days').textContent = `${activeDays} days | ${visitCount} visits`;
 
+            // Combine data sources: Backend > localStorage > examples (fallback)
+            const coursesFromBackend = profile.courses || [];
+            const coursesFromStorage = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
+            const allCourses = coursesFromBackend.length > 0 ? coursesFromBackend : coursesFromStorage;
+            
+            const roadmapsFromBackend = profile.roadmaps || [];
+            const roadmapsFromStorage = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
+            const allRoadmaps = roadmapsFromBackend.length > 0 ? roadmapsFromBackend : roadmapsFromStorage;
+            
+            const evaluationsFromBackend = profile.evaluations || [];
+            const evaluationsFromStorage = JSON.parse(localStorage.getItem('careersync_evaluations') || '[]');
+            const allEvaluations = evaluationsFromBackend.length > 0 ? evaluationsFromBackend : evaluationsFromStorage;
+
             // Update stats
-            const stats = profile.stats || {};
-            document.getElementById('stat-courses').textContent = stats.totalCourses || 0;
-            document.getElementById('stat-roadmaps').textContent = stats.totalRoadmaps || 0;
-            document.getElementById('stat-evaluations').textContent = stats.totalEvaluations || 0;
+            document.getElementById('stat-courses').textContent = allCourses.length;
+            document.getElementById('stat-roadmaps').textContent = allRoadmaps.length;
+            document.getElementById('stat-evaluations').textContent = allEvaluations.length;
 
             // Display courses with full details
             const coursesContainer = document.getElementById('courses-container');
-            if (profile.courses && profile.courses.length > 0) {
+            if (allCourses && allCourses.length > 0) {
                 coursesContainer.innerHTML = profile.courses.map(course => {
                     const progress = course.progress || 0;
                     const modules = course.modules || [];
@@ -905,8 +917,8 @@
 
             // Display roadmaps with full details
             const roadmapsContainer = document.getElementById('roadmaps-container');
-            if (profile.roadmaps && profile.roadmaps.length > 0) {
-                roadmapsContainer.innerHTML = profile.roadmaps.map(roadmap => {
+            if (allRoadmaps && allRoadmaps.length > 0) {
+                roadmapsContainer.innerHTML = allRoadmaps.map(roadmap => {
                     const progress = roadmap.progress || 0;
                     const stages = roadmap.stages || [];
                     const totalStages = stages.length || roadmap.totalStages || 5;
@@ -953,8 +965,8 @@
 
             // Display evaluations with full details
             const evaluationsContainer = document.getElementById('evaluations-container');
-            if (profile.evaluations && profile.evaluations.length > 0) {
-                evaluationsContainer.innerHTML = profile.evaluations.map(evaluation => {
+            if (allEvaluations && allEvaluations.length > 0) {
+                evaluationsContainer.innerHTML = allEvaluations.map(evaluation => {
                     const score = evaluation.score || evaluation.percentage || 0;
                     const totalQuestions = evaluation.totalQuestions || 10;
                     const correctAnswers = evaluation.correctAnswers || Math.floor((score / 100) * totalQuestions);
@@ -1104,6 +1116,7 @@
         }
 
         // Load profile on page load
+        initializeSampleData(); // Initialize sample data as fallback
         loadProfile();
         
         // Auto-refresh profile data every 5 seconds to sync with backend updates
