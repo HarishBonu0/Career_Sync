@@ -776,243 +776,159 @@
             document.getElementById('profile-full-email').textContent = userData.email || 'No email';
         }
 
-        function displayCachedProfile(profile) {
-            // Handle different profile data structures
-            const name = profile.name || profile.full_name || profile.username || profile.displayName || (profile.email ? profile.email.split('@')[0] : 'User');
-            const email = profile.email || profile.user_email || 'user@example.com';
-            const initials = name.charAt(0).toUpperCase();
-            const displayName = name;
+        function displayCachedProfile(userData) {
+            // Just show basic user info - don't load data yet
+            const initials = (userData.name || userData.email || 'U').charAt(0).toUpperCase();
+            document.getElementById('profile-avatar-large').textContent = initials;
+            document.getElementById('profile-full-name').textContent = userData.name || 'User';
+            document.getElementById('profile-full-email').textContent = userData.email || 'user@example.com';
+            document.getElementById('profile-full-bio').textContent = userData.bio || 'Welcome to Career Sync';
+            document.getElementById('profile-joined').textContent = 'Recently';
+            document.getElementById('profile-role').textContent = 'Learner';
+            document.getElementById('profile-active-days').textContent = '0 visits';
 
-            // Update header info safely
-            const avatarEl = document.getElementById('profile-avatar-large');
-            const nameEl = document.getElementById('profile-full-name');
-            const emailEl = document.getElementById('profile-full-email');
-            const bioEl = document.getElementById('profile-full-bio');
-            
-            if (avatarEl) avatarEl.textContent = initials;
-            if (nameEl) nameEl.textContent = displayName;
-            if (emailEl) emailEl.textContent = email;
-            if (bioEl) bioEl.textContent = profile.bio || 'Welcome to careersync! Start creating courses, roadmaps, and taking evaluations.';
-            
-            // Show visit count
-            const visitCount = profile.visitCount || localStorage.getItem('careersync_profile_visits') || 0;
-            const lastAccessed = profile.lastAccessed ? new Date(profile.lastAccessed).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Today';
-            
-            document.getElementById('profile-joined').textContent = profile.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recently';
-            document.getElementById('profile-role').textContent = profile.role || 'Learner';
-            document.getElementById('profile-active-days').textContent = `${visitCount} visits`;
-
-            // Initialize containers with loading state
-            const coursesContainer = document.getElementById('courses-container');
-            const roadmapsContainer = document.getElementById('roadmaps-container');
-            const evaluationsContainer = document.getElementById('evaluations-container');
-            
-            coursesContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Loading courses...</div>';
-            roadmapsContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Loading roadmaps...</div>';
-            evaluationsContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Loading evaluations...</div>';
-
-            // Update stats to 0 initially
-            document.getElementById('stat-courses').textContent = '0';
-            document.getElementById('stat-roadmaps').textContent = '0';
-            document.getElementById('stat-evaluations').textContent = '0';
-
-            // Show content, hide loading screen
+            // Show loading state
             document.getElementById('loading').style.display = 'none';
             document.getElementById('profile-content').style.display = 'block';
         }
 
-        function displayProfile(profile) {
-            console.log('displayProfile called with:', profile);
+        function displayProfile(profileData) {
+            console.log('displayProfile:', profileData);
             
-            const initials = (profile.name || profile.email).charAt(0).toUpperCase();
-
-            // Update header info
+            // User Info
+            const name = profileData.name || 'User';
+            const email = profileData.email || 'user@example.com';
+            const initials = name.charAt(0).toUpperCase();
+            
             document.getElementById('profile-avatar-large').textContent = initials;
-            document.getElementById('profile-full-name').textContent = profile.name || 'User';
-            document.getElementById('profile-full-email').textContent = profile.email;
-            document.getElementById('profile-full-bio').textContent = profile.bio || 'No bio yet';
+            document.getElementById('profile-full-name').textContent = name;
+            document.getElementById('profile-full-email').textContent = email;
+            document.getElementById('profile-full-bio').textContent = profileData.bio || 'Welcome to Career Sync';
+            document.getElementById('profile-joined').textContent = 'Recently';
+            document.getElementById('profile-role').textContent = 'Learner';
             
-            // Handle joined date
-            try {
-                const joinDate = profile.joinedAt ? new Date(profile.joinedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recently';
-                document.getElementById('profile-joined').textContent = joinDate;
-            } catch (e) {
-                document.getElementById('profile-joined').textContent = 'Recently';
-            }
-            
-            // Handle role
-            const role = profile.role || 'Learner';
-            document.getElementById('profile-role').textContent = typeof role === 'string' ? role.charAt(0).toUpperCase() + role.slice(1) : 'Learner';
-            
-            // Include visit count in active days
-            const visitCount = localStorage.getItem('careersync_profile_visits') || 0;
-            const activeDays = profile.stats?.activeDays || 0;
-            document.getElementById('profile-active-days').textContent = `${activeDays} days | ${visitCount} visits`;
+            // Visit count
+            const visits = localStorage.getItem('careersync_profile_visits') || 0;
+            document.getElementById('profile-active-days').textContent = `${visits} visits`;
 
-            // Combine data sources: Backend > localStorage > examples (fallback)
-            const coursesFromBackend = profile.courses || [];
-            const coursesFromStorage = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
-            const allCourses = coursesFromBackend.length > 0 ? coursesFromBackend : coursesFromStorage;
-            
-            const roadmapsFromBackend = profile.roadmaps || [];
-            const roadmapsFromStorage = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
-            const allRoadmaps = roadmapsFromBackend.length > 0 ? roadmapsFromBackend : roadmapsFromStorage;
-            
-            const evaluationsFromBackend = profile.evaluations || [];
-            const evaluationsFromStorage = JSON.parse(localStorage.getItem('careersync_evaluations') || '[]');
-            const allEvaluations = evaluationsFromBackend.length > 0 ? evaluationsFromBackend : evaluationsFromStorage;
+            // Get all data: Backend > localStorage > empty
+            const courses = profileData.courses || JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]') || [];
+            const roadmaps = profileData.roadmaps || JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]') || [];
+            const evaluations = profileData.evaluations || JSON.parse(localStorage.getItem('careersync_evaluations') || '[]') || [];
 
             // Update stats
-            document.getElementById('stat-courses').textContent = allCourses.length;
-            document.getElementById('stat-roadmaps').textContent = allRoadmaps.length;
-            document.getElementById('stat-evaluations').textContent = allEvaluations.length;
+            document.getElementById('stat-courses').textContent = courses.length;
+            document.getElementById('stat-roadmaps').textContent = roadmaps.length;
+            document.getElementById('stat-evaluations').textContent = evaluations.length;
 
-            // Display courses with full details
-            const coursesContainer = document.getElementById('courses-container');
-            if (allCourses && allCourses.length > 0) {
-                coursesContainer.innerHTML = allCourses.map(course => {
-                    const progress = course.progress || 0;
-                    const modules = course.modules || [];
-                    const totalModules = modules.length || course.modulesCount || 10;
-                    const completedModules = Math.floor((progress / 100) * totalModules);
-                    const level = course.level || 'Intermediate';
-                    const duration = course.duration || '4 weeks';
-                    
-                    return `
-                        <div class="item-card">
-                            <div class="item-header">
-                                <div>
-                                    <p class="item-title">${course.title || 'Untitled Course'}</p>
-                                    <div class="item-meta">
-                                        <span class="meta-tag">📚 ${totalModules} modules</span>
-                                        <span class="meta-tag">⏱️ ${duration}</span>
-                                        <span class="meta-tag">📊 ${level}</span>
-                                    </div>
-                                </div>
-                                ${progress >= 100 ? '<span class="item-badge">Completed</span>' : ''}
-                            </div>
-                            
-                            <div class="progress-container">
-                                <div class="progress-header">
-                                    <span class="progress-label">${completedModules} of ${totalModules} modules completed</span>
-                                    <span class="progress-percent">${progress}%</span>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: ${progress}%"></div>
+            // Display Courses
+            const courseContainer = document.getElementById('courses-container');
+            if (courses && courses.length > 0) {
+                courseContainer.innerHTML = courses.map(course => `
+                    <div class="item-card">
+                        <div class="item-header">
+                            <div>
+                                <p class="item-title">${course.title || 'Course'}</p>
+                                <div class="item-meta">
+                                    <span class="meta-tag">📚 ${course.modules?.length || course.totalModules || 10} modules</span>
+                                    <span class="meta-tag">⏱️ ${course.duration || '4 weeks'}</span>
+                                    <span class="meta-tag">📊 ${course.level || 'Intermediate'}</span>
                                 </div>
                             </div>
-                            
-                            <div class="item-actions">
-                                <a href="http://localhost:3002" class="btn-continue">
-                                    ${progress > 0 ? '▶️ Continue Learning' : '🚀 Start Course'}
-                                </a>
-                                <a href="http://localhost:3002" class="btn-view">View Details</a>
+                            ${(course.progress || 0) >= 100 ? '<span class="item-badge">Completed</span>' : ''}
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-header">
+                                <span class="progress-label">${Math.floor(((course.progress || 0) / 100) * (course.modules?.length || 10))} of ${course.modules?.length || course.totalModules || 10} completed</span>
+                                <span class="progress-percent">${course.progress || 0}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${course.progress || 0}%"></div>
                             </div>
                         </div>
-                    `;
-                }).join('');
+                        <div class="item-actions">
+                            <a href="http://localhost:3002" class="btn-continue">${(course.progress || 0) > 0 ? '▶️ Continue' : '🚀 Start'}</a>
+                            <a href="http://localhost:3002" class="btn-view">View</a>
+                        </div>
+                    </div>
+                `).join('');
             } else {
-                coursesContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No courses enrolled yet</div><a href="http://localhost:3002" class="action-btn primary" style="max-width: 220px; margin: 0 auto;">Generate Your First Course</a></div>';
+                courseContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No courses yet</div><a href="http://localhost:3002" class="action-btn primary">Create Course</a></div>';
             }
 
-            // Display roadmaps with full details
-            const roadmapsContainer = document.getElementById('roadmaps-container');
-            if (allRoadmaps && allRoadmaps.length > 0) {
-                roadmapsContainer.innerHTML = allRoadmaps.map(roadmap => {
-                    const progress = roadmap.progress || 0;
-                    const stages = roadmap.stages || [];
-                    const totalStages = stages.length || roadmap.totalStages || 5;
-                    const completedStages = Math.floor((progress / 100) * totalStages);
-                    const targetRole = roadmap.targetRole || roadmap.title || 'Career Path';
-                    const duration = roadmap.duration || '6 months';
-                    
-                    return `
-                        <div class="item-card">
-                            <div class="item-header">
-                                <div>
-                                    <p class="item-title">${roadmap.title || 'Untitled Roadmap'}</p>
-                                    <div class="item-meta">
-                                        <span class="meta-tag">🎯 ${targetRole}</span>
-                                        <span class="meta-tag">📍 ${totalStages} stages</span>
-                                        <span class="meta-tag">⏱️ ${duration}</span>
-                                    </div>
-                                </div>
-                                ${progress >= 100 ? '<span class="item-badge">Completed</span>' : ''}
-                            </div>
-                            
-                            <div class="progress-container">
-                                <div class="progress-header">
-                                    <span class="progress-label">${completedStages} of ${totalStages} stages completed</span>
-                                    <span class="progress-percent">${progress}%</span>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: ${progress}%"></div>
+            // Display Roadmaps
+            const roadmapContainer = document.getElementById('roadmaps-container');
+            if (roadmaps && roadmaps.length > 0) {
+                roadmapContainer.innerHTML = roadmaps.map(roadmap => `
+                    <div class="item-card">
+                        <div class="item-header">
+                            <div>
+                                <p class="item-title">${roadmap.title || 'Roadmap'}</p>
+                                <div class="item-meta">
+                                    <span class="meta-tag">🎯 ${roadmap.targetRole || 'Career Path'}</span>
+                                    <span class="meta-tag">📍 ${roadmap.stages?.length || 5} stages</span>
+                                    <span class="meta-tag">⏱️ ${roadmap.duration || '6 months'}</span>
                                 </div>
                             </div>
-                            
-                            <div class="item-actions">
-                                <a href="http://localhost:5173" class="btn-continue">
-                                    ${progress > 0 ? '▶️ Continue Roadmap' : '🚀 Start Roadmap'}
-                                </a>
-                                <a href="http://localhost:5173" class="btn-view">View Details</a>
+                            ${(roadmap.progress || 0) >= 100 ? '<span class="item-badge">Completed</span>' : ''}
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-header">
+                                <span class="progress-label">${Math.floor(((roadmap.progress || 0) / 100) * (roadmap.stages?.length || 5))} of ${roadmap.stages?.length || 5} completed</span>
+                                <span class="progress-percent">${roadmap.progress || 0}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${roadmap.progress || 0}%"></div>
                             </div>
                         </div>
-                    `;
-                }).join('');
+                        <div class="item-actions">
+                            <a href="http://localhost:5173" class="btn-continue">${(roadmap.progress || 0) > 0 ? '▶️ Continue' : '🚀 Start'}</a>
+                            <a href="http://localhost:5173" class="btn-view">View</a>
+                        </div>
+                    </div>
+                `).join('');
             } else {
-                roadmapsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No roadmaps created yet</div><a href="http://localhost:5173" class="action-btn primary" style="max-width: 220px; margin: 0 auto;">Create Your First Roadmap</a></div>';
+                roadmapContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No roadmaps yet</div><a href="http://localhost:5173" class="action-btn primary">Create Roadmap</a></div>';
             }
 
-            // Display evaluations with full details
-            const evaluationsContainer = document.getElementById('evaluations-container');
-            if (allEvaluations && allEvaluations.length > 0) {
-                evaluationsContainer.innerHTML = allEvaluations.map(evaluation => {
-                    const score = evaluation.score || evaluation.percentage || 0;
-                    const totalQuestions = evaluation.totalQuestions || 10;
-                    const correctAnswers = evaluation.correctAnswers || Math.floor((score / 100) * totalQuestions);
-                    const title = evaluation.title || evaluation.skillName || evaluation.topic || 'Evaluation';
-                    const completedDate = evaluation.completedAt ? new Date(evaluation.completedAt).toLocaleDateString() : 'Recent';
-                    
+            // Display Evaluations
+            const evalContainer = document.getElementById('evaluations-container');
+            if (evaluations && evaluations.length > 0) {
+                evalContainer.innerHTML = evaluations.map(eval => {
+                    const score = eval.score || eval.percentage || 0;
+                    const passed = score >= 80;
                     return `
                         <div class="item-card">
                             <div class="item-header">
                                 <div>
-                                    <p class="item-title">${title}</p>
+                                    <p class="item-title">${eval.title || eval.topic || 'Evaluation'}</p>
                                     <div class="item-meta">
-                                        <span class="meta-tag">📝 ${totalQuestions} questions</span>
-                                        <span class="meta-tag">✅ ${correctAnswers} correct</span>
-                                        <span class="meta-tag">🕐 ${completedDate}</span>
+                                        <span class="meta-tag">📝 ${eval.totalQuestions || 10} questions</span>
+                                        <span class="meta-tag">✅ ${eval.correctAnswers || 0} correct</span>
+                                        <span class="meta-tag">🕐 ${eval.completedAt ? new Date(eval.completedAt).toLocaleDateString() : 'Recent'}</span>
                                     </div>
                                 </div>
-                                ${score >= 80 ? '<span class="item-badge" style="background: #10B981;">Passed</span>' : '<span class="item-badge" style="background: #EF4444;">Needs Improvement</span>'}
+                                <span class="item-badge" style="background: ${passed ? '#10B981' : '#EF4444'}">${passed ? 'Passed' : 'Retake'}</span>
                             </div>
-                            
                             <div class="progress-container">
                                 <div class="progress-header">
                                     <span class="progress-label">Score</span>
                                     <span class="progress-percent">${score}%</span>
                                 </div>
                                 <div class="progress-bar">
-                                    <div class="progress-fill" style="width: ${score}%; background: ${score >= 80 ? 'linear-gradient(90deg, #10B981 0%, #059669 100%)' : 'linear-gradient(90deg, #EF4444 0%, #DC2626 100%)'}"></div>
+                                    <div class="progress-fill" style="width: ${score}%; background: ${passed ? 'linear-gradient(90deg, #10B981, #059669)' : 'linear-gradient(90deg, #EF4444, #DC2626)'}"></div>
                                 </div>
                             </div>
-                            
                             <div class="item-actions">
-                                <a href="http://localhost:3001" class="btn-continue">
-                                    ${score < 80 ? '🔄 Retake Test' : '✅ View Results'}
-                                </a>
+                                <a href="http://localhost:3001" class="btn-continue">${passed ? '✅ View' : '🔄 Retake'}</a>
                                 <a href="http://localhost:3001" class="btn-view">New Test</a>
                             </div>
                         </div>
                     `;
                 }).join('');
             } else {
-                evaluationsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No evaluations completed yet</div><a href="http://localhost:3001" class="action-btn primary" style="max-width: 220px; margin: 0 auto;">Take Your First Test</a></div>';
+                evalContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No evaluations yet</div><a href="http://localhost:3001" class="action-btn primary">Take Test</a></div>';
             }
-
-            // Show content, hide loading
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('profile-content').style.display = 'block';
         }
 
         // Logout handler
