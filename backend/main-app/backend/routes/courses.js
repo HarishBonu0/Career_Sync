@@ -51,24 +51,36 @@ router.post('/generate', async (req, res) => {
 // Save a generated course or create a new course
 router.post('/', async (req, res) => {
   try {
-    const { user, title, description, level, duration, modules, objectives, status } = req.body;
+    const { user, userId, userEmail, title, description, level, difficulty, duration, totalModules, modules, objectives, resources, finalProject, status } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
     }
 
+    // Handle user field properly - convert "guest" to null for MongoDB
+    let userObjectId = null;
+    if (user && user !== 'guest' && mongoose.Types.ObjectId.isValid(user)) {
+      userObjectId = user;
+    }
+
     const course = await Course.create({
-      user: user || null,
+      user: userObjectId,
+      userId: userId || (user === 'guest' ? 'guest' : user),
+      userEmail: userEmail || null,
       title,
       description: description || '',
-      level: level || 'beginner',
+      level: level || difficulty || 'beginner',
+      difficulty: difficulty || level || 'beginner',
       duration: duration || '8 weeks',
+      totalModules: totalModules || (modules ? modules.length : 0),
       modules: modules || [],
       objectives: objectives || [],
+      resources: resources || [],
+      finalProject: finalProject || null,
       status: status || 'published'
     });
 
-    res.status(201).json({ success: true, data: course });
+    res.status(201).json({ success: true, courseId: course._id, data: course });
   } catch (error) {
     console.error('Create course error:', error);
     res.status(500).json({ error: error.message });
@@ -78,7 +90,7 @@ router.post('/', async (req, res) => {
 // Save a generated course as a curated course (legacy endpoint)
 router.post('/save', async (req, res) => {
   try {
-    const { userId, generationId, title, description, level, duration, modules, course } = req.body;
+    const { userId, userEmail, generationId, title, description, level, duration, modules, course } = req.body;
 
     // Handle both formats - direct course object or individual fields
     const courseData = course || { title, description, level, duration, modules };
@@ -87,15 +99,27 @@ router.post('/save', async (req, res) => {
       return res.status(400).json({ error: 'title is required' });
     }
 
+    // Handle user field properly
+    let userObjectId = null;
+    if (userId && userId !== 'guest' && mongoose.Types.ObjectId.isValid(userId)) {
+      userObjectId = userId;
+    }
+
     const newCourse = await Course.create({
-      user: userId || null,
+      user: userObjectId,
+      userId: userId || 'guest',
+      userEmail: userEmail || null,
       generation: generationId,
       title: courseData.title,
       description: courseData.description || '',
       level: courseData.level || courseData.difficulty || 'beginner',
+      difficulty: courseData.difficulty || courseData.level || 'beginner',
       duration: courseData.duration || '8 weeks',
+      totalModules: courseData.totalModules || (courseData.modules ? courseData.modules.length : 0),
       modules: courseData.modules || [],
       objectives: courseData.objectives || [],
+      resources: courseData.resources || [],
+      finalProject: courseData.finalProject || null,
       status: 'published'
     });
 
@@ -113,8 +137,20 @@ router.post('/save', async (req, res) => {
 // List courses for a user
 router.get('/', async (req, res) => {
   try {
-    const { userId } = req.query;
-    const filter = userId ? { user: userId } : {};
+    const { userId, userEmail } = req.query;
+    
+    let filter = {};
+    if (userId) {
+      // Check if it's a valid ObjectId, otherwise search by userId string field
+      if (mongoose.Types.ObjectId.isValid(userId) && userId !== 'guest') {
+        filter = { user: userId };
+      } else {
+        filter = { userId: userId };
+      }
+    } else if (userEmail) {
+      filter = { userEmail: userEmail };
+    }
+    
     const courses = await Course.find(filter).sort({ createdAt: -1 });
     res.json({ success: true, data: courses });
   } catch (error) {
