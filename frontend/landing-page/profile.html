@@ -501,13 +501,15 @@
             color: var(--text-secondary);
         }
     </style>
-    <!-- Shared Header: injected at runtime via shared-auth.js -->
+    <!-- Shared Header and Footer -->
+    <script type="module" src="../shared/header-component.js"></script>
+    <script type="module" src="../shared/footer-component.js"></script>
     <script type="module" src="./api-auth.js"></script>
     <script src="./profile-utils.js"></script>
 </head>
 
 <body>
-    <!-- Shared Header will be injected automatically by /shared-header.js -->
+    <!-- Header will be injected automatically by header-component.js -->
 
     <!-- Profile Content -->
     <main class="profile-container">
@@ -1145,7 +1147,8 @@
             }
         }, 5000); // Refresh every 5 seconds
     </script>
+    
+    <!-- Footer will be injected automatically by footer-component.js -->
 </body>
-
 
 </html>
