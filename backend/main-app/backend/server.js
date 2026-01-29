@@ -21,7 +21,15 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:4173', 'http://localhost:3002', 'http://localhost:5173', 'http://localhost:3001'],
+  origin: [
+    'http://localhost:4173', 
+    'http://localhost:3002', 
+    'http://localhost:5173', 
+    'http://localhost:3001',
+    'https://careersync-landing.onrender.com',
+    'https://careersync-course-gen.onrender.com',
+    'https://careersync-roadmap.onrender.com'
+  ],
   credentials: true,
   optionsSuccessStatus: 200
 }));

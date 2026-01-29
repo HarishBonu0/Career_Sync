@@ -40,10 +40,16 @@ services:
         value: https://careersync-backend.onrender.com
 
   # Landing Page
-  - type: static
+  - type: web
     name: careersync-landing
-    staticPublishPath: frontend/landing-page
-    buildCommand: echo "Static files"
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd frontend/landing-page && npm install && npm run build
+    startCommand: cd frontend/landing-page && npx vite preview --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: NODE_ENV
+        value: production
 
   # Roadmap Frontend
   - type: web
