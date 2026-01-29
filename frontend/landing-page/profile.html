@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - CareerOS</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%234F46E5'/%3E%3Ccircle cx='16' cy='16' r='6' fill='white'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="navbar-shared.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 100px auto 40px;
+            padding: 0 20px;
+        }
+
+        .profile-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 32px;
+            padding-bottom: 32px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .profile-avatar {
+            width: 96px;
+            height: 96px;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 40px;
+            font-weight: 700;
+            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.3);
+        }
+
+        .profile-info h1 {
+            font-size: 28px;
+            color: #0F172A;
+            margin: 0 0 8px 0;
+        }
+
+        .profile-info p {
+            color: #64748b;
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .profile-section {
+            margin-bottom: 32px;
+        }
+
+        .profile-section h2 {
+            font-size: 20px;
+            color: #0F172A;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .info-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .info-item {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #4F46E5;
+        }
+
+        .info-item label {
+            display: block;
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .info-item .value {
+            font-size: 16px;
+            color: #0F172A;
+            font-weight: 500;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+    </style>
+</head>
+<body>
+    <script src="../navbar-shared.js"></script>
+    
+    <div class="container">
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="profile-avatar" id="avatar"></div>
+                <div class="profile-info">
+                    <h1 id="user-name">Loading...</h1>
+                    <p id="user-email"></p>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <h2>Account Information</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Full Name</label>
+                        <div class="value" id="display-name"></div>
+                    </div>
+                    <div class="info-item">
+                        <label>Email Address</label>
+                        <div class="value" id="display-email"></div>
+                    </div>
+                    <div class="info-item">
+                        <label>User ID</label>
+                        <div class="value" id="display-id"></div>
+                    </div>
+                    <div class="info-item">
+                        <label>Member Since</label>
+                        <div class="value" id="display-joined">Recently Joined</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <a href="/" class="btn btn-secondary">← Back to Home</a>
+                <button onclick="logout()" class="btn btn-danger">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Check authentication
+        const token = localStorage.getItem('careeros_token');
+        const userStr = localStorage.getItem('careeros_user');
+
+        if (!token || !userStr) {
+            window.location.href = '/auth';
+        }
+
+        const user = JSON.parse(userStr);
+        
+        // Display user info
+        const userName = user.name || user.email.split('@')[0];
+        const initial = userName.charAt(0).toUpperCase();
+
+        document.getElementById('avatar').textContent = initial;
+        document.getElementById('user-name').textContent = userName;
+        document.getElementById('user-email').textContent = user.email;
+        document.getElementById('display-name').textContent = user.name || userName;
+        document.getElementById('display-email').textContent = user.email;
+        document.getElementById('display-id').textContent = user.id || 'N/A';
+
+        function logout() {
+            localStorage.removeItem('careeros_token');
+            localStorage.removeItem('careeros_user');
+            window.location.href = '/auth';
+        }
+
+        window.logout = logout;
+    </script>
+</body>
+</html>

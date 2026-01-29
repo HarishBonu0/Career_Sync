@@ -15,6 +15,11 @@ const testAttemptSchema = new mongoose.Schema({
     enum: ['beginner', 'intermediate', 'advanced'],
     required: true
   },
+  status: {
+    type: String,
+    enum: ['in-progress', 'completed'],
+    default: 'in-progress'
+  },
   questions: [{
     questionId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -23,6 +28,10 @@ const testAttemptSchema = new mongoose.Schema({
     selectedAnswer: String,
     isCorrect: Boolean
   }],
+  answers: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
   correctAnswers: {
     type: Number,
     default: 0
@@ -46,9 +55,16 @@ const testAttemptSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  startedAt: {
+    type: Date,
+    default: Date.now
+  },
   takenAt: {
     type: Date,
     default: Date.now
+  },
+  completedAt: {
+    type: Date
   },
   expiresAt: {
     type: Date,

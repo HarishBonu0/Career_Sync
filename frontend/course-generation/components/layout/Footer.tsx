@@ -1,0 +1,65 @@
+import React from 'react'
+
+export default function Footer() {
+  return (
+    <footer className="footer-premium">
+      <div className="footer-container">
+        <div className="footer-top footer-grid-4">
+          <div className="footer-brand-col">
+            <div className="brand brand-light">
+              <div className="brand-icon" />
+              CareerOS
+            </div>
+            <p className="footer-text">
+              Engineered for the ambitious. The world's first AI-powered career orchestration platform.
+            </p>
+            <div className="social-links">
+              <a href="#" className="social-icon">𝕏</a>
+              <a href="#" className="social-icon">In</a>
+              <a href="#" className="social-icon">Gh</a>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="footer-heading">Product</h4>
+            <ul className="footer-links">
+              <li><a href="http://localhost:3000">Course Generator</a></li>
+              <li><a href="http://localhost:5173">Roadmap Engine</a></li>
+              <li><a href="http://localhost:3001">Skill Evaluator</a></li>
+              <li><a href="#">Enterprise</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="footer-heading">Resources</h4>
+            <ul className="footer-links">
+              <li><a href="#">Documentation</a></li>
+              <li><a href="#">API Reference</a></li>
+              <li><a href="#">Blog</a></li>
+              <li><a href="#">Community</a></li>
+            </ul>
+          </div>
+
+          <div className="newsletter-col">
+            <h4 className="footer-heading">Stay Ahead</h4>
+            <p className="footer-note">
+              Join our intelligence network. No spam, just signals.
+            </p>
+            <form className="newsletter-form" onSubmit={(e) => e.preventDefault()}>
+              <input type="email" placeholder="enter@email.com" className="newsletter-input" required />
+              <button type="submit" className="newsletter-btn">→</button>
+            </form>
+          </div>
+        </div>
+
+        <div className="footer-bottom">
+          <div className="footer-meta">© 2026 CareerOS Inc. All rights reserved.</div>
+          <div className="footer-meta footer-links-inline">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  )
+}

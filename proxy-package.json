@@ -1,0 +1,13 @@
+{
+  "name": "careeros-proxy",
+  "version": "1.0.0",
+  "description": "Reverse proxy server for CareerOS deployment",
+  "main": "proxy-server.js",
+  "scripts": {
+    "start": "node proxy-server.js"
+  },
+  "dependencies": {
+    "http-proxy": "^1.18.1",
+    "express": "^4.18.2"
+  }
+}

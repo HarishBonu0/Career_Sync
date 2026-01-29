@@ -3,62 +3,10 @@ let selectedDifficulty = null;
 let currentTest = null;
 let userAnswers = [];
 
-// Module Navigation
-const moduleRoutes = {
-    'course': 'http://localhost:3000',
-    'roadmap': 'http://localhost:5173',
-    'skillEval': 'http://localhost:3001'
-};
-
-// Handle module navigation
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('[data-module-target]').forEach(element => {
-        element.addEventListener('click', function(e) {
-            e.preventDefault();
-            const module = this.getAttribute('data-module-target');
-            const url = moduleRoutes[module];
-            if (url) {
-                window.location.href = url;
-            }
-        });
-    });
-});
-
-// Check Auth State and Update Navbar
-function checkAuthState() {
-    const userJSON = localStorage.getItem('careeros_user');
-    const navAuthContainer = document.getElementById('nav-auth-container');
-    
-    if (navAuthContainer) {
-        if (userJSON) {
-            // User is logged in - show Sign Out button
-            const user = JSON.parse(userJSON);
-            const userInitial = user.email ? user.email.charAt(0).toUpperCase() : 'U';
-            navAuthContainer.innerHTML = `
-                <button onclick="handleLogout()" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                    Sign Out
-                </button>
-            `;
-        } else {
-            // User is NOT logged in - hide the auth container
-            navAuthContainer.style.display = 'none';
-        }
-    }
-}
-
-function handleLogout() {
-    if (confirm('Are you sure you want to sign out?')) {
-        localStorage.removeItem('careeros_user');
-        window.location.href = 'http://localhost:4173';
-    }
-}
-
-// Run on page load
-checkAuthState();
-
 // DOM Elements
 const courseInput = document.getElementById('courseInput');
 const difficultyButtons = document.querySelectorAll('.difficulty-btn');
+const generateBtn = document.getElementById('generateBtn');
 const attemptTestBtn = document.getElementById('attemptTestBtn');
 const submitTestBtn = document.getElementById('submitTestBtn');
 const retakeTestBtn = document.getElementById('retakeTestBtn');

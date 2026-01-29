@@ -34,13 +34,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
 
   useEffect(() => {
-    // Check localStorage for saved user and token
-    const savedUser = localStorage.getItem('user')
-    const savedToken = localStorage.getItem('token')
+    // Check localStorage for saved user and token (use careeros keys for consistency)
+    const savedUser = localStorage.getItem('careeros_user')
+    const savedToken = localStorage.getItem('careeros_token')
     if (savedUser && savedToken) {
-      setUser(JSON.parse(savedUser))
-      setToken(savedToken)
+      try {
+        setUser(JSON.parse(savedUser))
+        setToken(savedToken)
+      } catch (e) {
+        console.error('Invalid user data:', e)
+        localStorage.removeItem('careeros_user')
+        localStorage.removeItem('careeros_token')
+      }
     }
+    
+    // Listen for storage changes from other tabs/windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'careeros_user' || e.key === 'careeros_token') {
+        if (e.key === 'careeros_user' && e.newValue) {
+          try {
+            setUser(JSON.parse(e.newValue))
+          } catch (err) {
+            console.error('Invalid user data:', err)
+          }
+        } else if (e.key === 'careeros_user' && !e.newValue) {
+          setUser(null)
+        }
+        
+        if (e.key === 'careeros_token') {
+          setToken(e.newValue)
+        }
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -64,8 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setUser(userData)
         setToken(data.token)
-        localStorage.setItem('user', JSON.stringify(userData))
-        localStorage.setItem('token', data.token)
+        localStorage.setItem('careeros_user', JSON.stringify(userData))
+        localStorage.setItem('careeros_token', data.token)
         return true
       }
     } catch (error) {
@@ -85,9 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: foundUser.role 
       }
       setUser(userData)
-      setToken('mock-token-' + Date.now())
-      localStorage.setItem('user', JSON.stringify(userData))
-      localStorage.setItem('token', 'mock-token-' + Date.now())
+      const mockToken = 'mock-token-' + Date.now()
+      setToken(mockToken)
+      localStorage.setItem('careeros_user', JSON.stringify(userData))
+      localStorage.setItem('careeros_token', mockToken)
       return true
     }
     return false
@@ -96,8 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null)
     setToken(null)
-    localStorage.removeItem('user')
-    localStorage.removeItem('token')
+    localStorage.removeItem('careeros_user')
+    localStorage.removeItem('careeros_token')
   }
 
   return (

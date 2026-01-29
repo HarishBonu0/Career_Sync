@@ -4,16 +4,55 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, GraduationCap } from 'lucide-react'
 
-export default function EducatorsPage() {
-  const [step, setStep] = useState<'intro' | 'form'>('intro')
+// Separate client component for the form
+function EducatorForm({ onSuccess }: { onSuccess: () => void }) {
   const [reason, setReason] = useState('')
-  const [submitted, setSubmitted] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // TODO: Submit to API
-    setSubmitted(true)
+    onSuccess()
   }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label
+          htmlFor="reason"
+          className="block text-sm font-semibold text-gray-700 mb-3"
+        >
+          Why would you like to join Unfold for Educators?
+        </label>
+        <textarea
+          id="reason"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          rows={8}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all resize-none"
+          placeholder="Share your experience, expertise, and what you hope to teach..."
+          required
+        />
+        <p className="text-sm text-gray-500 mt-2">
+          Minimum 100 characters ({reason.length}/100)
+        </p>
+      </div>
+
+      <div className="flex space-x-4">
+        <button
+          type="submit"
+          disabled={reason.length < 100}
+          className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Become Educator at Unfold
+        </button>
+      </div>
+    </form>
+  )
+}
+
+export default function EducatorsPage() {
+  const [step, setStep] = useState<'intro' | 'form'>('intro')
+  const [submitted, setSubmitted] = useState(false)
 
   if (submitted) {
     return (
@@ -144,45 +183,7 @@ export default function EducatorsPage() {
                 Tell us why you'd like to join Unfold for Educators
               </p>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label
-                    htmlFor="reason"
-                    className="block text-sm font-semibold text-gray-700 mb-3"
-                  >
-                    Why would you like to join Unfold for Educators?
-                  </label>
-                  <textarea
-                    id="reason"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    rows={8}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all resize-none"
-                    placeholder="Share your experience, expertise, and what you hope to teach..."
-                    required
-                  />
-                  <p className="text-sm text-gray-500 mt-2">
-                    Minimum 100 characters ({reason.length}/100)
-                  </p>
-                </div>
-
-                <div className="flex space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => setStep('intro')}
-                    className="btn-secondary flex-1"
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={reason.length < 100}
-                    className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Become Educator at Unfold
-                  </button>
-                </div>
-              </form>
+              <EducatorForm onSuccess={() => setSubmitted(true)} />
             </div>
           </div>
         )}

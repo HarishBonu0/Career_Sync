@@ -1,28 +1,42 @@
 import express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import Roadmap from '../models/Roadmap.js';
 
 const router = express.Router();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Generate career roadmap
+// Generate career roadmap and persist
 router.post('/generate', async (req, res) => {
-  const { currentRole, targetRole, timeline } = req.body;
+  const { currentRole, targetRole, timeline, userId } = req.body;
 
   if (!currentRole || !targetRole) {
     return res.status(400).json({ error: 'Current and target roles are required' });
   }
 
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY is not configured' });
+  }
+
   try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     const prompt = `Create a detailed career roadmap from "${currentRole}" to "${targetRole}" within ${timeline || '12 months'}. Include skill gaps, learning resources, and milestones.`;
     
     const result = await model.generateContent(prompt);
-    const roadmap = result.response.text();
+    const roadmapText = result.response.text();
+
+    const roadmap = await Roadmap.create({
+      user: userId,
+      currentRole,
+      targetRole,
+      timeline,
+      roadmapText
+    });
 
     res.json({ 
       currentRole,
       targetRole,
-      roadmap,
+      roadmap: roadmapText,
+      roadmapId: roadmap._id,
       generatedAt: new Date()
     });
   } catch (error) {
@@ -31,14 +45,16 @@ router.post('/generate', async (req, res) => {
   }
 });
 
-// Get sample roadmaps
-router.get('/', (req, res) => {
-  res.json({
-    roadmaps: [
-      { id: 1, from: 'Junior Dev', to: 'Senior Dev', duration: '12 months' },
-      { id: 2, from: 'Data Analyst', to: 'ML Engineer', duration: '18 months' }
-    ]
-  });
+// List roadmaps for a user
+router.get('/', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    const filter = userId ? { user: userId } : {};
+    const roadmaps = await Roadmap.find(filter).sort({ createdAt: -1 });
+    res.json({ roadmaps });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 export default router;

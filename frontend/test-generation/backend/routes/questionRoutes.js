@@ -1,12 +1,12 @@
 const express = require('express');
-const router = express.Router();
-const supabase = require('../config/supabase');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Skill = require('../models/Skill');
+const Question = require('../models/Question');
+const TestAttempt = require('../models/TestAttempt');
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const router = express.Router();
 
-// Generate 60 questions for a skill
+// Generate questions for a skill and store them in MongoDB
 router.post('/generate', async (req, res) => {
   try {
     const { skillId, level } = req.body;
@@ -15,56 +15,37 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ message: 'skillId and level are required' });
     }
 
-    // Get skill info
-    const { data: skill, error: skillError } = await supabase
-      .from('test_skills')
-      .select('*')
-      .eq('id', skillId)
-      .single();
-
-    if (skillError || !skill) {
+    const skill = await Skill.findById(skillId);
+    if (!skill) {
       return res.status(404).json({ message: 'Skill not found' });
     }
 
-    // Check if API key is configured
     if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ message: 'Server configuration error: API key not configured' });
+      return res.status(500).json({ message: 'GEMINI_API_KEY is not configured on the server' });
     }
 
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
     const prompt = `
-      Generate 60 multiple-choice questions for the skill "${skill.skill_name}" at "${level}" level.
+      Generate 60 multiple-choice questions for the skill "${skill.skillName}" at "${level}" level.
       Each question must have:
-        - A mainTopic (general category)
-        - A subTopic (specific subcategory)
-        - A clearly defined topic
-        - 4 options (A, B, C, D) but answers should be text values
-        - The correct answer (write the actual text of the correct option, not just "A" or "B")
-      Return strictly valid JSON ONLY. Do NOT include markdown, code fences, or any explanation.
-
-      Format:
-      [
-        {
-          "mainTopic": "string",
-          "subTopic": "string",
-          "topic": "string",
-          "question": "string",
-          "options": ["A","B","C","D"], 
-          "correctAnswer": "string" 
-        }
-      ]
+        - mainTopic: general category
+        - subTopic: specific subcategory
+        - topic: short topic label
+        - question: the question text
+        - options: an array of exactly 4 answer strings
+        - correctAnswer: the exact answer text that is correct (must match one of the options)
+      Return ONLY valid JSON (no markdown, no code fences). The JSON must be an array of objects.
     `;
 
     const result = await model.generateContent(prompt);
     const rawText = result.response?.text?.() || '';
 
-    // Sanitize JSON
     const cleanedText = rawText
       .replace(/```json|```/g, '')
       .replace(/,\s*}/g, '}')
       .replace(/,\s*]/g, ']')
-      .replace(/[\u0000-\u001F]+/g, '')
       .trim();
 
     let questions;
@@ -78,28 +59,34 @@ router.post('/generate', async (req, res) => {
       return res.status(500).json({ message: 'AI did not generate any questions' });
     }
 
-    // Prepare questions for Supabase
-    const questionsToInsert = questions.map(q => ({
-      test_skill_id: skillId,
-      level: level,
-      main_topic: q.mainTopic,
-      sub_topic: q.subTopic,
-      topic: q.topic,
-      question: q.question,
-      options: q.options,
-      correct_answer: q.correctAnswer,
-      created_at: new Date().toISOString()
-    }));
+    const normalized = questions
+      .map(q => {
+        if (!q || !q.question || !q.correctAnswer) return null;
 
-    // Insert questions
-    const { data: insertedQuestions, error: insertError } = await supabase
-      .from('test_questions')
-      .insert(questionsToInsert)
-      .select();
+        const optionList = Array.isArray(q.options)
+          ? q.options
+          : Object.values(q.options || {});
 
-    if (insertError) {
-      throw insertError;
+        if (!Array.isArray(optionList) || optionList.length < 4) return null;
+
+        return {
+          skill: skill._id,
+          level,
+          mainTopic: q.mainTopic || q.topic || '',
+          subTopic: q.subTopic || '',
+          topic: q.topic || '',
+          question: q.question,
+          options: optionList.slice(0, 4),
+          correctAnswer: q.correctAnswer
+        };
+      })
+      .filter(Boolean);
+
+    if (normalized.length === 0) {
+      return res.status(500).json({ message: 'AI response did not include valid questions' });
     }
+
+    const insertedQuestions = await Question.insertMany(normalized);
 
     res.status(201).json({
       message: 'AI-generated questions saved successfully',
@@ -117,7 +104,7 @@ router.post('/generate', async (req, res) => {
   }
 });
 
-// Get 20 random test questions
+// Create a test attempt and return 20 random questions
 router.post('/test', async (req, res) => {
   try {
     const { skillId, level, userId } = req.body;
@@ -128,16 +115,7 @@ router.post('/test', async (req, res) => {
 
     const userIdToUse = userId || `guest-${Date.now()}`;
 
-    // Get all questions for this skill and level
-    const { data: allQuestions, error: questionsError } = await supabase
-      .from('test_questions')
-      .select('*')
-      .eq('test_skill_id', skillId)
-      .eq('level', level);
-
-    if (questionsError) {
-      throw questionsError;
-    }
+    const allQuestions = await Question.find({ skill: skillId, level }).lean();
 
     if (!allQuestions || allQuestions.length < 20) {
       return res.status(400).json({ 
@@ -146,31 +124,29 @@ router.post('/test', async (req, res) => {
       });
     }
 
-    // Shuffle and pick 20 random questions
     const shuffled = allQuestions.sort(() => 0.5 - Math.random());
     const selectedQuestions = shuffled.slice(0, 20);
 
-    // Create test attempt
-    const { data: attempt, error: attemptError } = await supabase
-      .from('test_attempts')
-      .insert([{
-        user_id: userIdToUse,
-        test_skill_id: skillId,
-        level: level,
-        status: 'in-progress',
-        started_at: new Date().toISOString(),
-        created_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
-
-    if (attemptError) {
-      throw attemptError;
-    }
+    const attempt = await TestAttempt.create({
+      user: userIdToUse,
+      skill: skillId,
+      level,
+      status: 'in-progress',
+      questions: selectedQuestions.map(q => ({ questionId: q._id })),
+      totalQuestions: selectedQuestions.length,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hour expiry
+    });
 
     res.json({
-      attemptId: attempt.id,
-      questions: selectedQuestions
+      attemptId: attempt._id,
+      questions: selectedQuestions.map(q => ({
+        id: q._id,
+        mainTopic: q.mainTopic,
+        subTopic: q.subTopic,
+        topic: q.topic,
+        question: q.question,
+        options: q.options
+      }))
     });
 
   } catch (error) {

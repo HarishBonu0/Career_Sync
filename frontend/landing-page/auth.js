@@ -1,4 +1,4 @@
-import { signUp, signIn, resetPassword } from './supabase-auth.js';
+import { register, login, requestOtp, loginWithOtp } from './api-auth.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Login Handler with Supabase
+    // Login Handler via backend API
     forms.login.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('login-email').value;
@@ -66,28 +66,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const submitBtn = forms.login.querySelector('button[type="submit"]');
 
         setButtonLoading(submitBtn, true);
-
-        const result = await signIn(email, password);
+        const result = await login(email, password);
 
         if (result.success) {
-            // Store user info in localStorage for cross-module compatibility
             localStorage.setItem('careeros_user', JSON.stringify({ 
                 email: result.user.email,
                 id: result.user.id,
-                userData: result.userData
+                name: result.user.name || result.user.email.split('@')[0]
             }));
-            window.location.href = 'index.html';
+            localStorage.setItem('careeros_token', result.token);
+            window.location.href = '/';
         } else {
             setButtonLoading(submitBtn, false);
             showError(forms.login, result.error || 'Invalid email or password');
         }
     });
 
-    // Signup Handler with Supabase
+    // Signup Handler via backend API with OTP verification
     forms.signup.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('signup-email').value;
         const password = document.getElementById('signup-password').value;
+        const name = document.getElementById('signup-name')?.value || '';
         const submitBtn = forms.signup.querySelector('button[type="submit"]');
 
         // Basic validation
@@ -103,56 +103,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setButtonLoading(submitBtn, true);
 
-        console.log('Starting signup process for:', email);
-        const result = await signUp(email, password);
-        console.log('Signup result:', result);
+        // First, register the user
+        const result = await register(email, password, name);
 
         if (result.success) {
-            console.log('Signup successful, user data:', result.userData);
-            // Store user info in localStorage
-            localStorage.setItem('careeros_user', JSON.stringify({ 
-                email: result.user.email,
-                id: result.user.id,
-                userData: result.userData
-            }));
-            alert('Account created successfully! Welcome to CareerOS.');
-            // Wait a moment before redirecting to ensure database is updated
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1000);
+            // User created successfully, now send OTP for verification
+            const otpResult = await requestOtp(email);
+            setButtonLoading(submitBtn, false);
+            
+            if (otpResult.success) {
+                // Redirect to OTP verification page
+                window.location.href = `/verify-otp.html?email=${encodeURIComponent(email)}`;
+            } else {
+                showError(forms.signup, 'Account created, but failed to send OTP. Please sign in.');
+            }
         } else {
-            console.log('Signup failed:', result.error);
             setButtonLoading(submitBtn, false);
             showError(forms.signup, result.error || 'Failed to create account');
         }
     });
 
-    // Forgot Password Handler with Supabase
+    // Request OTP (Email) Handler
     forms.forgot.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('forgot-email').value;
         const btn = forms.forgot.querySelector('button[type="submit"]');
-
-        if (email) {
-            setButtonLoading(btn, true);
-
-            const result = await resetPassword(email);
-
-            if (result.success) {
-                alert(`Password reset link sent to ${email}. Please check your email.`);
-                switchView('login');
-            } else {
-                showError(forms.forgot, result.error || 'Failed to send reset email');
-            }
-
-            setButtonLoading(btn, false);
+        if (!email) return showError(forms.forgot, 'Please enter your email');
+        setButtonLoading(btn, true);
+        const result = await requestOtp(email);
+        setButtonLoading(btn, false);
+        if (result.success) {
+            // Redirect to dedicated OTP verification page with reset=true flag
+            window.location.href = `/verify-otp.html?email=${encodeURIComponent(email)}&reset=true`;
+        } else {
+            showError(forms.forgot, result.error || 'Failed to send OTP');
         }
     });
 
-    // Verify OTP Handler
-    forms.verify.addEventListener('submit', (e) => {
+    // Verify OTP Handler via backend API
+    forms.verify.addEventListener('submit', async (e) => {
         e.preventDefault();
-        alert('Password reset successful. Please login.');
-        switchView('login');
+        const email = document.getElementById('verify-email').value;
+        const otp = document.getElementById('verify-otp').value;
+        const btn = forms.verify.querySelector('button[type="submit"]');
+        if (!otp) return showError(forms.verify, 'Please enter the OTP from your email');
+        setButtonLoading(btn, true);
+        const result = await loginWithOtp(email, otp);
+        setButtonLoading(btn, false);
+        if (result.success) {
+            localStorage.setItem('careeros_user', JSON.stringify({ 
+                email: result.user.email,
+                id: result.user.id,
+                name: result.user.name || result.user.email.split('@')[0]
+            }));
+            localStorage.setItem('careeros_token', result.token);
+            window.location.href = '/';
+        } else {
+            showError(forms.verify, result.error || 'Invalid OTP');
+        }
     });
 });

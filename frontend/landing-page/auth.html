@@ -231,6 +231,10 @@
                         <input type="email" id="signup-email" required placeholder="name@work.com">
                     </div>
                     <div class="input-group">
+                        <label>Name</label>
+                        <input type="text" id="signup-name" placeholder="Your name">
+                    </div>
+                    <div class="input-group">
                         <label>Password</label>
                         <input type="password" id="signup-password" required placeholder="Create a strong password">
                     </div>
@@ -273,6 +277,7 @@
                         <label>6-Digit Code</label>
                         <input type="text" id="verify-otp" required placeholder="123456" maxlength="6"
                             style="text-align:center; letter-spacing:4px;">
+                        <input type="hidden" id="verify-email" />
                     </div>
                     <div class="input-group">
                         <label>New Password</label>
@@ -290,59 +295,12 @@
     </div>
 
     <script>
-        // --- STATE MANAGEMENT ---
-        let generatedOTP = null;
-
         function switchView(viewId) {
             document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
             document.getElementById('view-' + viewId).classList.add('active');
         }
-
-        // --- LOGIN FLOW ---
-        document.getElementById('form-login').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            // Mock Login
-            localStorage.setItem('careeros_user', JSON.stringify({ email: email }));
-            window.location.href = '/';
-        });
-
-        // --- SIGNUP FLOW ---
-        document.getElementById('form-signup').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('signup-email').value;
-            // Mock Signup
-            localStorage.setItem('careeros_user', JSON.stringify({ email: email }));
-            window.location.href = '/';
-        });
-
-        // --- FORGOT PASSWORD FLOW ---
-        document.getElementById('form-forgot').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('forgot-email').value;
-
-            // Generate Mock OTP
-            generatedOTP = Math.floor(100000 + Math.random() * 900000);
-            console.log(`[AUTH-SIM] OTP for ${email}: ${generatedOTP}`);
-            alert(`Simulated Email: Your OTP Code is ${generatedOTP}`);
-
-            // Show View
-            switchView('verify');
-        });
-
-        // --- VERIFY FLOW ---
-        document.getElementById('form-verify').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const inputOTP = document.getElementById('verify-otp').value;
-
-            if (inputOTP === String(generatedOTP)) {
-                alert('Password reset successfully. Please sign in with your new password.');
-                switchView('login');
-            } else {
-                alert('Invalid OTP code. Please try again.');
-            }
-        });
     </script>
+    <script type="module" src="auth.js"></script>
 
 </body>
 

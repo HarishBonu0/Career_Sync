@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, BookOpen, Target, CheckCircle, Download } from 'lucide-react'
 import Link from 'next/link'
-import { supabaseClient } from '../../../../../db/supabaseClient'
+import api from '../../../../../../lib/api'
 
 interface Module {
   id: number
@@ -123,46 +123,39 @@ export default function GeneratedCoursePage() {
         }
       }
 
-      // Fallback: load from Supabase using the course ID from the URL
+      // Fallback: Try loading from MongoDB backend using API
       try {
         const courseId = params.id as string
-        const { data, error } = await supabaseClient
-          .from('courses')
-          .select(`*, course_sections(*, course_lessons(*, lesson_materials(*)))`)
-          .eq('id', courseId)
-          .single()
+        const courseResponse = await api.getCourse(courseId)
+        
+        if (courseResponse && courseResponse.data) {
+          const dbCourse = courseResponse.data
+          
+          const modules = (dbCourse.modules || []).map((module: any, idx: number) => ({
+            id: idx + 1,
+            title: module.title || `Module ${idx + 1}`,
+            duration: module.duration || '1 week',
+            description: module.description || '',
+            topics: module.topics || [],
+            activities: module.activities || [],
+            project: module.project,
+            assessment: module.assessment,
+            readingMaterials: module.readingMaterials || [],
+          }))
 
-        if (error) {
-          console.error('Supabase fetch error:', error.message)
-          setLoading(false)
-          return
-        }
-
-        const modules = (data?.course_sections || []).map((section, idx) => {
-          const lesson = section.course_lessons?.[0]
-          return {
-            id: section.id,
-            title: section.title,
-            duration: lesson?.duration || lesson?.estimated_time || '1 week',
-            description: lesson?.content || section.description || '',
-            topics: [],
-            activities: [],
-            project: lesson?.project || undefined,
-            assessment: lesson?.assessment || undefined,
+          const assembled: Course = {
+            title: dbCourse.title,
+            description: dbCourse.description,
+            difficulty: dbCourse.level || dbCourse.difficulty,
+            duration: dbCourse.duration,
+            modules: ensureReadingMaterials(modules),
+            resources: dbCourse.resources || [],
           }
-        })
 
-        const assembled: Course = {
-          title: data?.title,
-          description: data?.description,
-          difficulty: data?.difficulty,
-          modules,
-          resources: [],
+          setCourse(assembled)
         }
-
-        setCourse(assembled)
-      } catch (supabaseError) {
-        console.error('Supabase load failure:', supabaseError)
+      } catch (apiError) {
+        console.error('API load failure:', apiError)
       } finally {
         setLoading(false)
       }

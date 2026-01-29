@@ -241,7 +241,7 @@ export default function GenerateCoursePage() {
 
       console.log('Course generated successfully:', data.course.title)
 
-      // Persist the course to Supabase
+      // Persist the course to MongoDB backend
       let courseId: string | null = null
       try {
         const saveResponse = await fetch('/api/courses/save', {
@@ -252,7 +252,7 @@ export default function GenerateCoursePage() {
 
         const saveJson = await saveResponse.json()
         if (!saveResponse.ok) {
-          console.warn('Failed to persist course to Supabase, falling back to localStorage', saveJson)
+          console.warn('Failed to persist course to backend, falling back to localStorage', saveJson)
         } else {
           courseId = saveJson.courseId
         }
@@ -268,7 +268,7 @@ export default function GenerateCoursePage() {
       localStorage.setItem('generatedCourse', JSON.stringify({ ...data.course, id: courseId }))
       console.log('Course stored. Data length:', localStorage.getItem('generatedCourse')?.length)
       
-      // Navigate to the generated course page using Supabase ID when available
+      // Navigate to the generated course page using MongoDB ID when available
       const fallbackId = topic.toLowerCase().replace(/\s+/g, '-')
       const targetId = courseId || fallbackId
       console.log('Navigating to:', `/course-generated/${targetId}`)

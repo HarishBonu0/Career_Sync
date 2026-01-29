@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { connectMongo } from './db/mongo.js';
 
 // Load environment variables
 dotenv.config();
@@ -54,9 +55,13 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`\n🚀 SkillRoute Backend running on port ${PORT}`);
-  console.log(`📡 API endpoint: http://localhost:${PORT}`);
-  console.log(`✅ CORS enabled for all origins`);
-  console.log(`⏰ Server started at ${new Date().toISOString()}\n`);
+connectMongo().then(() => {
+  app.listen(PORT, () => {
+    console.log(`\n🚀 SkillRoute Backend running on port ${PORT}`);
+    console.log(`📡 API endpoint: http://localhost:${PORT}`);
+    console.log(`✅ CORS enabled for all origins`);
+    console.log(`⏰ Server started at ${new Date().toISOString()}\n`);
+  });
+}).catch((err) => {
+  console.error('Failed to start server because Mongo connection failed.', err.message);
 });

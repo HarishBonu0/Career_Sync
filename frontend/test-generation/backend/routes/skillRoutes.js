@@ -1,41 +1,29 @@
 const express = require('express');
+const Skill = require('../models/Skill');
+
 const router = express.Router();
-const supabase = require('../config/supabase');
 
 // Create or get skill by name
 router.post('/', async (req, res) => {
   try {
-    const { skillName } = req.body;
+    const skillName = (req.body.skillName || req.body.name || '').trim();
 
     if (!skillName) {
       return res.status(400).json({ message: 'Skill name is required' });
     }
 
-    // Check if skill exists
-    const { data: existingSkills, error: searchError } = await supabase
-      .from('test_skills')
-      .select('*')
-      .ilike('skill_name', skillName)
-      .limit(1);
+    const existingSkill = await Skill.findOne({
+      skillName: { $regex: new RegExp(`^${skillName}$`, 'i') }
+    });
 
-    if (searchError && searchError.code !== 'PGRST116') {
-      throw searchError;
+    if (existingSkill) {
+      return res.json(existingSkill);
     }
 
-    if (existingSkills && existingSkills.length > 0) {
-      return res.json(existingSkills[0]);
-    }
-
-    // Create new skill
-    const { data: newSkill, error: insertError } = await supabase
-      .from('test_skills')
-      .insert([{ skill_name: skillName, created_at: new Date().toISOString() }])
-      .select()
-      .single();
-
-    if (insertError) {
-      throw insertError;
-    }
+    const newSkill = await Skill.create({
+      skillName,
+      name: skillName
+    });
 
     res.status(201).json(newSkill);
   } catch (error) {
@@ -49,16 +37,11 @@ router.get('/search/:name', async (req, res) => {
   try {
     const { name } = req.params;
 
-    const { data, error } = await supabase
-      .from('test_skills')
-      .select('*')
-      .ilike('skill_name', `%${name}%`);
+    const skills = await Skill.find({
+      skillName: { $regex: name, $options: 'i' }
+    }).limit(50);
 
-    if (error && error.code !== 'PGRST116') {
-      throw error;
-    }
-
-    res.json(data || []);
+    res.json(skills);
   } catch (error) {
     console.error('Skill search error:', error);
     res.status(500).json({ message: 'Failed to search skills', error: error.message });

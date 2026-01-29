@@ -1,4 +1,4 @@
-import { getCurrentUser, signOut } from './supabase-auth.js';
+import { api } from './scripts/api.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Module Links Configuration
@@ -34,15 +34,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     await checkAuthState();
 
     async function checkAuthState() {
-        // Check Supabase auth first
-        const { user, userData } = await getCurrentUser();
-        
-        // Also check localStorage for backward compatibility
+        // Check localStorage auth
         const localUser = localStorage.getItem('careeros_user');
+        const token = localStorage.getItem('careeros_token');
 
-        if (user || localUser) {
+        if (token && localUser) {
             // User is LOGGED IN
-            const displayUser = user || JSON.parse(localUser);
+            const displayUser = JSON.parse(localUser);
             const userEmail = displayUser.email || '';
             const userInitial = userEmail.charAt(0).toUpperCase() || 'U';
 
@@ -70,11 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function handleLogout() {
         if (confirm('Are you sure you want to sign out?')) {
-            // Sign out from Supabase
-            await signOut();
-            
-            // Clear localStorage
-            localStorage.removeItem('careeros_user');
+            // Sign out - clear auth
+            await api.signOut();
             
             // Refresh state
             await checkAuthState();

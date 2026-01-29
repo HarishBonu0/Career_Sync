@@ -1,329 +1,234 @@
-# Project Expo - AI-Powered Learning Platform
+# CareerOS - AI-Powered Career Evolution Platform
 
-A comprehensive, modular platform for AI-driven career development with course generation, learning roadmaps, and skill assessments.
-
-## 🚀 Quick Start
+## Quick Start (Development)
 
 ### Prerequisites
-- Node.js v16+ 
-- npm or yarn
-- Supabase account (free tier available)
+- Node.js 16+ and npm
+- MongoDB Atlas account (or local MongoDB)
+- Email service configured (EmailJS for OTP)
 
-### Installation
+### 1. Install Dependencies
 
 ```bash
-# 1. Install dependencies for all modules
-npm run install:all
+# Install proxy server dependencies
+npm install http-proxy-middleware express
 
-# 2. Configure environment
-cp .env.example .env
-# Edit .env with your Supabase credentials
+# Install backend dependencies
+cd backend/main-app/backend
+npm install
 
-# 3. Start all services
-npm run dev
+# Install frontend dependencies
+cd ../../../frontend/landing-page
+npm install
+
+cd ../course-generation
+npm install
+
+cd ../roadmap
+npm install
+
+cd ../test-generation
+npm install
 ```
 
-**Services will be available at:**
-- 🏠 Landing Page: http://localhost:4173
-- 📚 Course Generation: http://localhost:3005
-- 🗺️ Roadmap Module: http://localhost:5173
-- ✏️ Test Generation: http://localhost:3000
-- ⚙️ Backend API: http://localhost:5000
+### 2. Configure Environment
 
----
-
-## 📁 Project Structure
-
-```
-Project Expo/
-├── frontend/
-│   ├── landing-page/          # Main home page (Vite)
-│   ├── course-generation/     # Course generator (Next.js)
-│   ├── roadmap/               # Learning roadmaps (Vite + React)
-│   └── test-generation/       # Skill assessments (React)
-├── backend/
-│   └── main-app/              # Express API server
-├── db/                        # Database utilities & queries
-├── scripts/                   # Orchestration scripts
-└── package.json               # Root configuration
-```
-
----
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Create `.env` file in root with:
+Create `.env` file in `backend/main-app/backend/`:
 
 ```env
-# Supabase
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-
-# Backend
 PORT=5000
 NODE_ENV=development
 JWT_SECRET=your-secret-key-change-in-production
+MONGODB_URI=your-mongodb-atlas-connection-string
 
-# OpenAI (for course generation)
-VITE_OPENAI_API_KEY=your_openai_key
-NEXT_PUBLIC_OPENAI_API_KEY=your_openai_key
-
-# EmailJS
-VITE_EMAILJS_SERVICE_ID=your_emailjs_service_id
-VITE_EMAILJS_TEMPLATE_ID=your_emailjs_template_id
-VITE_EMAILJS_PUBLIC_KEY=your_emailjs_public_key
+# EmailJS for OTP
+EMAILJS_SERVICE_ID=your_service_id
+EMAILJS_TEMPLATE_ID=your_template_id
+EMAILJS_PUBLIC_KEY=your_public_key
+EMAILJS_PRIVATE_KEY=your_private_key
 ```
 
----
+### 3. Start All Services
 
-## 📚 Available Services
-
-### Backend API (http://localhost:5000)
-
-#### Health Check
-```
-GET /api/health
-```
-Returns: `{"status":"OK","message":"SkillRoute Backend is running","timestamp":"..."}`
-
-#### Authentication
-```
-POST /api/auth/register        - Register new user
-POST /api/auth/login           - Login user
-POST /api/auth/verify          - Verify JWT token
-POST /api/auth/logout          - Logout
-```
-
-#### Courses
-```
-GET /api/courses               - List all courses
-POST /api/courses              - Create new course
-GET /api/courses/:id           - Get course details
-```
-
-#### Roadmaps
-```
-GET /api/roadmaps              - List all roadmaps
-POST /api/roadmaps             - Create new roadmap
-GET /api/roadmaps/:id          - Get roadmap details
-```
-
-#### Skills
-```
-GET /api/skills                - List all skills
-POST /api/skills               - Create skill assessment
-POST /api/skills/evaluate      - Evaluate skill level
-```
-
-### Frontend Modules
-
-**Landing Page** (http://localhost:4173)
-- Home page with navigation
-- Module links and overview
-- Course/roadmap discovery
-
-**Course Generation** (http://localhost:3005)
-- AI-powered course creation
-- Curriculum generation
-- Learning structure design
-
-**Roadmap Module** (http://localhost:5173)
-- Learning path visualization
-- Progress tracking
-- Skill mapping
-
-**Test Generation** (http://localhost:3000)
-- Assessment creation
-- Skill evaluation
-- Knowledge testing
-
----
-
-## 🗄️ Database Setup
-
-### Initialize Supabase
-
-1. Create a Supabase project at https://supabase.com
-2. Run the database setup script:
-
+Option A - Use the deployment script:
 ```bash
-node create-all-tables.js
+node deploy.js
 ```
 
-This creates tables for:
-- Users
-- Courses
-- Roadmaps
-- Skills
-- Assessments
-- User Progress
-
----
-
-## 🛠️ Development
-
-### Run Individual Services
-
+Option B - Manual startup:
 ```bash
-npm run dev:landing          # Landing page only
-npm run dev:course           # Course generation
-npm run dev:roadmap          # Roadmap module
-npm run dev:tests            # Test generation
-npm run dev:backend          # Backend API
-```
+# Terminal 1: Backend API
+cd backend/main-app/backend
+npm start
 
-### Build for Production
-
-```bash
-npm run build:all            # Build all services
-```
-
----
-
-## 📝 API Testing
-
-### Using cURL
-
-```bash
-# Health check
-curl http://localhost:5000/api/health
-
-# Register
-curl -X POST http://localhost:5000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123"}'
-
-# Login
-curl -X POST http://localhost:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123"}'
-```
-
-### Using Postman
-
-1. Import API collection or create requests
-2. Set base URL: `http://localhost:5000`
-3. Add Bearer token from login response to Authorization header for protected routes
-
----
-
-## 🚀 Deployment
-
-### Deploy Frontend
-
-**Vercel** (Recommended)
-```bash
-npm install -g vercel
-vercel deploy
-```
-
-**Netlify**
-```bash
-npm run build:all
-# Then drag & drop build folders to Netlify
-```
-
-### Deploy Backend
-
-**Render**
-1. Connect GitHub repository
-2. Create new Web Service
-3. Build command: `npm install`
-4. Start command: `node backend/main-app/backend/server.js`
-5. Set environment variables
-
-**Railway**
-```bash
-railway link
-railway up
-```
-
----
-
-## 🔐 Security
-
-- JWT authentication for protected routes
-- CORS enabled for frontend domains
-- Row-Level Security (RLS) in Supabase
-- Password hashing with bcryptjs
-- Environment variables for sensitive data
-
----
-
-## 🐛 Troubleshooting
-
-### Services Won't Start
-```bash
-# Kill all Node processes
-taskkill /F /IM node.exe
-
-# Clear node_modules and reinstall
-rm -r node_modules
-npm install
-
-# Restart
+# Terminal 2: Landing Page
+cd frontend/landing-page
 npm run dev
+
+# Terminal 3: Course Generator
+cd frontend/course-generation
+npm run dev
+
+# Terminal 4: Roadmap
+cd frontend/roadmap
+npm run dev
+
+# Terminal 5: Evaluator
+cd frontend/test-generation
+npm run dev
+
+# Terminal 6: Reverse Proxy (Production-like routing)
+node proxy-server.js
 ```
+
+### 4. Access the Application
+
+**Development (with individual ports):**
+- Landing Page: http://localhost:4173
+- Course Generator: http://localhost:3002
+- Roadmap: http://localhost:5173
+- Evaluator: http://localhost:3001
+- Backend API: http://localhost:5000
+
+**Production-like (with reverse proxy):**
+- Main Application: http://localhost:8080
+- All modules accessible via clean paths:
+  - `/` - Landing page
+  - `/auth` - Authentication
+  - `/course-generator` - Course generation
+  - `/roadmap` - Career roadmaps
+  - `/evaluator` - Skill evaluator
+  - `/api/*` - Backend API
+
+## Features
+
+### Authentication
+- ✅ Email/Password sign up and login
+- ✅ OTP-based email verification
+- ✅ Password reset via email OTP
+- ✅ Persistent sessions across modules
+- 🔄 Social login (Google, LinkedIn) - Coming soon
+
+### Core Modules
+- **Course Generator**: AI-powered course creation
+- **Roadmap**: Career path visualization and planning
+- **Skill Evaluator**: Knowledge testing and assessment
+- **Landing Page**: Main navigation and user dashboard
+
+### User Experience
+- ✅ Unified header/footer across all modules
+- ✅ Consistent authentication state
+- ✅ Fast OTP delivery (async email sending)
+- ✅ Mobile-responsive design
+- ✅ Clean, deployment-ready routing
+
+## Project Structure
+
+```
+Project Expo/
+├── backend/
+│   └── main-app/backend/       # Express API server
+│       ├── routes/             # API routes
+│       ├── models/             # MongoDB models
+│       ├── services/           # Business logic
+│       └── db/                 # Database config
+├── frontend/
+│   ├── landing-page/           # Main landing page (Vite)
+│   ├── course-generation/      # Course generator (Next.js)
+│   ├── roadmap/                # Career roadmaps (Vite + React)
+│   ├── test-generation/        # Skill evaluator (Vite)
+│   └── shared-header.js        # Shared navigation component
+├── proxy-server.js             # Reverse proxy for clean routing
+├── deploy.js                   # Automated deployment script
+└── README.md                   # This file
+```
+
+## Deployment
+
+### Production Build
+
+1. Build all frontend modules:
+```bash
+cd frontend/landing-page && npm run build
+cd ../course-generation && npm run build
+cd ../roadmap && npm run build
+cd ../test-generation && npm run build
+```
+
+2. Configure reverse proxy (Nginx or Node.js proxy-server.js)
+
+3. Set production environment variables
+
+4. Deploy to your hosting platform (Vercel, Netlify, AWS, etc.)
+
+### Environment Variables (Production)
+
+```env
+PORT=5000
+NODE_ENV=production
+JWT_SECRET=strong-random-secret
+MONGODB_URI=mongodb+srv://...
+EMAILJS_SERVICE_ID=...
+EMAILJS_TEMPLATE_ID=...
+EMAILJS_PUBLIC_KEY=...
+EMAILJS_PRIVATE_KEY=...
+```
+
+## Tech Stack
+
+- **Frontend**: React, Next.js, Vite, TypeScript
+- **Backend**: Node.js, Express
+- **Database**: MongoDB Atlas
+- **Authentication**: JWT, bcrypt
+- **Email**: EmailJS
+- **Styling**: CSS, Tailwind CSS
+
+## Development Roadmap
+
+### Completed ✅
+- Unified authentication across modules
+- OTP verification page
+- Password reset flow
+- Reverse proxy for clean routing
+- Async OTP email sending for better performance
+
+### In Progress 🔄
+- Progress tracking for courses/roadmaps/tests
+- User roles (admin, student, guest)
+- Course enrollment and certificates
+- Mobile responsiveness improvements
+- Accessibility enhancements (WCAG)
+
+### Planned 📋
+- Social login (Google, LinkedIn)
+- API rate limiting and security
+- User feedback and ratings
+- Real-time notifications
+- Analytics dashboard
+
+## Support
+
+For issues, feature requests, or questions:
+1. Check the documentation in each module's folder
+2. Review the troubleshooting section below
+3. Contact the development team
+
+## Troubleshooting
+
+### MongoDB Connection Issues
+- Ensure your IP is whitelisted in MongoDB Atlas Network Access
+- Verify connection string in `.env`
+- Check MongoDB Atlas cluster status
+
+### OTP Not Received
+- Verify EmailJS credentials in `.env`
+- Check spam/junk folder
+- Ensure email template is correctly configured in EmailJS dashboard
 
 ### Port Already in Use
-Services auto-adjust to available ports. Check console output for actual ports being used.
+- Change ports in respective `package.json` or `.env` files
+- Kill processes using the ports: `npx kill-port 5000 4173 3002 5173 3001`
 
-### Database Connection Errors
-- Verify Supabase URL and keys in `.env`
-- Check network connectivity
-- Ensure RLS policies allow your operations
+## License
 
-### API 404 Errors
-- Verify endpoint URL format
-- Check HTTP method (GET vs POST)
-- Ensure request body format for POST requests
-
----
-
-## 📦 Key Dependencies
-
-**Frontend:**
-- Vite 5.x - Build tool
-- React 18.x - UI framework
-- Next.js 14.x - Full-stack framework
-- Supabase.js - Database client
-
-**Backend:**
-- Express.js - HTTP server
-- JWT - Authentication
-- CORS - Cross-origin support
-- bcryptjs - Password hashing
-
-**Database:**
-- Supabase - PostgreSQL + realtime
-
----
-
-## 📄 License
-
-MIT License
-
----
-
-## 🤝 Support
-
-For issues or questions:
-1. Check the troubleshooting section
-2. Review API documentation above
-3. Check browser console for errors
-4. Review backend logs at http://localhost:5000/api/health
-
----
-
-## ✅ System Status
-
-**Services:** ✅ All running
-**Database:** Configure in setup
-**API:** ✅ Operational
-**Frontend:** ✅ Ready
-
-Last Updated: January 2026
+© 2026 CareerOS. All rights reserved.

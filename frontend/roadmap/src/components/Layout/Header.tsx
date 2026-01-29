@@ -1,12 +1,11 @@
-import styles from './Header.module.css';
+import { useState, useEffect } from 'react';
 
-interface HeaderProps {
-  onConfigClick: () => void;
-  showNewSimulation?: boolean;
-  onNewSimulation?: () => void;
+interface User {
+  id?: string;
+  email?: string;
+  full_name?: string;
+  username?: string;
 }
-
-import { useState } from 'react';
 
 interface HeaderProps {
   onConfigClick: () => void;
@@ -16,87 +15,137 @@ interface HeaderProps {
 
 export default function Header({ onConfigClick, showNewSimulation, onNewSimulation }: HeaderProps) {
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Check auth state from localStorage (shared with landing page)
-  const isAuthenticated = typeof window !== 'undefined' && 
-    localStorage.getItem('careeros_user') !== null;
+  useEffect(() => {
+    checkAuthStatus();
+    
+    // Check auth every 2 seconds
+    const interval = setInterval(checkAuthStatus, 2000);
+    
+    // Listen for storage changes from other tabs/windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'careeros_user' || e.key === 'careeros_token') {
+        checkAuthStatus();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
-  const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('careeros_user');
-      window.location.href = 'http://localhost:4173';
+  const checkAuthStatus = () => {
+    const user = localStorage.getItem('careeros_user');
+    const token = localStorage.getItem('careeros_token');
+
+    if (user && token) {
+      try {
+        setCurrentUser(JSON.parse(user));
+        setIsAuthenticated(true);
+      } catch (e) {
+        console.error('Invalid user data:', e);
+        logout();
+      }
+    } else {
+      setIsAuthenticated(false);
+      setCurrentUser(null);
     }
   };
 
-  const handleModuleNav = (module: string) => {
-    const routes: Record<string, string> = {
-      'course': 'http://localhost:3000',
-      'roadmap': 'http://localhost:5173',
-      'skillEval': 'http://localhost:3001'
-    };
-    if (routes[module]) {
-      window.location.href = routes[module];
-    }
+  const handleLogout = () => {
+    logout();
+  };
+
+  const logout = () => {
+    localStorage.removeItem('careeros_user');
+    localStorage.removeItem('careeros_token');
+    localStorage.removeItem('careeros_auth');
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    window.location.href = '/auth';
   };
 
   return (
     <header style={headerStyles.header}>
       <div style={headerStyles.container}>
-        <a href="http://localhost:4173" style={headerStyles.brand}>
-          <div style={headerStyles.brandIcon}></div>
-          CareerOS
+        <a href="/" style={headerStyles.brand}>
+          <div style={headerStyles.brandIcon}>C</div>
+          <span>CareerOS</span>
         </a>
 
-        <nav style={headerStyles.navLinks}>
+        <nav style={headerStyles.navLinks} className={mobileMenuOpen ? 'mobile-open' : ''}>
           <a 
-            href="#"
-            onClick={(e) => { e.preventDefault(); handleModuleNav('course'); }}
+            href="/course-generator"
             style={{
               ...headerStyles.navLink,
-              color: hoveredLink === 'course' ? '#4f46e5' : '#374151',
+              color: hoveredLink === 'course' ? '#4f46e5' : '#475569',
+              borderBottom: hoveredLink === 'course' ? '2px solid #4f46e5' : 'none',
             }}
             onMouseEnter={() => setHoveredLink('course')}
             onMouseLeave={() => setHoveredLink(null)}
           >
-            Course Gen
+            📚 Course Gen
           </a>
           <a 
-            href="#"
-            onClick={(e) => { e.preventDefault(); handleModuleNav('roadmap'); }}
+            href="/roadmap"
             style={{
               ...headerStyles.navLink,
-              color: hoveredLink === 'roadmap' ? '#4f46e5' : '#374151',
+              color: hoveredLink === 'roadmap' ? '#4f46e5' : '#475569',
+              borderBottom: hoveredLink === 'roadmap' ? '2px solid #4f46e5' : 'none',
             }}
             onMouseEnter={() => setHoveredLink('roadmap')}
             onMouseLeave={() => setHoveredLink(null)}
           >
-            Roadmaps
+            🗺️ Roadmaps
           </a>
           <a 
-            href="#"
-            onClick={(e) => { e.preventDefault(); handleModuleNav('skillEval'); }}
+            href="/evaluator"
             style={{
               ...headerStyles.navLink,
-              color: hoveredLink === 'eval' ? '#4f46e5' : '#374151',
+              color: hoveredLink === 'eval' ? '#4f46e5' : '#475569',
+              borderBottom: hoveredLink === 'eval' ? '2px solid #4f46e5' : 'none',
             }}
             onMouseEnter={() => setHoveredLink('eval')}
             onMouseLeave={() => setHoveredLink(null)}
           >
-            Evaluator
+            ✅ Evaluator
           </a>
         </nav>
 
-        {/* Show Sign Out only when authenticated */}
-        {isAuthenticated && (
-          <div style={headerStyles.navAuth}>
-            <button
-              onClick={handleLogout}
-              style={headerStyles.signOutBtn}
-            >
-              Sign Out
-            </button>
-          </div>
-        )}
+        {/* Auth Section */}
+        <div style={headerStyles.navAuth}>
+          {isAuthenticated && currentUser ? (
+            <>
+              <span style={headerStyles.userInfo}>
+                👤 {currentUser.full_name || currentUser.email || 'User'}
+              </span>
+              <button
+                onClick={handleLogout}
+                style={headerStyles.signOutBtn}
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <a href="/auth" style={headerStyles.signInBtn}>
+              Sign In
+            </a>
+          )}
+        </div>
+
+        {/* Mobile Menu Button */}
+        <button 
+          style={headerStyles.mobileMenuBtn}
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          ☰
+        </button>
       </div>
     </header>
   );
@@ -108,9 +157,10 @@ const headerStyles = {
     top: 0,
     zIndex: 100,
     height: '72px',
-    background: 'rgba(255, 255, 255, 0.9)',
-    backdropFilter: 'blur(12px)',
-    borderBottom: '1px solid #E2E8F0',
+    background: 'rgba(255, 255, 255, 0.98)',
+    backdropFilter: 'blur(20px)',
+    borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04)',
   } as React.CSSProperties,
   container: {
     display: 'flex',
@@ -129,19 +179,28 @@ const headerStyles = {
     fontSize: '1.125rem',
     fontWeight: 700,
     color: '#0F172A',
+    cursor: 'pointer',
+    transition: 'opacity 0.2s',
   } as React.CSSProperties,
   brandIcon: {
-    width: '24px',
-    height: '24px',
+    width: '28px',
+    height: '28px',
     borderRadius: '6px',
-    background: '#4F46E5',
-    display: 'grid',
-    placeItems: 'center',
+    background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'white',
+    fontWeight: 700,
+    fontSize: '0.75rem',
+    boxShadow: '0 2px 4px rgba(79, 70, 229, 0.25)',
   } as React.CSSProperties,
   navLinks: {
     display: 'flex',
     alignItems: 'center',
     gap: '32px',
+    flex: 1,
+    justifyContent: 'center',
   } as React.CSSProperties,
   navLink: {
     textDecoration: 'none',
@@ -150,21 +209,51 @@ const headerStyles = {
     fontSize: '0.9rem',
     transition: 'color 0.2s',
     cursor: 'pointer',
+    padding: '8px 0',
   } as React.CSSProperties,
   navAuth: {
     display: 'flex',
     alignItems: 'center',
     gap: '16px',
   } as React.CSSProperties,
-  signOutBtn: {
-    backgroundColor: '#4F46E5',
-    color: 'white',
-    fontWeight: 500,
+  userInfo: {
+    color: '#475569',
     fontSize: '0.875rem',
-    padding: '0.5rem 1rem',
-    borderRadius: '8px',
+    fontWeight: 500,
+  } as React.CSSProperties,
+  signInBtn: {
+    textDecoration: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '10px 20px',
+    background: '#4F46E5',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    fontWeight: 600,
+    fontSize: '0.875rem',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  } as React.CSSProperties,
+  signOutBtn: {
+    backgroundColor: '#EF4444',
+    color: 'white',
+    fontWeight: 600,
+    fontSize: '0.875rem',
+    padding: '10px 20px',
+    borderRadius: '6px',
     border: 'none',
     cursor: 'pointer',
     transition: 'all 0.2s',
+  } as React.CSSProperties,
+  mobileMenuBtn: {
+    display: 'none',
+    background: 'none',
+    border: 'none',
+    fontSize: '1.5rem',
+    cursor: 'pointer',
+    padding: '8px',
+    color: '#0F172A',
   } as React.CSSProperties,
 }

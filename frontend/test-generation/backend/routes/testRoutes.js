@@ -1,6 +1,8 @@
 const express = require('express');
+const Question = require('../models/Question');
+const TestAttempt = require('../models/TestAttempt');
+
 const router = express.Router();
-const supabase = require('../config/supabase');
 
 // Submit test attempt
 router.post('/submit', async (req, res) => {
@@ -11,65 +13,51 @@ router.post('/submit', async (req, res) => {
       return res.status(400).json({ message: 'attemptId and answers are required' });
     }
 
-    // Get attempt
-    const { data: attempt, error: attemptError } = await supabase
-      .from('test_attempts')
-      .select('*')
-      .eq('id', attemptId)
-      .single();
-
-    if (attemptError || !attempt) {
+    const attempt = await TestAttempt.findById(attemptId);
+    if (!attempt) {
       return res.status(404).json({ message: 'Test attempt not found' });
     }
 
-    // Get questions for this attempt
-    const { data: questions, error: questionsError } = await supabase
-      .from('test_questions')
-      .select('*')
-      .eq('test_skill_id', attempt.test_skill_id)
-      .eq('level', attempt.level);
+    const questionIds = attempt.questions.map(q => q.questionId);
+    const questions = await Question.find({ _id: { $in: questionIds } }).lean();
 
-    if (questionsError) {
-      throw questionsError;
-    }
-
-    // Calculate score
     let correct = 0;
     let incorrect = 0;
     const results = {};
 
-    Object.keys(answers).forEach(questionId => {
-      const question = questions.find(q => q.id === parseInt(questionId));
+    questionIds.forEach((qId) => {
+      const question = questions.find(q => q._id.toString() === qId.toString());
       if (question) {
-        const isCorrect = answers[questionId] === question.correct_answer;
+        const userAnswer = answers[qId] || answers[qId.toString()];
+        const isCorrect = userAnswer && userAnswer === question.correctAnswer;
         if (isCorrect) correct++;
         else incorrect++;
 
-        results[questionId] = {
-          correct: isCorrect,
-          userAnswer: answers[questionId],
-          correctAnswer: question.correct_answer
+        results[qId] = {
+          correct: !!isCorrect,
+          userAnswer: userAnswer || null,
+          correctAnswer: question.correctAnswer
         };
       }
     });
 
-    const totalQuestions = Object.keys(answers).length;
+    const totalQuestions = questionIds.length;
     const score = totalQuestions > 0 ? (correct / totalQuestions) * 100 : 0;
 
-    // Update attempt
-    const { error: updateError } = await supabase
-      .from('test_attempts')
-      .update({
-        status: 'completed',
-        score: score,
-        answers: answers,
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', attemptId);
+    attempt.status = 'completed';
+    attempt.score = score;
+    attempt.answers = answers;
+    attempt.correctAnswers = correct;
+    attempt.totalQuestions = totalQuestions;
+    attempt.submitted = true;
+    attempt.completedAt = new Date();
+    attempt.questions = attempt.questions.map(q => ({
+      questionId: q.questionId,
+      selectedAnswer: answers[q.questionId] || answers[q.questionId?.toString()] || null,
+      isCorrect: results[q.questionId]?.correct || false
+    }));
 
-    if (updateError) {
-      throw updateError;
-    }
+    await attempt.save();
 
     res.json({
       attemptId,
@@ -94,13 +82,11 @@ router.get('/:attemptId', async (req, res) => {
   try {
     const { attemptId } = req.params;
 
-    const { data: attempt, error } = await supabase
-      .from('test_attempts')
-      .select('*')
-      .eq('id', attemptId)
-      .single();
+    const attempt = await TestAttempt.findById(attemptId)
+      .populate('skill', 'skillName')
+      .lean();
 
-    if (error || !attempt) {
+    if (!attempt) {
       return res.status(404).json({ message: 'Test attempt not found' });
     }
 

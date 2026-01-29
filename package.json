@@ -1,37 +1,41 @@
 {
-  "name": "project-expo",
+  "name": "careeros-platform",
   "version": "1.0.0",
-  "description": "Unified AI-powered learning platform with modular frontend and backend services",
+  "description": "CareerOS - AI-Powered Learning Platform with MongoDB",
   "private": true,
   "type": "module",
-  "main": "scripts/start-all.js",
   "scripts": {
-    "dev": "node scripts/start-all.js",
-    "dev:landing": "cd frontend/landing-page && npm run dev",
-    "dev:course": "cd frontend/course-generation && npm run dev",
-    "dev:roadmap": "cd frontend/roadmap && npm run dev",
-    "dev:tests": "cd frontend/test-generation && npm run dev",
-    "dev:backend": "cd backend/main-app && npm run dev",
-    "dev:course-service": "cd backend/course-service && npm run dev",
-    "install:all": "npm install && npm run install:modules",
-    "install:modules": "npm run install:frontend && npm run install:backend",
-    "install:frontend": "cd frontend/landing-page && npm install && cd ../../ && cd frontend/course-generation && npm install && cd ../../ && cd frontend/roadmap && npm install && cd ../../ && cd frontend/test-generation && npm install && cd ../../",
-    "install:backend": "cd backend/main-app && npm install && cd ../../ && cd backend/course-service && npm install && cd ../../",
-    "build:all": "npm run build:frontend && npm run build:backend",
-    "build:frontend": "cd frontend/landing-page && npm run build && cd ../../ && cd frontend/course-generation && npm run build && cd ../../ && cd frontend/roadmap && npm run build && cd ../../ && cd frontend/test-generation && npm run build && cd ../../",
-    "build:backend": "cd backend/main-app && npm run build && cd ../../ && cd backend/course-service && npm run build && cd ../../"
+    "start": "powershell -ExecutionPolicy Bypass -File ./start-all.ps1",
+    "dev": "powershell -ExecutionPolicy Bypass -File ./start-all.ps1",
+    "start:backend": "cd backend/main-app/backend && npm start",
+    "start:landing": "cd frontend/landing-page && npm run dev",
+    "start:course": "cd frontend/course-generation && npm run dev",
+    "start:roadmap": "cd frontend/roadmap && npm run dev",
+    "start:evaluator": "cd frontend/test-generation && npm run dev",
+    "install:all": "npm run install:backend && npm run install:landing && npm run install:course && npm run install:roadmap && npm run install:evaluator",
+    "install:backend": "cd backend/main-app/backend && npm install",
+    "install:landing": "cd frontend/landing-page && npm install",
+    "install:course": "cd frontend/course-generation && npm install",
+    "install:roadmap": "cd frontend/roadmap && npm install",
+    "install:evaluator": "cd frontend/test-generation && npm install"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.38.0",
-    "concurrently": "^8.2.2"
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^3.0.5"
   },
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Harish-Bonu03/Career-OS.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "ai",
+    "learning",
+    "education",
+    "career",
+    "mongodb"
+  ],
+  "author": "CareerOS Team",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/Harish-Bonu03/Career-OS/issues"
