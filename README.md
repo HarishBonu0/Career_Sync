@@ -1,10 +1,10 @@
-# CareerOS - AI-Powered Career Development Platform
+# Career Sync - AI-Powered Career Development Platform
 
-CareerOS is an intelligent platform designed to help individuals accelerate their career growth through AI-powered personalized learning pathways, career roadmaps, and skill assessments.
+Career Sync is an intelligent platform designed to help individuals accelerate their career growth through AI-powered personalized learning pathways, career roadmaps, and skill assessments.
 
-## 📌 What is CareerOS?
+## 📌 What is Career Sync?
 
-CareerOS helps users discover, plan, and master the skills needed for their desired careers. By combining AI-generated courses, interactive career visualizations, and skill evaluations, it creates a comprehensive career development experience.
+Career Sync helps users discover, plan, and master the skills needed for their desired careers. By combining AI-generated courses, interactive career visualizations, and skill evaluations, it creates a comprehensive career development experience.
 
 ### Core Capabilities
 - **Personalized Learning Paths** - AI generates courses tailored to career goals

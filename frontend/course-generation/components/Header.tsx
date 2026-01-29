@@ -21,7 +21,7 @@ export default function Header() {
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
             C
           </div>
-          <span className="text-xl font-semibold text-gray-900">CareerOS</span>
+          <span className="text-xl font-semibold text-gray-900">Career Sync</span>
         </Link>
 
         {/* Navigation Links */}

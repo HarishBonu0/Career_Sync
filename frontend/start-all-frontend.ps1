@@ -1,7 +1,7 @@
 # Unified Frontend Starter Script
 # Starts all frontend applications with the shared header
 
-Write-Host "🚀 Starting All CareerOS Frontend Applications..." -ForegroundColor Cyan
+Write-Host "🚀 Starting All Career Sync Frontend Applications..." -ForegroundColor Cyan
 Write-Host ""
 
 # Check if shared assets are copied

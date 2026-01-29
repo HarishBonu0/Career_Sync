@@ -1,4 +1,4 @@
-# Unfold Course Platform
+# Career Sync - Course Generation Platform
 
 A comprehensive online learning platform with course creation, learning journeys, and educator tools.
 

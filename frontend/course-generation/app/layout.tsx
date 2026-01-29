@@ -6,7 +6,7 @@ import ClientProviders from '@/components/providers/ClientProviders'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'CareerOS - Course Generation',
+  title: 'Career Sync - Course Generation',
   description: 'AI-powered learning journeys and courses',
 }
 

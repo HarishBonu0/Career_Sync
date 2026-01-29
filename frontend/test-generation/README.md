@@ -1,4 +1,4 @@
-# Knowledge Assessment Platform
+# Career Sync - Skill Assessment Platform
 
 AI-powered knowledge assessment web application using Google's Gemini API.
 

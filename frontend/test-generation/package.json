@@ -1,7 +1,7 @@
 {
-  "name": "knowledge-assessment-app",
+  "name": "careersync-skills",
   "version": "1.0.0",
-  "description": "AI-powered knowledge assessment platform using Gemini API",
+  "description": "Career Sync - AI-powered skill assessment platform using Gemini API",
   "main": "serve.js",
   "proxy": "http://localhost:5000",
   "scripts": {

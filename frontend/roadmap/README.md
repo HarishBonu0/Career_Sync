@@ -1,4 +1,4 @@
-# PathForge AI - Career Roadmap Generator
+# Career Sync - Career Roadmap Generator
 
 A modern, AI-powered career development platform that helps professionals discover personalized career pathways based on real job market data and AI-generated roadmaps.
 

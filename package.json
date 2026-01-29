@@ -1,7 +1,7 @@
 {
-  "name": "careeros-platform",
+  "name": "careersync-platform",
   "version": "1.0.0",
-  "description": "CareerOS - AI-Powered Learning Platform with MongoDB",
+  "description": "Career Sync - AI-Powered Learning Platform with MongoDB",
   "private": true,
   "type": "module",
   "scripts": {
@@ -27,7 +27,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Harish-Bonu03/Career-OS.git"
+    "url": "git+https://github.com/HarishBonu0/Career-Sync.git"
   },
   "keywords": [
     "ai",
@@ -36,10 +36,10 @@
     "career",
     "mongodb"
   ],
-  "author": "CareerOS Team",
+  "author": "Career Sync Team",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Harish-Bonu03/Career-OS/issues"
+    "url": "https://github.com/HarishBonu0/Career-Sync/issues"
   },
-  "homepage": "https://github.com/Harish-Bonu03/Career-OS#readme"
+  "homepage": "https://github.com/HarishBonu0/Career-Sync#readme"
 }

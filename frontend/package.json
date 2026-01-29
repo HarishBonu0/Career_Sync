@@ -1,7 +1,7 @@
 {
-  "name": "careeros-frontend",
+  "name": "careersync-frontend",
   "version": "1.0.0",
-  "description": "Unified frontend for CareerOS - All modules",
+  "description": "Unified frontend for Career Sync - All modules",
   "scripts": {
     "dev": "concurrently -n \"Landing,Courses,Roadmap,Evaluator\" -c \"cyan,blue,green,magenta\" \"cd landing-page && npm run dev\" \"cd course-generation && npm run dev\" \"cd roadmap && npm run dev\" \"cd test-generation && npm run dev\"",
     "copy-shared": "node copy-shared-assets.js",

@@ -218,7 +218,7 @@ const HEADER_HTML = `
     <!-- Brand -->
     <a href="http://localhost:4173" class="careeros-brand">
       <div class="careeros-brand-icon">C</div>
-      <span>CareerOS</span>
+      <span>Career Sync</span>
     </a>
 
     <!-- Navigation Links -->
