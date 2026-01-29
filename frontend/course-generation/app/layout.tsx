@@ -17,6 +17,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/* Load profile utilities for database integration */}
+        <script src="http://localhost:4173/profile-utils.js" defer></script>
+      </head>
       <body className={inter.className}>
         <ClientProviders>
           {children}

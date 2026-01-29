@@ -230,24 +230,76 @@ export default function GeneratedCoursePage() {
 
     setSaving(true)
     try {
-      const response = await fetch('/api/courses/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(course),
-      })
+      // Prepare course data for profile integration
+      const courseData = {
+        id: typeof window !== 'undefined' ? `course-${Date.now()}` : `course-${Math.random()}`,
+        title: course.title,
+        courseName: course.title,
+        level: course.difficulty || 'Intermediate',
+        duration: course.duration || '4 weeks',
+        modules: course.modules || [],
+        totalModules: course.modules?.length || 0,
+        completedModules: 0,
+        progress: 0,
+        status: 'in-progress',
+        curriculum: course.modules || [],
+        enrolledAt: new Date().toISOString()
+      };
 
-      const data = await response.json()
+      console.log('📚 Saving course to profile:', courseData);
 
-      if (data.success) {
-        setSaved(true)
-        alert('Course saved successfully! You can now access it from "My Courses".')
+      // Check if profile-utils is available globally
+      if (typeof window !== 'undefined' && window.careersyncProfile) {
+        // Use the global profile utilities to save
+        const result = await window.careersyncProfile.saveCourse(courseData);
+        console.log('✅ Course saved via profile-utils:', result);
       } else {
-        throw new Error(data.error || 'Failed to save course')
+        // Fallback: save to localStorage directly
+        const enrolledCourses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
+        enrolledCourses.push(courseData);
+        localStorage.setItem('careersync_enrolled_courses', JSON.stringify(enrolledCourses));
+        console.log('💾 Course saved to localStorage');
+
+        // Also try to send to backend
+        const userId = (() => {
+          try {
+            const user = JSON.parse(localStorage.getItem('careersync_user') || '{}');
+            return user._id || user.id || localStorage.getItem('careersync_userId');
+          } catch {
+            return null;
+          }
+        })();
+
+        if (userId) {
+          try {
+            await fetch('http://localhost:5000/api/profile/enroll/course', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                userId,
+                userEmail: localStorage.getItem('careersync_userEmail'),
+                courseId: courseData.id,
+                courseTitle: courseData.title,
+                courseModules: courseData.modules || []
+              })
+            });
+            console.log('✅ Course synced to backend');
+          } catch (backendError) {
+            console.log('Backend sync failed (non-critical):', backendError);
+          }
+        }
       }
+
+      setSaved(true);
+      alert('✅ Course saved successfully! You can now access it from your profile or "My Courses".');
+      
+      // Optional: Redirect to profile after delay
+      setTimeout(() => {
+        window.location.href = 'http://localhost:4173/profile.html';
+      }, 2000);
     } catch (error) {
-      console.error('Error saving course:', error)
+      console.error('❌ Error saving course:', error)
       alert(error instanceof Error ? error.message : 'Failed to save course. Please try again.')
     } finally {
       setSaving(false)
