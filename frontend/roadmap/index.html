@@ -5,10 +5,11 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CareerOS | Roadmap Generator</title>
-    <!-- Shared Header Component -->
-    <script type="module" src="../shared/header-component.js"></script>
   </head>
   <body>
+    <!-- Shared Header Component - Injected at body start -->
+    <div id="app-header"></div>
+    <script type="module" src="/shared/header-component.js"></script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
