@@ -6,6 +6,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    open: true,
+    open: false,  // Disabled auto-open - user clicks from home page instead
   },
 })

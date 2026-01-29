@@ -1,4 +1,3 @@
-import './style.css';
 import { signUp, signIn, resetPassword } from './supabase-auth.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -97,11 +96,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (!email) {
+            showError(forms.signup, 'Please enter an email address');
+            return;
+        }
+
         setButtonLoading(submitBtn, true);
 
+        console.log('Starting signup process for:', email);
         const result = await signUp(email, password);
+        console.log('Signup result:', result);
 
         if (result.success) {
+            console.log('Signup successful, user data:', result.userData);
             // Store user info in localStorage
             localStorage.setItem('careeros_user', JSON.stringify({ 
                 email: result.user.email,
@@ -109,8 +116,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 userData: result.userData
             }));
             alert('Account created successfully! Welcome to CareerOS.');
-            window.location.href = 'index.html';
+            // Wait a moment before redirecting to ensure database is updated
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
         } else {
+            console.log('Signup failed:', result.error);
             setButtonLoading(submitBtn, false);
             showError(forms.signup, result.error || 'Failed to create account');
         }

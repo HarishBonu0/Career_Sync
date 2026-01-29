@@ -1,20 +1,17 @@
-import './style.css';
 import { getCurrentUser, signOut } from './supabase-auth.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Point to YOUR ORIGINAL modules on their respective ports
+    // Module Links Configuration
     const defaultModuleLinks = {
-        course: 'http://localhost:3005',      // Next.js Course Generation (was 3000)
-        roadmap: 'http://localhost:5173',     // Vite Roadmap Module
-        skillEval: 'http://localhost:3001'    // React Test Generation
+        course: 'http://localhost:3002',
+        roadmap: 'http://localhost:5173',
+        skillEval: 'http://localhost:3001'
     };
 
-    // Allow overrides via global config for flexibility across environments
     const MODULE_LINKS = { ...defaultModuleLinks, ...(window.CAREEROS_MODULE_URLS || {}) };
 
     // UI Elements
     const navAuthContainer = document.getElementById('nav-auth-container');
-    const heroBtn = document.getElementById('hero-cta-btn');
 
     // Wire module launch buttons/links
     document.querySelectorAll('[data-module-target]').forEach((el) => {
@@ -25,13 +22,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const url = (targetKey && MODULE_LINKS[targetKey]) || directUrl;
 
             if (url) {
-                window.location.href = url;
+                // Open in new tab/window instead of redirecting
+                window.open(url, '_blank');
             } else {
                 console.warn(`No module URL configured for target: ${targetKey}`);
             }
         });
     });
-});
 
     // Check Auth State
     await checkAuthState();
@@ -61,25 +58,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Attach Logout Listener
                 document.getElementById('btn-logout').addEventListener('click', handleLogout);
             }
-
-// Navbar active state on scroll
-window.addEventListener('scroll', () => {
-    const navbar = document.querySelector('.navbar');
-    if (window.scrollY > 50) {
-        navbar.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
-    } else {
-        navbar.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.08)';
+        } else {
+            // User is NOT logged in
+            if (navAuthContainer) {
+                navAuthContainer.innerHTML = `
+                    <a href="/auth.html" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Sign In</a>
+                `;
+            }
+        }
     }
-});
-
-// Mobile menu toggle (if needed)
-const navLinks = document.querySelector('.nav-links');
-
-// Add animation on scroll for cards
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-};
 
     async function handleLogout() {
         if (confirm('Are you sure you want to sign out?')) {
@@ -95,6 +82,31 @@ const observerOptions = {
             // Optional: Reload page to clear any other state
             window.location.reload();
         }
+    }
+});
+
+// Navbar active state on scroll
+window.addEventListener('scroll', () => {
+    const navbar = document.querySelector('.navbar');
+    if (window.scrollY > 50) {
+        navbar.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
+    } else {
+        navbar.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.08)';
+    }
+});
+
+// Add animation on scroll for cards
+const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+};
+
+const observer = new IntersectionObserver(function(entries) {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+        }
     });
 }, observerOptions);
 
@@ -109,6 +121,6 @@ document.querySelectorAll('.feature-card, .module-card, .step').forEach(card => 
 // Log module status
 console.log('CareerOS Landing Page loaded successfully');
 console.log('Available modules:');
-console.log('- Course Generator: http://localhost:3000');
+console.log('- Course Generator: http://localhost:3002');
 console.log('- Skill Evaluator: http://localhost:3001');
 console.log('- Roadmap Generator: http://localhost:5173');

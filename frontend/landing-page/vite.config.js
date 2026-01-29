@@ -4,7 +4,7 @@ export default defineConfig({
   server: {
     port: 4173,
     host: 'localhost',
-    open: true,
+    open: false,  // Disabled auto-open to prevent continuous reopening
     strictPort: false,
     hmr: {
       host: 'localhost',
