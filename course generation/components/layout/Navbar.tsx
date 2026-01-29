@@ -9,9 +9,15 @@ export default function Navbar() {
   const [hoveredLink, setHoveredLink] = useState<string | null>(null)
   const [signInHovered, setSignInHovered] = useState(false)
 
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, port: number) => {
-    e.preventDefault()
-    window.location.href = `http://localhost:${port}`
+  const handleModuleNav = (module: string) => {
+    const routes: Record<string, string> = {
+      'course': 'http://localhost:3000',
+      'roadmap': 'http://localhost:5173',
+      'skillEval': 'http://localhost:3001'
+    }
+    if (routes[module]) {
+      window.location.href = routes[module]
+    }
   }
 
   return (
@@ -26,8 +32,8 @@ export default function Navbar() {
         {/* Navigation Links */}
         <nav style={navbarStyles.navLinks}>
           <a 
-            href="http://localhost:3000"
-            onClick={(e) => handleNavClick(e, 3000)}
+            href="#"
+            onClick={(e) => { e.preventDefault(); handleModuleNav('course'); }}
             style={{
               ...navbarStyles.navLink,
               color: hoveredLink === 'course' ? '#4f46e5' : '#374151',
@@ -38,8 +44,8 @@ export default function Navbar() {
             Course Gen
           </a>
           <a 
-            href="http://localhost:5173"
-            onClick={(e) => handleNavClick(e, 5173)}
+            href="#"
+            onClick={(e) => { e.preventDefault(); handleModuleNav('roadmap'); }}
             style={{
               ...navbarStyles.navLink,
               color: hoveredLink === 'roadmap' ? '#4f46e5' : '#374151',
@@ -50,8 +56,8 @@ export default function Navbar() {
             Roadmaps
           </a>
           <a 
-            href="http://localhost:3001"
-            onClick={(e) => handleNavClick(e, 3001)}
+            href="#"
+            onClick={(e) => { e.preventDefault(); handleModuleNav('skillEval'); }}
             style={{
               ...navbarStyles.navLink,
               color: hoveredLink === 'eval' ? '#4f46e5' : '#374151',
@@ -89,59 +95,55 @@ const navbarStyles = {
   header: {
     position: 'sticky' as const,
     top: 0,
-    zIndex: 50,
-    background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%)',
-    backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+    zIndex: 100,
+    height: '72px',
+    background: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(12px)',
+    borderBottom: '1px solid #E2E8F0',
   },
   container: {
     display: 'flex' as const,
     alignItems: 'center' as const,
     justifyContent: 'space-between' as const,
-    maxWidth: '1400px',
+    maxWidth: '1200px',
     margin: '0 auto',
-    padding: '0 2rem',
-    height: '80px',
-    gap: '2rem',
+    padding: '0 24px',
+    height: '100%',
   },
   brand: {
     display: 'flex' as const,
     alignItems: 'center' as const,
-    gap: '0.75rem',
+    gap: '12px',
     textDecoration: 'none',
-    fontSize: '1.5rem',
-    fontWeight: 800,
-    color: '#111111',
-    letterSpacing: '-0.5px',
-    flexShrink: 0,
+    fontSize: '1.125rem',
+    fontWeight: 700,
+    color: '#0F172A',
   },
   brandIcon: {
-    width: '32px',
-    height: '32px',
-    borderRadius: '8px',
-    background: 'linear-gradient(135deg, #4f46e5 0%, #10b981 100%)',
-    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
+    width: '24px',
+    height: '24px',
+    borderRadius: '6px',
+    background: '#4F46E5',
+    display: 'grid',
+    placeItems: 'center',
   },
   navLinks: {
     display: 'flex' as const,
     alignItems: 'center' as const,
-    gap: '2rem',
-    flex: 1,
+    gap: '32px',
   },
   navLink: {
     textDecoration: 'none',
-    color: '#374151',
-    fontWeight: 600,
-    fontSize: '0.95rem',
-    letterSpacing: '0.3px',
-    transition: 'color 0.3s ease',
+    color: '#475569',
+    fontWeight: 500,
+    fontSize: '0.9rem',
+    transition: 'color 0.2s',
     cursor: 'pointer',
   },
   navAuth: {
     display: 'flex' as const,
     alignItems: 'center' as const,
-    gap: '1rem',
+    gap: '16px',
   },
   signInBtn: {
     textDecoration: 'none',
@@ -149,9 +151,9 @@ const navbarStyles = {
     alignItems: 'center' as const,
     justifyContent: 'center',
     color: 'white',
-    fontWeight: 600,
-    fontSize: '0.9rem',
-    padding: '0.625rem 1.5rem',
+    fontWeight: 500,
+    fontSize: '0.875rem',
+    padding: '0.5rem 1rem',
     borderRadius: '8px',
     border: 'none',
     cursor: 'pointer',

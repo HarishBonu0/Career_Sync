@@ -1,88 +1,77 @@
-import './style.css';
+// Module navigation mapping
+const moduleRoutes = {
+    'course': 'http://localhost:3000',      // Course Generation (Next.js)
+    'roadmap': 'http://localhost:5173',     // Roadmap Module (Vite)
+    'skillEval': 'http://localhost:3001'    // Test Generation/Skill Evaluator
+};
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Point to YOUR ORIGINAL modules on their respective ports
-    const defaultModuleLinks = {
-        course: 'http://localhost:3000',      // Next.js Course Generation
-        roadmap: 'http://localhost:5173',     // Vite Roadmap Module
-        skillEval: 'http://localhost:3001'    // React Test Generation
-    };
-
-    // Allow overrides via global config for flexibility across environments
-    const MODULE_LINKS = { ...defaultModuleLinks, ...(window.CAREEROS_MODULE_URLS || {}) };
-
-    // UI Elements
-    const navAuthContainer = document.getElementById('nav-auth-container');
-    const heroBtn = document.getElementById('hero-cta-btn');
-
-    // Wire module launch buttons/links
-    document.querySelectorAll('[data-module-target]').forEach((el) => {
-        el.addEventListener('click', (e) => {
-            e.preventDefault();
-            const targetKey = el.getAttribute('data-module-target');
-            const directUrl = el.getAttribute('data-module-url');
-            const url = (targetKey && MODULE_LINKS[targetKey]) || directUrl;
-
-            if (url) {
-                window.location.href = url;
-            } else {
-                console.warn(`No module URL configured for target: ${targetKey}`);
-            }
-        });
-    });
-
-    // Check Auth State
-    checkAuthState();
-
-    function checkAuthState() {
-        const userJSON = localStorage.getItem('careeros_user');
-
-        if (userJSON) {
-            // User is LOGGED IN
-            const user = JSON.parse(userJSON);
-            const userInitial = user.email ? user.email.charAt(0).toUpperCase() : 'U';
-
-            // Update Nav
-            if (navAuthContainer) {
-                navAuthContainer.innerHTML = `
-                    <div class="user-menu">
-                        <div class="user-avatar" title="${user.email}">${userInitial}</div>
-                        <button id="btn-logout" class="logout-btn">Sign Out</button>
-                    </div>
-                `;
-
-                // Attach Logout Listener
-                document.getElementById('btn-logout').addEventListener('click', handleLogout);
-            }
-
-            // Update Hero CTA label only; click stays bound to module navigation
-            if (heroBtn) {
-                heroBtn.textContent = 'Launch Course Generator';
-            }
-
+// Handle module navigation
+document.querySelectorAll('[data-module-target]').forEach(element => {
+    element.addEventListener('click', function(e) {
+        e.preventDefault();
+        const module = this.getAttribute('data-module-target');
+        const url = moduleRoutes[module];
+        if (url) {
+            window.open(url, '_blank');
         } else {
-            // User is LOGGED OUT
-            if (navAuthContainer) {
-                navAuthContainer.innerHTML = `
-                    <a href="/auth.html" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Sign In</a>
-                `;
-            }
-
-            if (heroBtn) {
-                heroBtn.textContent = 'Start Intelligence Engine';
-            }
+            console.warn('Module route not found:', module);
         }
-    }
-
-    function handleLogout() {
-        if (confirm('Are you sure you want to sign out?')) {
-            localStorage.removeItem('careeros_user');
-            // Refresh state
-            checkAuthState();
-            // Optional: Reload page to clear any other state
-            // window.location.reload(); 
-        }
-    }
-
-    console.log('CareerOS: Auth State Checked.');
+    });
 });
+
+// Smooth scroll behavior for navigation links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// Navbar active state on scroll
+window.addEventListener('scroll', () => {
+    const navbar = document.querySelector('.navbar');
+    if (window.scrollY > 50) {
+        navbar.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
+    } else {
+        navbar.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.08)';
+    }
+});
+
+// Mobile menu toggle (if needed)
+const navLinks = document.querySelector('.nav-links');
+
+// Add animation on scroll for cards
+const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+};
+
+const observer = new IntersectionObserver(function(entries) {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+        }
+    });
+}, observerOptions);
+
+// Observe feature cards and module cards
+document.querySelectorAll('.feature-card, .module-card, .step').forEach(card => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+    observer.observe(card);
+});
+
+// Log module status
+console.log('CareerOS Landing Page loaded successfully');
+console.log('Available modules:');
+console.log('- Course Generator: http://localhost:3000');
+console.log('- Skill Evaluator: http://localhost:3001');
+console.log('- Roadmap Generator: http://localhost:5173');

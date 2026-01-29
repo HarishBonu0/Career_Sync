@@ -3,6 +3,27 @@ let selectedDifficulty = null;
 let currentTest = null;
 let userAnswers = [];
 
+// Module Navigation
+const moduleRoutes = {
+    'course': 'http://localhost:3000',
+    'roadmap': 'http://localhost:5173',
+    'skillEval': 'http://localhost:3001'
+};
+
+// Handle module navigation
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-module-target]').forEach(element => {
+        element.addEventListener('click', function(e) {
+            e.preventDefault();
+            const module = this.getAttribute('data-module-target');
+            const url = moduleRoutes[module];
+            if (url) {
+                window.location.href = url;
+            }
+        });
+    });
+});
+
 // Check Auth State and Update Navbar
 function checkAuthState() {
     const userJSON = localStorage.getItem('careeros_user');

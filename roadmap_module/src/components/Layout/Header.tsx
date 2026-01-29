@@ -28,6 +28,17 @@ export default function Header({ onConfigClick, showNewSimulation, onNewSimulati
     }
   };
 
+  const handleModuleNav = (module: string) => {
+    const routes: Record<string, string> = {
+      'course': 'http://localhost:3000',
+      'roadmap': 'http://localhost:5173',
+      'skillEval': 'http://localhost:3001'
+    };
+    if (routes[module]) {
+      window.location.href = routes[module];
+    }
+  };
+
   return (
     <header style={headerStyles.header}>
       <div style={headerStyles.container}>
@@ -38,7 +49,8 @@ export default function Header({ onConfigClick, showNewSimulation, onNewSimulati
 
         <nav style={headerStyles.navLinks}>
           <a 
-            href="http://localhost:3000"
+            href="#"
+            onClick={(e) => { e.preventDefault(); handleModuleNav('course'); }}
             style={{
               ...headerStyles.navLink,
               color: hoveredLink === 'course' ? '#4f46e5' : '#374151',
@@ -49,7 +61,8 @@ export default function Header({ onConfigClick, showNewSimulation, onNewSimulati
             Course Gen
           </a>
           <a 
-            href="http://localhost:5173"
+            href="#"
+            onClick={(e) => { e.preventDefault(); handleModuleNav('roadmap'); }}
             style={{
               ...headerStyles.navLink,
               color: hoveredLink === 'roadmap' ? '#4f46e5' : '#374151',
@@ -60,7 +73,8 @@ export default function Header({ onConfigClick, showNewSimulation, onNewSimulati
             Roadmaps
           </a>
           <a 
-            href="http://localhost:3001"
+            href="#"
+            onClick={(e) => { e.preventDefault(); handleModuleNav('skillEval'); }}
             style={{
               ...headerStyles.navLink,
               color: hoveredLink === 'eval' ? '#4f46e5' : '#374151',
@@ -92,70 +106,65 @@ const headerStyles = {
   header: {
     position: 'sticky',
     top: 0,
-    zIndex: 50,
-    background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%)',
-    backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+    zIndex: 100,
+    height: '72px',
+    background: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(12px)',
+    borderBottom: '1px solid #E2E8F0',
   } as React.CSSProperties,
   container: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    maxWidth: '1400px',
+    maxWidth: '1200px',
     margin: '0 auto',
-    padding: '0 2rem',
-    height: '80px',
-    gap: '2rem',
+    padding: '0 24px',
+    height: '100%',
   } as React.CSSProperties,
   brand: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.75rem',
+    gap: '12px',
     textDecoration: 'none',
-    fontSize: '1.5rem',
-    fontWeight: 800,
-    color: '#111111',
-    letterSpacing: '-0.5px',
-    flexShrink: 0,
+    fontSize: '1.125rem',
+    fontWeight: 700,
+    color: '#0F172A',
   } as React.CSSProperties,
   brandIcon: {
-    width: '32px',
-    height: '32px',
-    borderRadius: '8px',
-    background: 'linear-gradient(135deg, #4f46e5 0%, #10b981 100%)',
-    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
+    width: '24px',
+    height: '24px',
+    borderRadius: '6px',
+    background: '#4F46E5',
+    display: 'grid',
+    placeItems: 'center',
   } as React.CSSProperties,
   navLinks: {
     display: 'flex',
     alignItems: 'center',
-    gap: '2rem',
-    flex: 1,
+    gap: '32px',
   } as React.CSSProperties,
   navLink: {
     textDecoration: 'none',
-    color: '#374151',
-    fontWeight: 600,
-    fontSize: '0.95rem',
-    letterSpacing: '0.3px',
-    transition: 'color 0.3s ease',
+    color: '#475569',
+    fontWeight: 500,
+    fontSize: '0.9rem',
+    transition: 'color 0.2s',
     cursor: 'pointer',
   } as React.CSSProperties,
   navAuth: {
     display: 'flex',
     alignItems: 'center',
-    gap: '1rem',
+    gap: '16px',
   } as React.CSSProperties,
   signOutBtn: {
-    backgroundColor: '#111111',
+    backgroundColor: '#4F46E5',
     color: 'white',
-    fontWeight: 600,
-    fontSize: '0.9rem',
-    padding: '0.625rem 1.5rem',
+    fontWeight: 500,
+    fontSize: '0.875rem',
+    padding: '0.5rem 1rem',
     borderRadius: '8px',
     border: 'none',
     cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+    transition: 'all 0.2s',
   } as React.CSSProperties,
 }

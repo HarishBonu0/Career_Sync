@@ -1,7 +1,5 @@
 import Link from 'next/link'
 import { LearningJourney } from '@/types'
-import { Calendar, BookOpen } from 'lucide-react'
-import { format } from 'date-fns'
 
 interface JourneyCardProps {
   journey: LearningJourney
@@ -22,18 +20,6 @@ export default function JourneyCard({ journey }: JourneyCardProps) {
         <p className="text-gray-600 mb-4 line-clamp-3">
           {journey.description}
         </p>
-
-        <div className="flex items-center justify-between text-sm text-gray-500 mt-auto">
-          <div className="flex items-center space-x-1">
-            <Calendar className="w-4 h-4" />
-            <span>{format(new Date(journey.publishedDate), 'do MMM, yyyy')}</span>
-          </div>
-          
-          <div className="flex items-center space-x-1">
-            <BookOpen className="w-4 h-4" />
-            <span>{journey.courseCount} Courses</span>
-          </div>
-        </div>
       </div>
     </Link>
   )
