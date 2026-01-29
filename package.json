@@ -5,8 +5,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "powershell -ExecutionPolicy Bypass -File ./start-all.ps1",
-    "dev": "powershell -ExecutionPolicy Bypass -File ./start-all.ps1",
+    "start": "npm run start:backend",
+    "dev": "npm run start:backend",
+    "start:all": "node deploy.js",
     "start:backend": "cd backend/main-app/backend && npm start",
     "start:landing": "cd frontend/landing-page && npm run dev",
     "start:course": "cd frontend/course-generation && npm run dev",
