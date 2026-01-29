@@ -1,0 +1,58 @@
+services:
+  # Backend API Service
+  - type: web
+    name: careeros-backend
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd backend/main-app/backend && npm install
+    startCommand: cd backend/main-app/backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: EMAILJS_SERVICE_ID
+        sync: false
+      - key: EMAILJS_TEMPLATE_ID
+        sync: false
+      - key: EMAILJS_PUBLIC_KEY
+        sync: false
+
+  # Course Generation Frontend
+  - type: web
+    name: careeros-course-gen
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd frontend/course-generation && npm install && npm run build
+    startCommand: cd frontend/course-generation && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: https://careeros-backend.onrender.com
+
+  # Landing Page
+  - type: static
+    name: careeros-landing
+    staticPublishPath: frontend/landing-page
+    buildCommand: echo "Static files"
+
+  # Roadmap Frontend
+  - type: web
+    name: careeros-roadmap
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd frontend/roadmap && npm install && npm run build
+    startCommand: cd frontend/roadmap && npm run preview
+    envVars:
+      - key: VITE_API_URL
+        value: https://careeros-backend.onrender.com
