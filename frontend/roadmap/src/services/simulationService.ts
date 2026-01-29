@@ -5,7 +5,7 @@ const RAPIDAPI_KEY = '3713102b41mshdc38a18750de316p1d7e41jsn59027e289b26';
 const RAPIDAPI_HOST = 'jsearch.p.rapidapi.com';
 
 // Gemini AI Configuration
-const GEMINI_API_KEY = 'AIzaSyBSijv4wL6sNB7obJyoRKkhnlxyx8mfJo4';
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
 const COMPANIES = [

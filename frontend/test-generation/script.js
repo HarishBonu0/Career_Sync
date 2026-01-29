@@ -17,8 +17,8 @@ const loadingSection = document.getElementById('loadingSection');
 const testSection = document.getElementById('testSection');
 const resultsSection = document.getElementById('resultsSection');
 
-// Gemini API Key (from backend .env)
-const GEMINI_API_KEY = 'AIzaSyDJuWsgnWTfUDaUO-egwjHvtyrxbzoFBt4';
+// Gemini API Key (load from environment variable)
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
 // Initialize Event Listeners
 function init() {
