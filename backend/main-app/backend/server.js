@@ -59,13 +59,20 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-connectMongo().then(() => {
+connectMongo().then((connected) => {
   app.listen(PORT, () => {
-    console.log(`\n🚀 SkillRoute Backend running on port ${PORT}`);
+    console.log(`\n🚀 Career Sync Backend running on port ${PORT}`);
     console.log(`📡 API endpoint: http://localhost:${PORT}`);
-    console.log(`✅ CORS enabled for all origins`);
+    console.log(`✅ CORS enabled for frontend origins`);
+    if (connected) {
+      console.log(`✅ MongoDB: Connected`);
+    } else {
+      console.log(`⚠️  MongoDB: Not connected (using localStorage only)`);
+      console.log(`🔧 Fix MongoDB: https://cloud.mongodb.com/`);
+    }
     console.log(`⏰ Server started at ${new Date().toISOString()}\n`);
   });
 }).catch((err) => {
-  console.error('Failed to start server because Mongo connection failed.', err.message);
+  console.error('Failed to start server:', err.message);
+  process.exit(1);
 });
