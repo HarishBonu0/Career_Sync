@@ -1,9 +1,10 @@
 import './style.css';
+import { getCurrentUser, signOut } from './supabase-auth.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Point to YOUR ORIGINAL modules on their respective ports
     const defaultModuleLinks = {
-        course: 'http://localhost:3000',      // Next.js Course Generation
+        course: 'http://localhost:3005',      // Next.js Course Generation (was 3000)
         roadmap: 'http://localhost:5173',     // Vite Roadmap Module
         skillEval: 'http://localhost:3001'    // React Test Generation
     };
@@ -32,21 +33,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Check Auth State
-    checkAuthState();
+    await checkAuthState();
 
-    function checkAuthState() {
-        const userJSON = localStorage.getItem('careeros_user');
+    async function checkAuthState() {
+        // Check Supabase auth first
+        const { user, userData } = await getCurrentUser();
+        
+        // Also check localStorage for backward compatibility
+        const localUser = localStorage.getItem('careeros_user');
 
-        if (userJSON) {
+        if (user || localUser) {
             // User is LOGGED IN
-            const user = JSON.parse(userJSON);
-            const userInitial = user.email ? user.email.charAt(0).toUpperCase() : 'U';
+            const displayUser = user || JSON.parse(localUser);
+            const userEmail = displayUser.email || '';
+            const userInitial = userEmail.charAt(0).toUpperCase() || 'U';
 
             // Update Nav
             if (navAuthContainer) {
                 navAuthContainer.innerHTML = `
                     <div class="user-menu">
-                        <div class="user-avatar" title="${user.email}">${userInitial}</div>
+                        <div class="user-avatar" title="${userEmail}">${userInitial}</div>
                         <button id="btn-logout" class="logout-btn">Sign Out</button>
                     </div>
                 `;
@@ -74,13 +80,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function handleLogout() {
+    async function handleLogout() {
         if (confirm('Are you sure you want to sign out?')) {
+            // Sign out from Supabase
+            await signOut();
+            
+            // Clear localStorage
             localStorage.removeItem('careeros_user');
+            
             // Refresh state
-            checkAuthState();
+            await checkAuthState();
+            
             // Optional: Reload page to clear any other state
-            // window.location.reload(); 
+            window.location.reload();
         }
     }
 

@@ -1,4 +1,5 @@
 import './style.css';
+import { signUp, signIn, resetPassword } from './supabase-auth.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
@@ -32,73 +33,108 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Login Handler
-    forms.login.addEventListener('submit', (e) => {
+    function showError(form, message) {
+        // Remove existing error message if any
+        const existingError = form.querySelector('.error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        // Create and show error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.style.cssText = 'color: #ef4444; background: #fee2e2; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 14px;';
+        errorDiv.textContent = message;
+        form.insertBefore(errorDiv, form.firstChild);
+    }
+
+    function setButtonLoading(button, isLoading) {
+        if (isLoading) {
+            button.disabled = true;
+            button.dataset.originalText = button.textContent;
+            button.textContent = 'Loading...';
+        } else {
+            button.disabled = false;
+            button.textContent = button.dataset.originalText || button.textContent;
+        }
+    }
+
+    // Login Handler with Supabase
+    forms.login.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
+        const submitBtn = forms.login.querySelector('button[type="submit"]');
 
-        // Simple mock auth
-        if (email && password) {
-            // Check localstorage for existing user if we were doing real matching, 
-            // but for this demo verify "any" login or just save.
-            localStorage.setItem('careeros_user', JSON.stringify({ email }));
+        setButtonLoading(submitBtn, true);
+
+        const result = await signIn(email, password);
+
+        if (result.success) {
+            // Store user info in localStorage for cross-module compatibility
+            localStorage.setItem('careeros_user', JSON.stringify({ 
+                email: result.user.email,
+                id: result.user.id,
+                userData: result.userData
+            }));
             window.location.href = 'index.html';
+        } else {
+            setButtonLoading(submitBtn, false);
+            showError(forms.login, result.error || 'Invalid email or password');
         }
     });
 
-    // Signup Handler
-    forms.signup.addEventListener('submit', (e) => {
+    // Signup Handler with Supabase
+    forms.signup.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('signup-email').value;
         const password = document.getElementById('signup-password').value;
+        const submitBtn = forms.signup.querySelector('button[type="submit"]');
 
-        if (email && password) {
-            localStorage.setItem('careeros_user', JSON.stringify({ email }));
-            // In reality, we'd save credentials to a DB.
-            alert('Account created! Redirecting...');
+        // Basic validation
+        if (password.length < 6) {
+            showError(forms.signup, 'Password must be at least 6 characters');
+            return;
+        }
+
+        setButtonLoading(submitBtn, true);
+
+        const result = await signUp(email, password);
+
+        if (result.success) {
+            // Store user info in localStorage
+            localStorage.setItem('careeros_user', JSON.stringify({ 
+                email: result.user.email,
+                id: result.user.id,
+                userData: result.userData
+            }));
+            alert('Account created successfully! Welcome to CareerOS.');
             window.location.href = 'index.html';
+        } else {
+            setButtonLoading(submitBtn, false);
+            showError(forms.signup, result.error || 'Failed to create account');
         }
     });
 
-    // Forgot Password Handler
-    forms.forgot.addEventListener('submit', (e) => {
+    // Forgot Password Handler with Supabase
+    forms.forgot.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('forgot-email').value;
-        const btn = forms.forgot.querySelector('button');
+        const btn = forms.forgot.querySelector('button[type="submit"]');
 
         if (email) {
-            const originalText = btn.innerText;
-            btn.innerText = 'Sending...';
-            btn.disabled = true;
+            setButtonLoading(btn, true);
 
-            // SERVICE ID: service_itdedgy (Provided by User)
-            // TEMPLATE ID: template_qqg9udy
-            const serviceID = 'service_itdedgy';
-            const templateID = 'template_qqg9udy';
+            const result = await resetPassword(email);
 
-            const date = new Date().toLocaleString();
-            const templateParams = {
-                from: 'AI Skill Evaluator',
-                email: email,
-                to_email: email, // Valid fallback
-                passcode: Math.floor(1000 + Math.random() * 9000),
-                time: date
-            };
+            if (result.success) {
+                alert(`Password reset link sent to ${email}. Please check your email.`);
+                switchView('login');
+            } else {
+                showError(forms.forgot, result.error || 'Failed to send reset email');
+            }
 
-            emailjs.send(serviceID, templateID, templateParams)
-                .then(() => {
-                    alert(`OTP sent to ${email}`);
-                    switchView('verify');
-                })
-                .catch((err) => {
-                    console.error('Email send failed:', err);
-                    alert('Failed to send OTP. Please check console/credentials.');
-                })
-                .finally(() => {
-                    btn.innerText = originalText;
-                    btn.disabled = false;
-                });
+            setButtonLoading(btn, false);
         }
     });
 

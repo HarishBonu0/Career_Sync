@@ -1,5 +1,26 @@
 {
+  "name": "career-os",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "main": "create-all-tables.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:tables": "node test-supabase-tables.js",
+    "test:crud": "node test-tables-functionality.js"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Harish-Bonu03/Career-OS.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Harish-Bonu03/Career-OS/issues"
+  },
+  "homepage": "https://github.com/Harish-Bonu03/Career-OS#readme"
 }

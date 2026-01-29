@@ -12,7 +12,7 @@ async function createTables() {
   console.log('🚀 Creating database tables...\n');
 
   const createSkillsSQL = `
-    CREATE TABLE IF NOT EXISTS skills (
+    CREATE TABLE IF NOT EXISTS test_skills (
       id BIGSERIAL PRIMARY KEY,
       skill_name TEXT NOT NULL UNIQUE,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -20,9 +20,9 @@ async function createTables() {
   `;
 
   const createQuestionsSQL = `
-    CREATE TABLE IF NOT EXISTS questions (
+    CREATE TABLE IF NOT EXISTS test_questions (
       id BIGSERIAL PRIMARY KEY,
-      skill_id BIGINT REFERENCES skills(id) ON DELETE CASCADE,
+      test_skill_id BIGINT REFERENCES test_skills(id) ON DELETE CASCADE,
       level TEXT NOT NULL,
       main_topic TEXT,
       sub_topic TEXT,
@@ -38,7 +38,7 @@ async function createTables() {
     CREATE TABLE IF NOT EXISTS test_attempts (
       id BIGSERIAL PRIMARY KEY,
       user_id TEXT NOT NULL,
-      skill_id BIGINT REFERENCES skills(id) ON DELETE CASCADE,
+      test_skill_id BIGINT REFERENCES test_skills(id) ON DELETE CASCADE,
       level TEXT NOT NULL,
       status TEXT DEFAULT 'in-progress',
       score NUMERIC(5,2),
@@ -50,9 +50,9 @@ async function createTables() {
   `;
 
   const createIndexesSQL = `
-    CREATE INDEX IF NOT EXISTS idx_questions_skill_level ON questions(skill_id, level);
+    CREATE INDEX IF NOT EXISTS idx_test_questions_skill_level ON test_questions(test_skill_id, level);
     CREATE INDEX IF NOT EXISTS idx_test_attempts_user ON test_attempts(user_id);
-    CREATE INDEX IF NOT EXISTS idx_test_attempts_skill ON test_attempts(skill_id);
+    CREATE INDEX IF NOT EXISTS idx_test_attempts_skill ON test_attempts(test_skill_id);
   `;
 
   try {
@@ -83,17 +83,17 @@ async function createTables() {
     console.log('4. Copy and paste the following SQL:\n');
     
     const fullSQL = `
--- Skills Table
-CREATE TABLE IF NOT EXISTS skills (
+-- Test Skills Table (renamed to avoid conflict with main app)
+CREATE TABLE IF NOT EXISTS test_skills (
   id BIGSERIAL PRIMARY KEY,
   skill_name TEXT NOT NULL UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Questions Table
-CREATE TABLE IF NOT EXISTS questions (
+-- Test Questions Table
+CREATE TABLE IF NOT EXISTS test_questions (
   id BIGSERIAL PRIMARY KEY,
-  skill_id BIGINT REFERENCES skills(id) ON DELETE CASCADE,
+  test_skill_id BIGINT REFERENCES test_skills(id) ON DELETE CASCADE,
   level TEXT NOT NULL,
   main_topic TEXT,
   sub_topic TEXT,
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS questions (
 CREATE TABLE IF NOT EXISTS test_attempts (
   id BIGSERIAL PRIMARY KEY,
   user_id TEXT NOT NULL,
-  skill_id BIGINT REFERENCES skills(id) ON DELETE CASCADE,
+  test_skill_id BIGINT REFERENCES test_skills(id) ON DELETE CASCADE,
   level TEXT NOT NULL,
   status TEXT DEFAULT 'in-progress',
   score NUMERIC(5,2),
@@ -119,9 +119,9 @@ CREATE TABLE IF NOT EXISTS test_attempts (
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_questions_skill_level ON questions(skill_id, level);
+CREATE INDEX IF NOT EXISTS idx_test_questions_skill_level ON test_questions(test_skill_id, level);
 CREATE INDEX IF NOT EXISTS idx_test_attempts_user ON test_attempts(user_id);
-CREATE INDEX IF NOT EXISTS idx_test_attempts_skill ON test_attempts(skill_id);
+CREATE INDEX IF NOT EXISTS idx_test_attempts_skill ON test_attempts(test_skill_id);
 `;
     
     console.log(fullSQL);
