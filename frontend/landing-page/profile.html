@@ -870,7 +870,7 @@
             // Display courses with full details
             const coursesContainer = document.getElementById('courses-container');
             if (allCourses && allCourses.length > 0) {
-                coursesContainer.innerHTML = profile.courses.map(course => {
+                coursesContainer.innerHTML = allCourses.map(course => {
                     const progress = course.progress || 0;
                     const modules = course.modules || [];
                     const totalModules = modules.length || course.modulesCount || 10;
