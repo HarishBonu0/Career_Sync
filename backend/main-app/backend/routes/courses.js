@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import CourseGeneration from '../models/CourseGeneration.js';
 import Course from '../models/Course.js';
