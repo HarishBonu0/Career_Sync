@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Integration Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        
+        .test-section h2 {
+            color: #4F46E5;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #4F46E5;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        button:hover {
+            background: #4338CA;
+        }
+        
+        button.secondary {
+            background: #6366F1;
+        }
+        
+        button.danger {
+            background: #EF4444;
+        }
+        
+        .result {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            border-left: 4px solid #4F46E5;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .result.success {
+            border-left-color: #10B981;
+            background: #F0FDF4;
+        }
+        
+        .result.error {
+            border-left-color: #EF4444;
+            background: #FEF2F2;
+        }
+        
+        .result pre {
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status.success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+        
+        .status.error {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+        
+        .status.loading {
+            background: #DBEAFE;
+            color: #0C4A6E;
+        }
+        
+        .info-box {
+            background: #F0F9FF;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #0284C7;
+            margin-bottom: 20px;
+        }
+        
+        .input-group {
+            margin: 15px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Database Integration Test Suite</h1>
+        
+        <div class="info-box">
+            <strong>ℹ️ Test Status:</strong> This page tests all backend API endpoints for the database integration system.
+            Make sure the backend is running on port 5000 before starting tests.
+        </div>
+        
+        <!-- Test 1: Backend Connection -->
+        <div class="test-section">
+            <h2>1. Backend Connection Test</h2>
+            <div class="test-controls">
+                <button onclick="testBackendConnection()">Test Connection</button>
+                <span id="status-connection" class="status"></span>
+            </div>
+            <div id="result-connection" class="result" style="display:none;"></div>
+        </div>
+        
+        <!-- Test 2: Enroll in Course -->
+        <div class="test-section">
+            <h2>2. Course Enrollment Test</h2>
+            <div class="input-group">
+                <label>User ID (or leave blank for test user):</label>
+                <input type="text" id="userId" placeholder="e.g., 63d7f8a9b1c2d3e4f5g6h7i8">
+            </div>
+            <div class="test-controls">
+                <button onclick="testEnrollCourse()">Enroll in Course</button>
+                <span id="status-enroll" class="status"></span>
+            </div>
+            <div id="result-enroll" class="result" style="display:none;"></div>
+        </div>
+        
+        <!-- Test 3: Update Course Progress -->
+        <div class="test-section">
+            <h2>3. Course Progress Update Test</h2>
+            <div class="input-group">
+                <label>Enrollment ID (from test 2):</label>
+                <input type="text" id="enrollmentId" placeholder="e.g., 63d7f8a9b1c2d3e4f5g6h7i8">
+            </div>
+            <div class="test-controls">
+                <button onclick="testUpdateCourseProgress()">Update Progress (50%)</button>
+                <button class="secondary" onclick="testUpdateCourseProgress(100)">Mark Complete (100%)</button>
+                <span id="status-progress" class="status"></span>
+            </div>
+            <div id="result-progress" class="result" style="display:none;"></div>
+        </div>
+        
+        <!-- Test 4: Enroll in Roadmap -->
+        <div class="test-section">
+            <h2>4. Roadmap Enrollment Test</h2>
+            <div class="test-controls">
+                <button onclick="testEnrollRoadmap()">Enroll in Roadmap</button>
+                <span id="status-roadmap" class="status"></span>
+            </div>
+            <div id="result-roadmap" class="result" style="display:none;"></div>
+        </div>
+        
+        <!-- Test 5: Submit Evaluation -->
+        <div class="test-section">
+            <h2>5. Test Submission Test</h2>
+            <div class="test-controls">
+                <button onclick="testSubmitEvaluation()">Submit Test (85%)</button>
+                <span id="status-eval" class="status"></span>
+            </div>
+            <div id="result-eval" class="result" style="display:none;"></div>
+        </div>
+        
+        <!-- Test 6: Fetch Profile -->
+        <div class="test-section">
+            <h2>6. Profile Fetch Test</h2>
+            <div class="test-controls">
+                <button onclick="testGetProfile()">Fetch Profile Data</button>
+                <span id="status-profile" class="status"></span>
+            </div>
+            <div id="result-profile" class="result" style="display:none;"></div>
+        </div>
+        
+        <!-- Test 7: Run All Tests -->
+        <div class="test-section">
+            <h2>7. Run All Tests</h2>
+            <div class="test-controls">
+                <button class="secondary" onclick="runAllTests()">Run Complete Test Suite</button>
+                <button class="danger" onclick="clearResults()">Clear Results</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let testUserId = null;
+        let testEnrollmentId = null;
+        let testRoadmapId = null;
+
+        // Helper function to show results
+        function showResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.classList.remove('success', 'error');
+            element.classList.add(isError ? 'error' : 'success');
+            element.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            element.style.display = 'block';
+        }
+
+        // Helper function to update status
+        function updateStatus(elementId, status, text) {
+            const element = document.getElementById(elementId);
+            element.className = `status ${status}`;
+            element.textContent = text;
+        }
+
+        // Test 1: Backend Connection
+        async function testBackendConnection() {
+            updateStatus('status-connection', 'loading', '⏳ Testing...');
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (response.status === 401 || response.status === 403) {
+                    // Expected if not authenticated
+                    updateStatus('status-connection', 'success', '✓ Backend Connected');
+                    showResult('result-connection', {
+                        status: 'Connected',
+                        backend: 'Running on port 5000',
+                        note: 'Not authenticated (expected)'
+                    });
+                } else if (response.ok) {
+                    updateStatus('status-connection', 'success', '✓ Connected & Authenticated');
+                    showResult('result-connection', await response.json());
+                } else {
+                    throw new Error(`Backend returned ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('status-connection', 'error', '✗ Connection Failed');
+                showResult('result-connection', {
+                    error: error.message,
+                    note: 'Make sure backend is running on port 5000'
+                }, true);
+            }
+        }
+
+        // Test 2: Enroll in Course
+        async function testEnrollCourse() {
+            updateStatus('status-enroll', 'loading', '⏳ Enrolling...');
+            try {
+                const userId = document.getElementById('userId').value || 'test-user-' + Date.now();
+                testUserId = userId;
+                
+                const response = await fetch(`${API_BASE}/profile/enroll/course`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        userId,
+                        userEmail: userId + '@example.com',
+                        courseId: 'course-' + Date.now(),
+                        courseTitle: 'Advanced JavaScript Concepts',
+                        courseModules: 12
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    testEnrollmentId = data._id;
+                    document.getElementById('enrollmentId').value = data._id;
+                    updateStatus('status-enroll', 'success', '✓ Enrolled');
+                    showResult('result-enroll', data);
+                } else {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('status-enroll', 'error', '✗ Failed');
+                showResult('result-enroll', { error: error.message }, true);
+            }
+        }
+
+        // Test 3: Update Course Progress
+        async function testUpdateCourseProgress(progress = 50) {
+            updateStatus('status-progress', 'loading', '⏳ Updating...');
+            try {
+                const enrollmentId = document.getElementById('enrollmentId').value || testEnrollmentId;
+                if (!enrollmentId) {
+                    throw new Error('Enrollment ID not found. Run course enrollment test first.');
+                }
+
+                const response = await fetch(`${API_BASE}/profile/progress/course/${enrollmentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        progress,
+                        completed: progress >= 100,
+                        completedModules: Math.floor((progress / 100) * 12)
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('status-progress', 'success', `✓ Updated to ${progress}%`);
+                    showResult('result-progress', data);
+                } else {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('status-progress', 'error', '✗ Failed');
+                showResult('result-progress', { error: error.message }, true);
+            }
+        }
+
+        // Test 4: Enroll in Roadmap
+        async function testEnrollRoadmap() {
+            updateStatus('status-roadmap', 'loading', '⏳ Enrolling...');
+            try {
+                const userId = testUserId || document.getElementById('userId').value || 'test-user-' + Date.now();
+                
+                const response = await fetch(`${API_BASE}/profile/enroll/roadmap`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        userId,
+                        userEmail: userId + '@example.com',
+                        roadmapId: 'roadmap-' + Date.now(),
+                        roadmapTitle: 'Full Stack Developer Roadmap',
+                        roadmapStages: 5
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    testRoadmapId = data._id;
+                    updateStatus('status-roadmap', 'success', '✓ Enrolled');
+                    showResult('result-roadmap', data);
+                } else {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('status-roadmap', 'error', '✗ Failed');
+                showResult('result-roadmap', { error: error.message }, true);
+            }
+        }
+
+        // Test 5: Submit Evaluation
+        async function testSubmitEvaluation() {
+            updateStatus('status-eval', 'loading', '⏳ Submitting...');
+            try {
+                const userId = testUserId || document.getElementById('userId').value || 'test-user-' + Date.now();
+                
+                const response = await fetch(`${API_BASE}/profile/evaluation/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        userId,
+                        userEmail: userId + '@example.com',
+                        evaluationTitle: 'JavaScript Fundamentals Test',
+                        score: 85,
+                        totalQuestions: 20,
+                        correctAnswers: 17,
+                        timeTaken: '15 min'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('status-eval', 'success', '✓ Submitted');
+                    showResult('result-eval', data);
+                } else {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('status-eval', 'error', '✗ Failed');
+                showResult('result-eval', { error: error.message }, true);
+            }
+        }
+
+        // Test 6: Fetch Profile
+        async function testGetProfile() {
+            updateStatus('status-profile', 'loading', '⏳ Fetching...');
+            try {
+                const userId = testUserId || document.getElementById('userId').value;
+                if (!userId) {
+                    throw new Error('User ID not found. Run enrollment tests first.');
+                }
+
+                const response = await fetch(`${API_BASE}/profile/${userId}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('status-profile', 'success', '✓ Fetched');
+                    showResult('result-profile', data);
+                } else {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('status-profile', 'error', '✗ Failed');
+                showResult('result-profile', { error: error.message }, true);
+            }
+        }
+
+        // Run all tests in sequence
+        async function runAllTests() {
+            console.log('Starting complete test suite...');
+            await testBackendConnection();
+            await new Promise(r => setTimeout(r, 1000));
+            await testEnrollCourse();
+            await new Promise(r => setTimeout(r, 1000));
+            await testUpdateCourseProgress();
+            await new Promise(r => setTimeout(r, 1000));
+            await testEnrollRoadmap();
+            await new Promise(r => setTimeout(r, 1000));
+            await testSubmitEvaluation();
+            await new Promise(r => setTimeout(r, 1000));
+            await testGetProfile();
+            console.log('Test suite completed');
+        }
+
+        // Clear all results
+        function clearResults() {
+            document.querySelectorAll('.result').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.status').forEach(el => el.textContent = '');
+        }
+
+        // Auto-test connection on page load
+        window.addEventListener('load', testBackendConnection);
+    </script>
+</body>
+</html>

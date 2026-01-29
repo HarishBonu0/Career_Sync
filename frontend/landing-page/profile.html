@@ -285,39 +285,148 @@
         }
 
         .item-card {
-            padding: 16px;
-            background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%);
+            padding: 20px;
+            background: white;
             border-radius: 12px;
-            border-left: 4px solid var(--brand-primary);
+            border: 1px solid var(--border-light);
             transition: all 0.3s;
             cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .item-card:hover {
-            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
-            transform: translateX(4px);
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+            border-color: var(--brand-primary);
+            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
         }
 
         .item-title {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 600;
             color: var(--text-primary);
-            margin: 0 0 8px 0;
+            margin: 0 0 4px 0;
+            flex: 1;
+        }
+
+        .item-badge {
+            background: var(--brand-primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .progress-container {
+            margin: 12px 0;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .progress-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .progress-percent {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--brand-primary);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #E2E8F0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
         }
 
         .item-meta {
             display: flex;
-            gap: 16px;
+            gap: 12px;
             flex-wrap: wrap;
+            margin-bottom: 12px;
         }
 
         .meta-tag {
             font-size: 12px;
             color: var(--text-secondary);
-            background: rgba(79, 70, 229, 0.1);
-            padding: 4px 8px;
-            border-radius: 4px;
+            background: rgba(79, 70, 229, 0.08);
+            padding: 6px 10px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .btn-continue {
+            flex: 1;
+            padding: 10px 16px;
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-continue:hover {
+            background: var(--brand-secondary);
+            transform: scale(1.02);
+        }
+
+        .btn-view {
+            padding: 10px 16px;
+            background: white;
+            color: var(--brand-primary);
+            border: 2px solid var(--brand-primary);
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-view:hover {
+            background: var(--brand-primary);
+            color: white;
         }
 
         .empty-state {
@@ -394,6 +503,7 @@
     </style>
     <!-- Shared Header: injected at runtime via shared-auth.js -->
     <script type="module" src="./api-auth.js"></script>
+    <script src="./profile-utils.js"></script>
 </head>
 
 <body>
@@ -467,48 +577,195 @@
                         <div id="roadmaps-container" class="items-list"></div>
                     </div>
                 </div>
+
+                <!-- Skill Evaluations Section -->
+                <div class="section" style="margin-bottom: 40px;">
+                    <div class="section-title">✅ Skill Evaluations</div>
+                    <div id="evaluations-container" class="items-list"></div>
+                </div>
             </div>
         </div>
     </main>
 
     <script>
+        // Debug logging
+        console.log('Profile page loaded');
+        console.log('LocalStorage keys:', Object.keys(localStorage));
+        console.log('careeros_user:', localStorage.getItem('careeros_user'));
+        console.log('careeros_token:', localStorage.getItem('careeros_token'));
+        console.log('Cookies:', document.cookie);
+
+        // Helper function to get cookie value
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
         async function loadProfile() {
             try {
-                const user = localStorage.getItem('careeros_user');
-                const token = localStorage.getItem('careeros_token');
+                // Check multiple auth storage methods
+                let user = localStorage.getItem('careeros_user');
+                let token = localStorage.getItem('careeros_token');
+                
+                // Also check cookies (backend sets cookies)
+                const cookieToken = getCookie('careeros_token');
+                
+                console.log('Initial auth check - user:', !!user, 'token:', !!token, 'cookieToken:', !!cookieToken);
+                
+                // Fallback to other possible storage keys
+                if (!user) {
+                    user = localStorage.getItem('user');
+                    console.log('Fallback user check:', !!user);
+                }
+                if (!token) {
+                    token = localStorage.getItem('token') || localStorage.getItem('careeros_auth') || cookieToken;
+                    console.log('Fallback token check:', !!token);
+                }
 
-                if (!user || !token) {
-                    window.location.href = 'http://localhost:4173/auth.html';
+                // If we have cookie token but no user, fetch user from backend
+                if (!user && cookieToken) {
+                    console.log('Found cookie token, fetching user from backend...');
+                    try {
+                        const response = await fetch('http://localhost:5000/api/auth/me', {
+                            credentials: 'include', // Important: include cookies in request
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log('Fetched user from backend:', data);
+                            if (data.user || data.data) {
+                                user = JSON.stringify(data.user || data.data);
+                                localStorage.setItem('careeros_user', user);
+                                token = cookieToken;
+                                console.log('User data stored in localStorage');
+                            }
+                        } else {
+                            console.log('Backend response not OK:', response.status);
+                        }
+                    } catch (err) {
+                        console.log('Could not fetch user from backend:', err);
+                    }
+                }
+
+                // Check if we have valid auth data
+                if (!user && !token && !cookieToken) {
+                    console.log('No authentication found, showing login message');
+                    document.getElementById('loading').innerHTML = `
+                        <div style="padding: 40px; text-align: center;">
+                            <h2 style="color: var(--brand-primary); margin-bottom: 16px;">Please Login</h2>
+                            <p style="margin-bottom: 24px; color: var(--text-secondary);">
+                                You need to be logged in to view your profile.
+                            </p>
+                            <a href="http://localhost:4173/auth.html" 
+                               style="display: inline-block; padding: 12px 24px; background: var(--brand-primary); 
+                                      color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                                Go to Login
+                            </a>
+                        </div>
+                    `;
                     return;
                 }
 
-                const userData = JSON.parse(user);
-                const userId = userData.id || userData._id;
+                console.log('Auth found, proceeding to load profile');
 
-                // Always display the full cached profile immediately
+                // If we have token but no user, try to fetch user from backend
+                if (token && !user) {
+                    try {
+                        const response = await fetch('http://localhost:5000/api/auth/me', {
+                            credentials: 'include',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log('Additional backend fetch:', data);
+                            if (data.user || data.data) {
+                                user = JSON.stringify(data.user || data.data);
+                                localStorage.setItem('careeros_user', user);
+                            }
+                            console.log('Fetched user from backend');
+                        }
+                    } catch (err) {
+                        console.log('Could not fetch user from backend:', err);
+                    }
+                }
+
+                // Parse user data
+                let userData;
+                try {
+                    userData = typeof user === 'string' ? JSON.parse(user) : user;
+                    console.log('Parsed user data:', userData);
+                } catch (e) {
+                    console.error('Error parsing user data:', e);
+                    // Create minimal user data from email if available
+                    userData = { 
+                        email: 'user@example.com',
+                        name: 'User'
+                    };
+                }
+
+                const userId = userData.id || userData._id || userData.user_id;
+                console.log('User ID:', userId);
+
+                // Always display the cached profile immediately
                 displayCachedProfile(userData);
 
-                // Then try to fetch additional data from backend if available
-                try {
-                    const response = await fetch(`http://localhost:5000/api/profile/${userId}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
+                // Increment visit count
+                let visitCount = parseInt(localStorage.getItem('careeros_profile_visits') || '0');
+                visitCount++;
+                localStorage.setItem('careeros_profile_visits', visitCount.toString());
+                console.log('Profile visit count:', visitCount);
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success && data.profile) {
-                            // Update with backend data if available
-                            displayProfile(data.profile);
+                // Then try to fetch additional data from backend if available
+                if (userId) {
+                    try {
+                        const response = await fetch(`http://localhost:5000/api/profile/${userId}`, {
+                            credentials: 'include',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log('Backend profile data:', data);
+                            if (data.success && data.profile) {
+                                // Update with backend data if available
+                                displayProfile(data.profile);
+                            }
+                        } else {
+                            console.log('Backend response not OK:', response.status);
                         }
+                    } catch (backendError) {
+                        console.log('Backend profile not available, using localStorage data:', backendError);
                     }
-                } catch (backendError) {
-                    console.log('Backend profile not available, using localStorage data:', backendError);
+                } else {
+                    console.log('No userId available for backend fetch');
                 }
             } catch (error) {
                 console.error('Error loading profile:', error);
-                document.getElementById('loading').innerHTML = '<p>Error loading profile. Please try again.</p>';
+                document.getElementById('loading').innerHTML = `
+                    <div style="padding: 40px; text-align: center;">
+                        <h2 style="color: #EF4444; margin-bottom: 16px;">Error Loading Profile</h2>
+                        <p style="margin-bottom: 24px; color: var(--text-secondary);">
+                            ${error.message}
+                        </p>
+                        <a href="http://localhost:4173/auth.html" 
+                           style="display: inline-block; padding: 12px 24px; background: var(--brand-primary); 
+                                  color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                            Go to Login
+                        </a>
+                    </div>
+                `;
             }
         }
 
@@ -520,14 +777,22 @@
         }
 
         function displayCachedProfile(profile) {
-            const initials = (profile.name || profile.full_name || profile.username || profile.email || 'U').charAt(0).toUpperCase();
-            const displayName = profile.name || profile.full_name || profile.username || profile.email?.split('@')[0] || 'User';
+            // Handle different profile data structures
+            const name = profile.name || profile.full_name || profile.username || profile.displayName || (profile.email ? profile.email.split('@')[0] : 'User');
+            const email = profile.email || profile.user_email || 'user@example.com';
+            const initials = name.charAt(0).toUpperCase();
+            const displayName = name;
 
-            // Update header info
-            document.getElementById('profile-avatar-large').textContent = initials;
-            document.getElementById('profile-full-name').textContent = displayName;
-            document.getElementById('profile-full-email').textContent = profile.email || 'No email';
-            document.getElementById('profile-full-bio').textContent = profile.bio || 'Welcome to CareerOS! Start creating courses, roadmaps, and taking evaluations.';
+            // Update header info safely
+            const avatarEl = document.getElementById('profile-avatar-large');
+            const nameEl = document.getElementById('profile-full-name');
+            const emailEl = document.getElementById('profile-full-email');
+            const bioEl = document.getElementById('profile-full-bio');
+            
+            if (avatarEl) avatarEl.textContent = initials;
+            if (nameEl) nameEl.textContent = displayName;
+            if (emailEl) emailEl.textContent = email;
+            if (bioEl) bioEl.textContent = profile.bio || 'Welcome to CareerOS! Start creating courses, roadmaps, and taking evaluations.';
             
             // Show visit count
             const visitCount = profile.visitCount || localStorage.getItem('careeros_profile_visits') || 0;
@@ -540,43 +805,146 @@
             // Get enrolled courses from localStorage
             const enrolledCourses = JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]');
             const savedRoadmaps = JSON.parse(localStorage.getItem('careeros_saved_roadmaps') || '[]');
+            const completedEvaluations = JSON.parse(localStorage.getItem('careeros_evaluations') || '[]');
 
             // Update stats
             document.getElementById('stat-courses').textContent = enrolledCourses.length;
             document.getElementById('stat-roadmaps').textContent = savedRoadmaps.length;
-            document.getElementById('stat-evaluations').textContent = '0';
+            document.getElementById('stat-evaluations').textContent = completedEvaluations.length;
 
-            // Display courses
+            // Display courses with progress
             const coursesContainer = document.getElementById('courses-container');
             if (enrolledCourses.length > 0) {
-                coursesContainer.innerHTML = enrolledCourses.map(course => `
-                    <div class="item-card" onclick="window.location.href='http://localhost:3002/course-generated/${course.id}'">
-                        <p class="item-title">${course.title}</p>
-                        <div class="item-meta">
-                            <span class="meta-tag">📚 ${course.modules || 0} modules</span>
-                            <span class="meta-tag">🕐 Enrolled ${new Date(course.enrolledAt).toLocaleDateString()}</span>
-                            <span class="meta-tag">📊 ${course.progress || 0}% complete</span>
+                coursesContainer.innerHTML = enrolledCourses.map(course => {
+                    const progress = course.progress || 0;
+                    const completedModules = course.completedModules || 0;
+                    const totalModules = course.modules || course.totalModules || 10;
+                    
+                    return `
+                        <div class="item-card">
+                            <div class="item-header">
+                                <div>
+                                    <p class="item-title">${course.title || course.courseName}</p>
+                                    <div class="item-meta">
+                                        <span class="meta-tag">📚 ${totalModules} modules</span>
+                                        <span class="meta-tag">⏱️ ${course.duration || '4 weeks'}</span>
+                                        <span class="meta-tag">📊 ${course.level || 'Intermediate'}</span>
+                                    </div>
+                                </div>
+                                ${progress >= 100 ? '<span class="item-badge">Completed</span>' : ''}
+                            </div>
+                            
+                            <div class="progress-container">
+                                <div class="progress-header">
+                                    <span class="progress-label">${completedModules} of ${totalModules} modules completed</span>
+                                    <span class="progress-percent">${progress}%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${progress}%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="item-actions">
+                                <a href="http://localhost:3002" class="btn-continue">
+                                    ${progress > 0 ? '▶️ Continue Learning' : '🚀 Start Course'}
+                                </a>
+                                <a href="http://localhost:3002" class="btn-view">View Details</a>
+                            </div>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             } else {
-                coursesContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No courses created yet</div><a href="http://localhost:3002" class="action-btn primary" style="max-width: 200px; margin: 0 auto;">Create Your First Course</a></div>';
+                coursesContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No courses enrolled yet</div><a href="http://localhost:3002" class="action-btn primary" style="max-width: 220px; margin: 0 auto;">Generate Your First Course</a></div>';
             }
 
             // Display roadmaps
             const roadmapsContainer = document.getElementById('roadmaps-container');
             if (savedRoadmaps.length > 0) {
-                roadmapsContainer.innerHTML = savedRoadmaps.map(roadmap => `
-                    <div class="item-card" onclick="window.location.href='http://localhost:5173'">
-                        <p class="item-title">${roadmap.title}</p>
-                        <div class="item-meta">
-                            <span class="meta-tag">🗺️ ${roadmap.stages || 0} stages</span>
-                            <span class="meta-tag">🕐 Created ${new Date(roadmap.createdAt).toLocaleDateString()}</span>
+                roadmapsContainer.innerHTML = savedRoadmaps.map(roadmap => {
+                    const progress = roadmap.progress || 0;
+                    const completedStages = roadmap.completedStages || 0;
+                    const totalStages = roadmap.stages || roadmap.totalStages || 5;
+                    
+                    return `
+                        <div class="item-card">
+                            <div class="item-header">
+                                <div>
+                                    <p class="item-title">${roadmap.title || roadmap.careerGoal}</p>
+                                    <div class="item-meta">
+                                        <span class="meta-tag">🎯 ${roadmap.targetRole || roadmap.title}</span>
+                                        <span class="meta-tag">📍 ${totalStages} stages</span>
+                                        <span class="meta-tag">⏱️ ${roadmap.duration || '6 months'}</span>
+                                    </div>
+                                </div>
+                                ${progress >= 100 ? '<span class="item-badge">Completed</span>' : ''}
+                            </div>
+                            
+                            <div class="progress-container">
+                                <div class="progress-header">
+                                    <span class="progress-label">${completedStages} of ${totalStages} stages completed</span>
+                                    <span class="progress-percent">${progress}%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${progress}%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="item-actions">
+                                <a href="http://localhost:5173" class="btn-continue">
+                                    ${progress > 0 ? '▶️ Continue Roadmap' : '🚀 Start Roadmap'}
+                                </a>
+                                <a href="http://localhost:5173" class="btn-view">View Details</a>
+                            </div>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             } else {
-                roadmapsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No roadmaps created yet</div><a href="http://localhost:5173" class="action-btn primary" style="max-width: 200px; margin: 0 auto;">Create Your First Roadmap</a></div>';
+                roadmapsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No roadmaps created yet</div><a href="http://localhost:5173" class="action-btn primary" style="max-width: 220px; margin: 0 auto;">Create Your First Roadmap</a></div>';
+            }
+
+            // Display skill evaluations
+            const evaluationsContainer = document.getElementById('evaluations-container');
+            if (completedEvaluations.length > 0) {
+                evaluationsContainer.innerHTML = completedEvaluations.map(evaluation => {
+                    const score = evaluation.score || 0;
+                    const totalQuestions = evaluation.totalQuestions || 10;
+                    const correctAnswers = evaluation.correctAnswers || 0;
+                    
+                    return `
+                        <div class="item-card">
+                            <div class="item-header">
+                                <div>
+                                    <p class="item-title">${evaluation.topic || evaluation.title}</p>
+                                    <div class="item-meta">
+                                        <span class="meta-tag">📝 ${totalQuestions} questions</span>
+                                        <span class="meta-tag">✅ ${correctAnswers} correct</span>
+                                        <span class="meta-tag">🕐 ${new Date(evaluation.completedAt || evaluation.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                                ${score >= 80 ? '<span class="item-badge" style="background: #10B981;">Passed</span>' : '<span class="item-badge" style="background: #EF4444;">Needs Improvement</span>'}
+                            </div>
+                            
+                            <div class="progress-container">
+                                <div class="progress-header">
+                                    <span class="progress-label">Score</span>
+                                    <span class="progress-percent">${score}%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${score}%; background: ${score >= 80 ? 'linear-gradient(90deg, #10B981 0%, #059669 100%)' : 'linear-gradient(90deg, #EF4444 0%, #DC2626 100%)'}"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="item-actions">
+                                <a href="http://localhost:3001" class="btn-continue">
+                                    ${score < 80 ? '🔄 Retake Test' : '✅ View Results'}
+                                </a>
+                                <a href="http://localhost:3001" class="btn-view">New Test</a>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                evaluationsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No evaluations completed yet</div><a href="http://localhost:3001" class="action-btn primary" style="max-width: 220px; margin: 0 auto;">Take Your First Test</a></div>';
             }
 
             // Show content, hide loading
@@ -644,16 +1012,138 @@
         }
 
         // Logout handler
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            localStorage.removeItem('careeros_profile_data');
-            localStorage.removeItem('careeros_user');
-            localStorage.removeItem('careeros_token');
-            localStorage.removeItem('careeros_auth');
-            window.location.href = 'http://localhost:4173/auth.html';
+        window.addEventListener('DOMContentLoaded', () => {
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    localStorage.removeItem('careeros_profile_data');
+                    localStorage.removeItem('careeros_user');
+                    localStorage.removeItem('careeros_token');
+                    localStorage.removeItem('careeros_auth');
+                    window.location.href = 'http://localhost:4173/auth.html';
+                });
+            }
         });
 
+        // Initialize sample data for testing if no data exists
+        function initializeSampleData() {
+            const courses = JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]');
+            if (courses.length === 0) {
+                // Add sample courses for demo
+                const sampleCourses = [
+                    {
+                        id: 'course-1',
+                        title: 'Full Stack Web Development',
+                        courseName: 'Full Stack Web Development',
+                        level: 'Intermediate',
+                        duration: '12 weeks',
+                        modules: 10,
+                        totalModules: 10,
+                        completedModules: 3,
+                        progress: 30,
+                        enrolledAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+                        lastAccessedAt: new Date().toISOString(),
+                        status: 'in-progress'
+                    },
+                    {
+                        id: 'course-2',
+                        title: 'Python for Data Science',
+                        courseName: 'Python for Data Science',
+                        level: 'Beginner',
+                        duration: '8 weeks',
+                        modules: 8,
+                        totalModules: 8,
+                        completedModules: 8,
+                        progress: 100,
+                        enrolledAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                        lastAccessedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                        status: 'completed',
+                        completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+                    }
+                ];
+                localStorage.setItem('careeros_enrolled_courses', JSON.stringify(sampleCourses));
+                
+                // Add sample roadmaps
+                const sampleRoadmaps = [
+                    {
+                        id: 'roadmap-1',
+                        title: 'Frontend Developer',
+                        careerGoal: 'Frontend Developer',
+                        targetRole: 'Frontend Developer',
+                        stages: 6,
+                        totalStages: 6,
+                        completedStages: 2,
+                        progress: 33,
+                        duration: '6 months',
+                        createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+                        lastAccessedAt: new Date().toISOString(),
+                        status: 'in-progress'
+                    }
+                ];
+                localStorage.setItem('careeros_saved_roadmaps', JSON.stringify(sampleRoadmaps));
+                
+                // Add sample evaluations
+                const sampleEvaluations = [
+                    {
+                        id: 'eval-1',
+                        topic: 'JavaScript Fundamentals',
+                        title: 'JavaScript Fundamentals',
+                        totalQuestions: 15,
+                        correctAnswers: 13,
+                        score: 87,
+                        completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+                        timeTaken: '25 min'
+                    },
+                    {
+                        id: 'eval-2',
+                        topic: 'React Basics',
+                        title: 'React Basics',
+                        totalQuestions: 12,
+                        correctAnswers: 8,
+                        score: 67,
+                        completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                        timeTaken: '18 min'
+                    }
+                ];
+                localStorage.setItem('careeros_evaluations', JSON.stringify(sampleEvaluations));
+                
+                console.log('Sample data initialized for testing');
+            }
+        }
+
         // Load profile on page load
+        initializeSampleData(); // Initialize sample data
         loadProfile();
+        
+        // Auto-refresh profile data every 5 seconds to sync with backend updates
+        setInterval(async () => {
+            try {
+                let user = localStorage.getItem('careeros_user');
+                if (user) {
+                    const userData = JSON.parse(user);
+                    const userId = userData.id || userData._id;
+                    if (userId) {
+                        const response = await fetch(`http://localhost:5000/api/profile/${userId}`, {
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.courses || data.roadmaps || data.evaluations) {
+                                // Update localStorage and refresh display
+                                if (data.courses) localStorage.setItem('careeros_enrolled_courses', JSON.stringify(data.courses));
+                                if (data.roadmaps) localStorage.setItem('careeros_saved_roadmaps', JSON.stringify(data.roadmaps));
+                                if (data.evaluations) localStorage.setItem('careeros_evaluations', JSON.stringify(data.evaluations));
+                                // Refresh profile display
+                                displayCachedProfile(userData);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('Auto-refresh failed:', error);
+            }
+        }, 5000); // Refresh every 5 seconds
     </script>
 </body>
 

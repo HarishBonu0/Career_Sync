@@ -75,9 +75,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const result = await login(email, password);
 
         if (result.success) {
-            console.log('Login successful, redirecting...');
-            // Cookie is set by backend, just redirect
-            window.location.href = 'http://localhost:4173/';
+            console.log('Login successful, storing user data...');
+            
+            // Store user data in localStorage
+            if (result.user) {
+                localStorage.setItem('careeros_user', JSON.stringify(result.user));
+            }
+            
+            // Redirect to profile page
+            console.log('Redirecting to profile...');
+            window.location.href = 'http://localhost:4173/profile.html';
         } else {
             setButtonLoading(submitBtn, false);
             showError(forms.login, result.error || 'Invalid email or password');
@@ -111,18 +118,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.success) {
             console.log('Registration successful:', result);
             
+            // Store user data in localStorage
+            if (result.user) {
+                localStorage.setItem('careeros_user', JSON.stringify(result.user));
+            }
+            
             setButtonLoading(submitBtn, false);
             
             // Show success message
             const successDiv = document.createElement('div');
             successDiv.style.cssText = 'color: #10b981; background: #d1fae5; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 14px;';
-            successDiv.textContent = 'Account created successfully! Redirecting...';
+            successDiv.textContent = 'Account created successfully! Redirecting to your profile...';
             forms.signup.insertBefore(successDiv, forms.signup.firstChild);
             
-            // Redirect to home page (cookie is set by backend)
+            // Redirect to profile page
             setTimeout(() => {
-                window.location.href = 'http://localhost:4173/';
-            }, 1000);
+                window.location.href = 'http://localhost:4173/profile.html';
+            }, 1500);
         } else {
             setButtonLoading(submitBtn, false);
             showError(forms.signup, result.error || 'Failed to create account');

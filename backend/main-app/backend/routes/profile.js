@@ -166,14 +166,15 @@ router.get('/:userId', async (req, res) => {
 router.put('/progress/course/:enrollmentId', async (req, res) => {
   try {
     const { enrollmentId } = req.params;
-    const { progress, completed } = req.body;
+    const { progress, completed, completedModules } = req.body;
 
     const enrollment = await UserEnrollment.findByIdAndUpdate(
       enrollmentId,
       {
         courseProgress: progress,
         courseCompleted: completed,
-        courseLastAccessed: new Date()
+        courseLastAccessed: new Date(),
+        'metadata.completedModules': completedModules
       },
       { new: true }
     );
@@ -185,6 +186,67 @@ router.put('/progress/course/:enrollmentId', async (req, res) => {
     res.json({ success: true, enrollment });
   } catch (error) {
     console.error('Progress update error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update roadmap progress
+router.put('/progress/roadmap/:enrollmentId', async (req, res) => {
+  try {
+    const { enrollmentId } = req.params;
+    const { progress, completedStages } = req.body;
+
+    const enrollment = await UserEnrollment.findByIdAndUpdate(
+      enrollmentId,
+      {
+        roadmapProgress: progress,
+        'metadata.completedStages': completedStages,
+        'metadata.lastUpdated': new Date()
+      },
+      { new: true }
+    );
+
+    if (!enrollment) {
+      return res.status(404).json({ error: 'Enrollment not found' });
+    }
+
+    res.json({ success: true, enrollment });
+  } catch (error) {
+    console.error('Roadmap progress update error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Submit skill evaluation/test
+router.post('/evaluation/submit', async (req, res) => {
+  try {
+    const { userId, userEmail, evaluationTitle, score, totalQuestions, correctAnswers, timeTaken } = req.body;
+
+    if (!userId && !userEmail) {
+      return res.status(400).json({ error: 'User ID or email required' });
+    }
+
+    const enrollment = await UserEnrollment.create({
+      userId,
+      userEmail,
+      evaluationTitle,
+      evaluationScore: score,
+      evaluationCompletedAt: new Date(),
+      type: 'evaluation',
+      metadata: {
+        totalQuestions,
+        correctAnswers,
+        timeTaken
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Evaluation submitted successfully', 
+      enrollment 
+    });
+  } catch (error) {
+    console.error('Evaluation submission error:', error);
     res.status(500).json({ error: error.message });
   }
 });
