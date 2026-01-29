@@ -6,8 +6,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectMongo } from './db/mongo.js';
 
-// Load environment variables
-dotenv.config();
+// Get current directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables from the backend folder
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 // Import routes
 import authRoutes from './routes/auth.js';
