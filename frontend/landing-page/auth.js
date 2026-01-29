@@ -3,12 +3,23 @@ import { register, login, requestOtp, loginWithOtp } from './api-auth.js';
 // Google OAuth Configuration
 const GOOGLE_CLIENT_ID = '844001953688-5r9hfnp15akd17ouu20h2hgv8s4jbprm.apps.googleusercontent.com'; // Replace with your actual Google Client ID
 
+// Global views object
+let views = {};
+
+// Make switchView global for onclick handlers
+window.switchView = function(viewName) {
+    Object.values(views).forEach(el => el.classList.remove('active'));
+    if (views[viewName]) {
+        views[viewName].classList.add('active');
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize Google Sign-In
     initializeGoogleSignIn();
 
     // DOM Elements
-    const views = {
+    views = {
         login: document.getElementById('view-login'),
         signup: document.getElementById('view-signup'),
         forgot: document.getElementById('view-forgot'),
@@ -30,13 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
             switchView(targetView);
         });
     });
-
-    function switchView(viewName) {
-        Object.values(views).forEach(el => el.classList.add('hidden'));
-        if (views[viewName]) {
-            views[viewName].classList.remove('hidden');
-        }
-    }
 
     function showError(form, message) {
         // Remove existing error message if any
