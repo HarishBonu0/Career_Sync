@@ -1164,7 +1164,7 @@
                             </div>
                         </div>
                         <div class="item-actions">
-                            <a href="http://localhost:3002" class="btn-continue">${progressPercentage > 0 ? '▶️ Continue' : '🚀 Start'}</a>
+                            <a href="course-viewer.html?courseId=${courseId}" class="btn-continue">${progressPercentage > 0 ? '▶️ Continue' : '🚀 Start'}</a>
                             <button class="btn-view" onclick="openModulesModal('${courseId}', '${course.title}', ${JSON.stringify(course.modules || []).replace(/'/g, "&#39;")})">View Modules</button>
                         </div>
                     </div>
