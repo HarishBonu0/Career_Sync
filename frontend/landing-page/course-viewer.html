@@ -372,7 +372,7 @@
         let currentModuleIndex = 0;
 
         // Get course data from URL or localStorage
-        function loadCourseData() {
+        async function loadCourseData() {
             const urlParams = new URLSearchParams(window.location.search);
             const courseId = urlParams.get('courseId');
 
@@ -382,12 +382,67 @@
                 return;
             }
 
-            // Try to get course from localStorage (courses from profile)
-            const courses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
-            currentCourse = courses.find(c => (c._id || c.id || `course_${c.title}`) === courseId);
+            // Try multiple sources to get courses
+            let courses = [];
+            
+            // 1. Try localStorage first
+            const localCourses = localStorage.getItem('careersync_enrolled_courses');
+            if (localCourses) {
+                try {
+                    courses = JSON.parse(localCourses);
+                } catch (e) {
+                    console.error('Error parsing localStorage courses:', e);
+                }
+            }
+
+            // 2. If no courses in localStorage, try fetching from backend
+            if (courses.length === 0) {
+                try {
+                    const user = localStorage.getItem('careersync_user');
+                    const token = localStorage.getItem('careersync_token');
+                    
+                    if (user && token) {
+                        const userData = JSON.parse(user);
+                        const userId = userData.id || userData._id || userData.user_id;
+                        
+                        const response = await fetch(`http://localhost:5000/api/profile/${userId}`, {
+                            credentials: 'include',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.profile && data.profile.courses) {
+                                courses = data.profile.courses;
+                                // Save to localStorage for future use
+                                localStorage.setItem('careersync_enrolled_courses', JSON.stringify(courses));
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error fetching courses from backend:', err);
+                }
+            }
+
+            // Find the course by ID
+            currentCourse = courses.find(c => {
+                const cId = c._id || c.id || `course_${c.title}`;
+                return cId === courseId;
+            });
 
             if (!currentCourse) {
+                console.error('Course not found. Available courses:', courses);
                 alert('Course not found. Redirecting to profile...');
+                window.location.href = 'profile.html';
+                return;
+            }
+
+            // Ensure course has modules array
+            if (!currentCourse.modules || currentCourse.modules.length === 0) {
+                alert('This course has no modules yet. Redirecting to profile...');
                 window.location.href = 'profile.html';
                 return;
             }

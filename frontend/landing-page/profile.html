@@ -1127,6 +1127,11 @@
             const roadmaps = profileData.roadmaps || JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]') || [];
             const evaluations = profileData.evaluations || JSON.parse(localStorage.getItem('careersync_evaluations') || '[]') || [];
 
+            // Save courses to localStorage for course-viewer access
+            if (courses.length > 0) {
+                localStorage.setItem('careersync_enrolled_courses', JSON.stringify(courses));
+            }
+
             // Update stats
             document.getElementById('stat-courses').textContent = courses.length;
             document.getElementById('stat-roadmaps').textContent = roadmaps.length;
