@@ -1,4 +1,4 @@
-// YouTube API Service
+// YouTube API Service - Dynamic Video Fetching Only
 const YOUTUBE_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3'
 
@@ -16,7 +16,7 @@ export interface YouTubeVideo {
 // Cache videos to avoid excessive API calls
 const videoCache = new Map<string, YouTubeVideo[]>()
 
-// Curated educational YouTube channels and their video patterns
+// Premium educational YouTube channels for quality filtering
 const EDUCATIONAL_CHANNELS = {
   'freeCodeCamp.org': 'UC8butISFwT-Wl7EV0hUK0BQ',
   'Traversy Media': 'UC29ju8bIPH5as8OGnQzwJyA',
@@ -25,75 +25,81 @@ const EDUCATIONAL_CHANNELS = {
   'The Net Ninja': 'UCW5YeuERMmlnqo4oq8vwUpg',
   'CS Dojo': 'UCxX9wt5FWQUAAz4UrysqK9A',
   'Corey Schafer': 'UCCezIgC97PvUuR4_gbFUs5g',
+  'Web Dev Simplified': 'UCFbNIlppjREEEM2I-UtNTow',
+  'Fireship': 'UCsBjURrPoezykLs9EqgamOA',
+  'Kevin Powell': 'UCJZV4d49DLaatr_39WNyoo',
+  'Tech With Tim': 'UCBJycsmduvVTj7vLKQi6eQg',
+  'sentdex': 'UCfV36TX5AejfAGIbtwTc8Zw',
+  'Real Python': 'UCWiUlWVzBro0tzAaVklKBtQ',
 }
 
-// Generate curated video recommendations based on topic
-function getCuratedVideos(topic: string, moduleNum: number): YouTubeVideo[] {
+// Helper function to extract core concepts from module title
+export function extractCoreConceptsFromModule(moduleTitle: string): string[] {
+  // Remove "Module X:" prefix
+  let cleanTitle = moduleTitle.replace(/^Module\s+\d+[:\s]+/i, '').trim()
+  
+  // Split by common separators and filter
+  const concepts = cleanTitle
+    .split(/[,&]/i)
+    .map(c => c.trim())
+    .filter(c => c.length > 0)
+  
+  return concepts
+}
+
+// Build smart search query based on module topic and difficulty
+function buildSearchQuery(topic: string, difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate'): string {
   const topicLower = topic.toLowerCase()
-  const videos: YouTubeVideo[] = []
   
-  // Map common topics to curated video IDs (these are real, working educational videos)
-  const topicVideoMap: { [key: string]: string[] } = {
-    'javascript': ['W6NZfCO5SIk', 'PkZNo7MFNFg', 'jS4aFq5-91M', 'hdI2bqOjy3c'],
-    'python': ['rfscVS0vtbE', '_uQrJ0TkZlc', 'kqtD5dpn9C8', 'eWRfhZUzrAc'],
-    'react': ['w7ejDZ8SWv8', 'Ke90Tje7VS0', 'bMknfKXIFA8', 'DLX62G4lc44'],
-    'nodejs': ['fBNz5xF-Kx4', 'Oe421EPjeBE', 'ENrzD9HAZK4', 'TlB_eWDSMt4'],
-    'typescript': ['BwuLSPajF40', 'gp5H0Vw39yw', 'd56mG7DezGs', 'ahCwqrYpIuM'],
-    'css': ['1Rs2ND1ryYc', 'yfoY53QXEnI', 'OXGznpKZ_sA', 'ieTHC78giGQ'],
-    'html': ['UB1O30fR-EE', 'pQN-pnXPaVg', 'kUMe1FH4CHE', 'HD13eq_Pmp8'],
-    'sql': ['HXV3zeQKqGY', 'zbMHLJ0dY4w', '7S_tz1z_5bA', 'SpNSGNB7Y48'],
-    'git': ['8JJ101D3knE', 'RGOj5yH7evk', 'apGV9Kg7ics', 'tRZGeaHPoaw'],
+  // Extract specific concepts from module title
+  const concepts = topicLower
+    .split(/[,;:\-and]/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+  
+  // Difficulty-based keywords
+  const difficultyKeywords = {
+    beginner: ['tutorial', 'introduction', 'for beginners', 'basics'],
+    intermediate: ['practical', 'real-world', 'hands-on', 'course'],
+    advanced: ['deep dive', 'expert', 'production', 'mastery']
   }
   
-  // Find matching videos for the topic
-  for (const [key, videoIds] of Object.entries(topicVideoMap)) {
-    if (topicLower.includes(key) || key.includes(topicLower.split(' ')[0])) {
-      const videoId = videoIds[moduleNum % videoIds.length]
-      videos.push({
-        id: videoId,
-        title: `${topic} Tutorial - Part ${moduleNum}`,
-        description: `Learn ${topic} with this comprehensive tutorial`,
-        thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-        url: `https://www.youtube.com/embed/${videoId}`,
-        channelTitle: 'Educational Content',
-      })
-      return videos
-    }
-  }
+  const keyword = difficultyKeywords[difficulty][0]
   
-  // If no specific match, return generic educational video
-  return videos
+  // Build query: primary concept + keyword + "tutorial"
+  const primaryConcept = concepts[0] || topic
+  return `${primaryConcept} ${keyword} tutorial`
 }
 
+// Main search function - relies entirely on YouTube API
 export async function searchYouTubeVideos(
   topic: string,
-  maxResults: number = 3
+  maxResults: number = 3,
+  searchType: 'beginner' | 'intermediate' | 'advanced' = 'intermediate'
 ): Promise<YouTubeVideo[]> {
   // Check cache first
-  const cacheKey = `${topic}_${maxResults}`
+  const cacheKey = `${topic}_${maxResults}_${searchType}`
   if (videoCache.has(cacheKey)) {
+    console.log('📦 Using cached videos for:', topic)
     return videoCache.get(cacheKey)!
   }
 
-  // If no API key, use curated videos
+  // Check if API key is configured
   if (!YOUTUBE_API_KEY || YOUTUBE_API_KEY === 'YOUR_API_KEY_HERE') {
-    console.log('⚠️ YouTube API key not configured, using curated videos')
-    const curatedVideos = getCuratedVideos(topic, 1)
-    if (curatedVideos.length > 0) {
-      videoCache.set(cacheKey, curatedVideos)
-      return curatedVideos
-    }
-    return getPlaceholderVideos(topic)
+    const errorMsg = '❌ YouTube API key not configured. Please set NEXT_PUBLIC_YOUTUBE_API_KEY in .env.local'
+    console.error(errorMsg)
+    throw new Error(errorMsg)
   }
 
   try {
-    // More precise search query - focus on complete courses and comprehensive tutorials
-    const searchQuery = `${topic} complete course full tutorial masterclass`
+    console.log('🔍 Fetching from YouTube API for:', topic)
+    const searchQuery = buildSearchQuery(topic, searchType)
+    console.log('🔎 Search query:', searchQuery)
 
     const response = await fetch(
       `${YOUTUBE_API_BASE}/search?part=snippet&q=${encodeURIComponent(
         searchQuery
-      )}&maxResults=${maxResults * 2}&type=video&videoDuration=medium&videoEmbeddable=true&order=relevance&key=${YOUTUBE_API_KEY}`,
+      )}&maxResults=${maxResults * 3}&type=video&videoDuration=medium&videoEmbeddable=true&order=relevance&relevanceLanguage=en&key=${YOUTUBE_API_KEY}`,
       {
         headers: {
           'Accept': 'application/json',
@@ -102,97 +108,113 @@ export async function searchYouTubeVideos(
     )
 
     if (!response.ok) {
-      console.error('YouTube API error:', response.statusText, '- Using curated videos instead')
-      const curatedVideos = getCuratedVideos(topic, 1)
-      if (curatedVideos.length > 0) return curatedVideos
-      return getPlaceholderVideos(topic)
+      const statusText = response.statusText
+      const errorMsg = `YouTube API error: ${response.status} ${statusText}`
+      console.error('❌', errorMsg)
+      throw new Error(errorMsg)
     }
 
     const data = await response.json()
 
     if (!data.items || data.items.length === 0) {
-      return getPlaceholderVideos(topic)
+      throw new Error('No videos found for: ' + topic)
     }
 
-    // Filter videos for educational content (exclude shorts, low quality, etc.)
+    // Filter videos for quality and relevance
     const filteredVideos: YouTubeVideo[] = data.items
       .filter((item: any) => {
         const title = item.snippet.title.toLowerCase()
-        const channel = item.snippet.channelTitle.toLowerCase()
+        const description = (item.snippet.description || '').toLowerCase()
+        const topicKeywords = extractCoreConceptsFromModule(topic).map(c => c.toLowerCase())
         
-        // Exclude common low-quality channels/content
-        const excludePatterns = ['shorts', 'highlight', 'clip', 'reaction', 'vlog']
-        const hasExcluded = excludePatterns.some(pattern => title.includes(pattern))
+        // EXCLUDE low-quality content patterns
+        const excludePatterns = ['shorts', 'highlight', 'clip', 'reaction', 'vlog', 'gaming', 'music', 'remix', 'live stream', 'compilation', 'funny']
+        const shouldExclude = excludePatterns.some(pattern => title.includes(pattern))
         
-        // Prefer educational channels and comprehensive tutorials
-        const qualityPatterns = ['tutorial', 'complete', 'full course', 'lesson', 'learn', 'masterclass', 'guide']
-        const isQuality = qualityPatterns.some(pattern => title.includes(pattern) || channel.includes(pattern))
+        if (shouldExclude) return false
         
-        return !hasExcluded && isQuality
+        // Check if video is related to the module topic
+        const hasTopicMatch = topicKeywords.some(keyword => 
+          title.includes(keyword) || description.includes(keyword)
+        )
+        
+        // PREFER quality indicators
+        const qualityIndicators = ['tutorial', 'complete', 'full course', 'lesson', 'learn', 'guide', 'course', 'programming']
+        const hasQualityIndicator = qualityIndicators.some(indicator => 
+          title.includes(indicator) || description.includes(indicator)
+        )
+        
+        // Accept if: has topic match AND has quality indicator
+        return hasTopicMatch && hasQualityIndicator
       })
       .slice(0, maxResults)
       .map((item: any) => ({
         id: item.id.videoId,
         title: item.snippet.title,
         description: item.snippet.description,
-        thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+        thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url,
         url: `https://www.youtube.com/embed/${item.id.videoId}`,
         channelTitle: item.snippet.channelTitle,
       }))
 
-    // If filtering removed too many results, fall back to unfiltered
-    const resultsToUse = filteredVideos.length > 0 ? filteredVideos : data.items.slice(0, maxResults).map((item: any) => ({
-      id: item.id.videoId,
-      title: item.snippet.title,
-      description: item.snippet.description,
-      thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
-      url: `https://www.youtube.com/embed/${item.id.videoId}`,
-      channelTitle: item.snippet.channelTitle,
-    }))
+    if (filteredVideos.length > 0) {
+      console.log(`✅ Found ${filteredVideos.length} videos for ${topic}`)
+      videoCache.set(cacheKey, filteredVideos)
+      return filteredVideos
+    }
 
-    // Cache the results
-    videoCache.set(cacheKey, resultsToUse)
-    return resultsToUse
+    // Fallback: use results without strict filtering but still avoid obvious low-quality
+    const relaxedResults: YouTubeVideo[] = data.items
+      .filter((item: any) => {
+        const title = item.snippet.title.toLowerCase()
+        const excludePatterns = ['shorts', 'clip', 'reaction']
+        return !excludePatterns.some(pattern => title.includes(pattern))
+      })
+      .slice(0, maxResults)
+      .map((item: any) => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        description: item.snippet.description,
+        thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url,
+        url: `https://www.youtube.com/embed/${item.id.videoId}`,
+        channelTitle: item.snippet.channelTitle,
+      }))
+
+    if (relaxedResults.length > 0) {
+      console.log(`✅ Found ${relaxedResults.length} videos (relaxed filtering) for ${topic}`)
+      videoCache.set(cacheKey, relaxedResults)
+      return relaxedResults
+    }
+
+    throw new Error('No suitable videos found after filtering')
   } catch (error) {
-    console.error('Error fetching YouTube videos:', error, '- Using curated videos instead')
-    const curatedVideos = getCuratedVideos(topic, 1)
-    if (curatedVideos.length > 0) return curatedVideos
-    return getPlaceholderVideos(topic)
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('❌ YouTube API error:', errorMsg)
+    throw error
   }
 }
 
-// Get first video for a topic with optional module number for better selection
-export async function getYouTubeVideoForTopic(topic: string, moduleNum: number = 1): Promise<YouTubeVideo | null> {
-  // Try to get curated video first if no API key
-  if (!YOUTUBE_API_KEY || YOUTUBE_API_KEY === 'YOUR_API_KEY_HERE') {
-    const curatedVideos = getCuratedVideos(topic, moduleNum)
-    if (curatedVideos.length > 0) return curatedVideos[0]
+// Get first video for a topic
+export async function getYouTubeVideoForTopic(
+  topic: string, 
+  moduleNum: number = 1,
+  difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate'
+): Promise<YouTubeVideo | null> {
+  try {
+    const videos = await searchYouTubeVideos(topic, 1, difficulty)
+    return videos.length > 0 ? videos[0] : null
+  } catch (error) {
+    console.error('Error getting YouTube video for topic:', error)
+    return null
   }
-  
-  const videos = await searchYouTubeVideos(topic, 1)
-  return videos.length > 0 ? videos[0] : null
 }
 
-// Placeholder videos in case API fails
-function getPlaceholderVideos(topic: string): YouTubeVideo[] {
-  // Use a more relevant educational video
-  return [
-    {
-      id: 'rfscVS0vtbE',
-      title: `${topic} - Educational Tutorial`,
-      description: `Learn ${topic} with this comprehensive tutorial. Note: Configure your YouTube API key for topic-specific videos.`,
-      thumbnail: 'https://img.youtube.com/vi/rfscVS0vtbE/hqdefault.jpg',
-      url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-      channelTitle: 'Educational Content',
-    },
-  ]
-}
-
-// Get multiple videos for a course topic
+// Get multiple videos for a specific module topic
 export async function getYouTubeVideosForModule(
   moduleTopic: string,
-  courseTitle: string
+  courseTitle?: string,
+  difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate'
 ): Promise<YouTubeVideo[]> {
-  const searchTerm = `${courseTitle} ${moduleTopic}`.trim()
-  return searchYouTubeVideos(searchTerm, 5)
+  // Search for module-specific topic (more accurate than course + module)
+  return searchYouTubeVideos(moduleTopic, 3, difficulty)
 }

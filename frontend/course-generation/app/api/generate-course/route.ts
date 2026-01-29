@@ -21,34 +21,29 @@ export async function POST(request: NextRequest) {
 
     // Helper function to generate specific YouTube search queries per module
     const generateModuleVideoSearch = (moduleTitle: string, moduleTopic: string, moduleNum: number, totalModules: number) => {
-      // Create progressively advanced searches based on module position
-      const progressLevel = Math.floor((moduleNum / totalModules) * 3) // 0, 1, 2, or 3
+      // Clean up module topic - remove "Module X:" prefix
+      const cleanTopic = moduleTopic.replace(/^Module\s*\d+[:\s]*/i, '').trim()
       
-      const levelKeywords = {
-        0: ['beginner', 'basics', 'fundamentals', 'introduction', 'getting started', 'start'],
-        1: ['intermediate', 'advanced', 'practical', 'real-world', 'hands-on', 'working'],
-        2: ['advanced', 'expert', 'deep dive', 'professional', 'production', 'optimization'],
-        3: ['mastery', 'expert', 'system design', 'architecture', 'best practices', 'patterns'],
+      // Extract primary concept from the module title
+      // Split by common separators to get individual concepts
+      const concepts = cleanTopic.split(/[,&]/).map(c => c.trim()).filter(c => c.length > 0)
+      const primaryConcept = concepts[0] || cleanTopic
+      
+      // Determine difficulty level based on module position
+      const progressPercentage = (moduleNum / totalModules)
+      let difficultyKeyword: string
+      
+      if (progressPercentage < 0.35) {
+        difficultyKeyword = 'basics tutorial'
+      } else if (progressPercentage < 0.75) {
+        difficultyKeyword = 'complete guide'
+      } else {
+        difficultyKeyword = 'advanced masterclass'
       }
       
-      const levelKey = Math.min(progressLevel, 3) as keyof typeof levelKeywords
-      const keywords = levelKeywords[levelKey]
-      const keywordIndex = (moduleNum - 1) % keywords.length
-      const keyword = keywords[keywordIndex]
-      
-      // Extract main topic from module title
-      const cleanTopic = moduleTopic.replace(/module\s*\d+[:\s]*/i, '').trim()
-      
-      // Generate specific search query with tutorial/course keywords
-      const searchQueries = [
-        `${cleanTopic} ${keyword} tutorial`,
-        `how to learn ${cleanTopic} ${keyword}`,
-        `${cleanTopic} complete guide`,
-        `${cleanTopic} step by step`,
-        `${cleanTopic} for ${keyword} developers`,
-      ]
-      
-      return searchQueries[moduleNum % searchQueries.length]
+      // Build targeted search query using primary concept
+      // This ensures better matching with actual YouTube videos
+      return `${primaryConcept} ${difficultyKeyword}`
     }
 
     // Helper function to generate reading materials for a module
@@ -57,68 +52,131 @@ export async function POST(request: NextRequest) {
       const cleanTopic = moduleTopic.replace(/^Module\s+\d+:\s*/i, '').trim()
       const topicLower = cleanTopic.toLowerCase()
 
+      // Extract all individual concepts from the module title
+      const concepts = cleanTopic.split(/[,&]/).map(c => c.trim()).filter(c => c.length > 0)
+
       // Curated keyword-to-resource mapping for higher precision
       const keywordResources: Record<string, { official?: { title: string; url: string }; gfg?: string; fcc?: string; devto?: string }> = {
         // JavaScript core
         'variables': { official: { title: 'MDN - Values, Variables, and Literals', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Grammar_and_types' }, gfg: 'https://www.geeksforgeeks.org/variables-in-javascript/' },
         'data types': { official: { title: 'MDN - Data Types and Structures', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures' }, gfg: 'https://www.geeksforgeeks.org/javascript-data-types/' },
+        'operators': { official: { title: 'MDN - Expressions and Operators', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Expressions_and_Operators' }, gfg: 'https://www.geeksforgeeks.org/javascript-operators/' },
         'functions': { official: { title: 'MDN - Functions', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions' }, gfg: 'https://www.geeksforgeeks.org/javascript-functions/' },
+        'arrays': { official: { title: 'MDN - Array Methods', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array' }, gfg: 'https://www.geeksforgeeks.org/javascript-array/' },
+        'objects': { official: { title: 'MDN - Working with Objects', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Working_with_Objects' }, gfg: 'https://www.geeksforgeeks.org/objects-in-javascript/' },
         'promises': { official: { title: 'MDN - Using Promises', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises' }, gfg: 'https://www.geeksforgeeks.org/javascript-promises/' },
         'async': { official: { title: 'MDN - Async/Await', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function' }, gfg: 'https://www.geeksforgeeks.org/async-await-function-in-javascript/' },
         'dom': { official: { title: 'MDN - DOM Introduction', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Introduction' }, gfg: 'https://www.geeksforgeeks.org/dom-document-object-model/' },
         'event': { official: { title: 'MDN - Events Guide', url: 'https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events' }, gfg: 'https://www.geeksforgeeks.org/javascript-events/' },
+        'closure': { official: { title: 'MDN - Closures', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures' }, gfg: 'https://www.geeksforgeeks.org/closure-in-javascript/' },
 
         // CSS
-        'flexbox': { official: { title: 'MDN - CSS Flexible Box Layout', url: 'https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout' }, gfg: 'https://www.geeksforgeeks.org/css-flexbox-complete-guide/', fcc: 'https://www.freecodecamp.org/news/css-flexbox-tutorial-with-cheatsheet/', devto: 'https://dev.to/t/flexbox' },
-        'grid': { official: { title: 'MDN - CSS Grid Layout', url: 'https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_grid_layout' }, gfg: 'https://www.geeksforgeeks.org/css-grid-layout/', fcc: 'https://www.freecodecamp.org/news/css-grid-tutorial-with-cheatsheet/', devto: 'https://dev.to/t/cssgrid' },
-        'responsive': { official: { title: 'MDN - Responsive Design', url: 'https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Responsive_Design' }, gfg: 'https://www.geeksforgeeks.org/what-is-responsive-web-design/', fcc: 'https://www.freecodecamp.org/news/what-is-responsive-web-design/' },
-        'accessibility': { official: { title: 'MDN - Accessibility Guide', url: 'https://developer.mozilla.org/en-US/docs/Learn/Accessibility' }, gfg: 'https://www.geeksforgeeks.org/web-accessibility-guide/', devto: 'https://dev.to/t/a11y' },
+        'flexbox': { official: { title: 'MDN - CSS Flexible Box Layout', url: 'https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout' }, gfg: 'https://www.geeksforgeeks.org/css-flexbox-complete-guide/', fcc: 'https://www.freecodecamp.org/news/css-flexbox-tutorial-with-cheatsheet/' },
+        'grid': { official: { title: 'MDN - CSS Grid Layout', url: 'https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_grid_layout' }, gfg: 'https://www.geeksforgeeks.org/css-grid-layout/', fcc: 'https://www.freecodecamp.org/news/css-grid-tutorial-with-cheatsheet/' },
+        'responsive': { official: { title: 'MDN - Responsive Design', url: 'https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Responsive_Design' }, gfg: 'https://www.geeksforgeeks.org/what-is-responsive-web-design/' },
+        'accessibility': { official: { title: 'MDN - Accessibility Guide', url: 'https://developer.mozilla.org/en-US/docs/Learn/Accessibility' }, gfg: 'https://www.geeksforgeeks.org/web-accessibility-guide/' },
+
+        // HTML
+        'html': { official: { title: 'MDN - HTML Guide', url: 'https://developer.mozilla.org/en-US/docs/Web/HTML' }, gfg: 'https://www.geeksforgeeks.org/html/' },
+        'forms': { official: { title: 'MDN - HTML Forms', url: 'https://developer.mozilla.org/en-US/docs/Learn/Forms' }, gfg: 'https://www.geeksforgeeks.org/html-forms/' },
+        'semantic': { official: { title: 'MDN - Semantic HTML', url: 'https://developer.mozilla.org/en-US/docs/Glossary/Semantics' }, gfg: 'https://www.geeksforgeeks.org/semantic-html/' },
 
         // React
-        'react components': { official: { title: 'React - Describing the UI', url: 'https://react.dev/learn/describing-the-ui' }, gfg: 'https://www.geeksforgeeks.org/reactjs-components/' },
-        'react hooks': { official: { title: 'React Hooks - Reference', url: 'https://react.dev/reference/react' }, gfg: 'https://www.geeksforgeeks.org/react-hooks/' },
-        'state management': { official: { title: 'React - Managing State', url: 'https://react.dev/learn/managing-state' }, gfg: 'https://www.geeksforgeeks.org/state-management-in-reactjs/' },
+        'react': { official: { title: 'React - Main Documentation', url: 'https://react.dev' }, gfg: 'https://www.geeksforgeeks.org/react-tutorial/' },
+        'components': { official: { title: 'React - Describing the UI', url: 'https://react.dev/learn/describing-the-ui' }, gfg: 'https://www.geeksforgeeks.org/reactjs-components/' },
+        'hooks': { official: { title: 'React Hooks - Reference', url: 'https://react.dev/reference/react' }, gfg: 'https://www.geeksforgeeks.org/react-hooks/' },
+        'state': { official: { title: 'React - Managing State', url: 'https://react.dev/learn/managing-state' }, gfg: 'https://www.geeksforgeeks.org/reactjs-state/' },
+        'props': { official: { title: 'React - Passing Props', url: 'https://react.dev/learn/passing-props-to-a-component' }, gfg: 'https://www.geeksforgeeks.org/reactjs-props/' },
         'routing': { official: { title: 'React Router - Getting Started', url: 'https://reactrouter.com/en/main/start/tutorial' }, gfg: 'https://www.geeksforgeeks.org/reactjs-router/' },
+        'context': { official: { title: 'React Context API', url: 'https://react.dev/reference/react/useContext' }, gfg: 'https://www.geeksforgeeks.org/context-api-in-react/' },
 
         // Node / Backend
         'express': { official: { title: 'Express Official Guide', url: 'https://expressjs.com/en/starter/installing.html' }, gfg: 'https://www.geeksforgeeks.org/express-js/' },
         'rest': { official: { title: 'MDN - REST Concepts', url: 'https://developer.mozilla.org/en-US/docs/Glossary/REST' }, gfg: 'https://www.geeksforgeeks.org/rest-api-introduction/' },
+        'api': { official: { title: 'MDN - Web APIs', url: 'https://developer.mozilla.org/en-US/docs/Web/API' }, gfg: 'https://www.geeksforgeeks.org/api-full-form/' },
         'authentication': { official: { title: 'OWASP - Authentication Cheat Sheet', url: 'https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html' }, gfg: 'https://www.geeksforgeeks.org/authentication-vs-authorization/' },
         'jwt': { official: { title: 'JWT - Introduction', url: 'https://jwt.io/introduction' }, gfg: 'https://www.geeksforgeeks.org/jwt-authentication-with-node-js/' },
         'mongodb': { official: { title: 'MongoDB Manual', url: 'https://www.mongodb.com/docs/manual/' }, gfg: 'https://www.geeksforgeeks.org/mongodb-tutorial/' },
-        'sql joins': { official: { title: 'W3Schools - SQL Joins', url: 'https://www.w3schools.com/sql/sql_join.asp' }, gfg: 'https://www.geeksforgeeks.org/sql-join-set-1-inner-left-right-and-full-joins/' },
+        'database': { official: { title: 'MDN - Databases', url: 'https://developer.mozilla.org/en-US/docs/Glossary/Database' }, gfg: 'https://www.geeksforgeeks.org/databases/' },
+
+        // SQL
+        'sql': { official: { title: 'W3Schools - SQL Tutorial', url: 'https://www.w3schools.com/sql/' }, gfg: 'https://www.geeksforgeeks.org/sql-tutorial/' },
+        'joins': { official: { title: 'W3Schools - SQL Joins', url: 'https://www.w3schools.com/sql/sql_join.asp' }, gfg: 'https://www.geeksforgeeks.org/sql-join-set-1-inner-left-right-and-full-joins/' },
+        'queries': { official: { title: 'W3Schools - SQL Select', url: 'https://www.w3schools.com/sql/sql_select.asp' }, gfg: 'https://www.geeksforgeeks.org/sql-queries/' },
 
         // Tooling
         'git': { official: { title: 'Git Book - Pro Git', url: 'https://git-scm.com/book/en/v2' }, gfg: 'https://www.geeksforgeeks.org/git-tutorial/' },
         'docker': { official: { title: 'Docker Docs - Get Started', url: 'https://docs.docker.com/get-started/' }, gfg: 'https://www.geeksforgeeks.org/docker-tutorial/' },
+        'webpack': { official: { title: 'Webpack Docs', url: 'https://webpack.js.org/concepts/' }, gfg: 'https://www.geeksforgeeks.org/webpack/' },
 
         // Testing
         'jest': { official: { title: 'Jest Docs', url: 'https://jestjs.io/docs/getting-started' }, gfg: 'https://www.geeksforgeeks.org/introduction-to-jest-testing-framework/' },
         'cypress': { official: { title: 'Cypress Docs - Core Concepts', url: 'https://docs.cypress.io/guides/core-concepts/introduction-to-cypress' }, gfg: 'https://www.geeksforgeeks.org/cypress-an-overview-and-its-commands/' },
+        'testing': { official: { title: 'Testing Library Docs', url: 'https://testing-library.com/docs/' }, gfg: 'https://www.geeksforgeeks.org/software-testing/' },
 
-        // Python / Data
+        // Python
+        'python': { official: { title: 'Python Official Docs', url: 'https://docs.python.org/3/' }, gfg: 'https://www.geeksforgeeks.org/python-tutorial/' },
         'pandas': { official: { title: 'Pandas Docs - Getting Started', url: 'https://pandas.pydata.org/docs/getting_started/index.html' }, gfg: 'https://www.geeksforgeeks.org/pandas-tutorial/' },
         'numpy': { official: { title: 'NumPy User Guide', url: 'https://numpy.org/doc/stable/user/' }, gfg: 'https://www.geeksforgeeks.org/numpy/' },
         'oop': { official: { title: 'Python OOP Tutorial', url: 'https://docs.python.org/3/tutorial/classes.html' }, gfg: 'https://www.geeksforgeeks.org/python-oops-concepts/' },
+
+        // Machine Learning & Data Science
+        'machine learning': { official: { title: 'Machine Learning Mastery', url: 'https://machinelearningmastery.com/' }, gfg: 'https://www.geeksforgeeks.org/machine-learning/' },
+        'supervised learning': { official: { title: 'ML - Supervised Learning', url: 'https://scikit-learn.org/stable/supervised_learning.html' }, gfg: 'https://www.geeksforgeeks.org/supervised-machine-learning/' },
+        'unsupervised learning': { official: { title: 'ML - Unsupervised Learning', url: 'https://scikit-learn.org/stable/unsupervised_learning.html' }, gfg: 'https://www.geeksforgeeks.org/unsupervised-learning-in-machine-learning/' },
+        'regression': { official: { title: 'Scikit-learn Regression', url: 'https://scikit-learn.org/stable/modules/linear_model.html' }, gfg: 'https://www.geeksforgeeks.org/linear-regression-python-implementation/' },
+        'classification': { official: { title: 'Scikit-learn Classification', url: 'https://scikit-learn.org/stable/modules/classification.html' }, gfg: 'https://www.geeksforgeeks.org/classification-algorithms-in-machine-learning/' },
+        'decision trees': { official: { title: 'Scikit-learn Decision Trees', url: 'https://scikit-learn.org/stable/modules/tree.html' }, gfg: 'https://www.geeksforgeeks.org/decision-tree-implementation-python/' },
+        'random forest': { official: { title: 'Scikit-learn Random Forest', url: 'https://scikit-learn.org/stable/modules/ensemble.html#random-forests' }, gfg: 'https://www.geeksforgeeks.org/random-forest-regression-in-python/' },
+        'neural networks': { official: { title: 'Neural Networks Deep Learning', url: 'https://www.deeplearningbook.org/' }, gfg: 'https://www.geeksforgeeks.org/neural-networks-a-beginners-guide/' },
+        'tensorflow': { official: { title: 'TensorFlow Official Guide', url: 'https://www.tensorflow.org/guide' }, gfg: 'https://www.geeksforgeeks.org/tensorflow-tutorial/' },
+        'deep learning': { official: { title: 'Deep Learning Book', url: 'https://www.deeplearningbook.org/' }, gfg: 'https://www.geeksforgeeks.org/deep-learning/' },
+        'computer vision': { official: { title: 'OpenCV Documentation', url: 'https://docs.opencv.org/' }, gfg: 'https://www.geeksforgeeks.org/opencv-python-tutorial/' },
+        'nlp': { official: { title: 'NLTK Book', url: 'https://www.nltk.org/book/' }, gfg: 'https://www.geeksforgeeks.org/natural-language-processing-nlp-tutorial/' },
+        'data preprocessing': { official: { title: 'Scikit-learn Preprocessing', url: 'https://scikit-learn.org/stable/modules/preprocessing.html' }, gfg: 'https://www.geeksforgeeks.org/data-preprocessing-machine-learning/' },
       }
 
-      const matchedKeyword = Object.keys(keywordResources).find((key) => topicLower.includes(key))
+      // Try to find matching resources by checking each concept
+      const materials = []
       
-      // GeeksforGeeks topic mapping to actual article URLs
-      const getGeeksforGeeksUrl = (topic: string): string => {
-        const topicMap: { [key: string]: string } = {
+      // First pass: look for exact concept matches
+      for (const concept of concepts) {
+        const conceptLower = concept.toLowerCase()
+        for (const [keyword, resources] of Object.entries(keywordResources)) {
+          if (keyword === conceptLower || conceptLower.includes(keyword) || keyword.includes(conceptLower)) {
+            if (resources.official) {
+              materials.push({
+                type: 'documentation',
+                title: resources.official.title,
+                url: resources.official.url,
+              })
+            }
+            if (resources.gfg) {
+              materials.push({
+                type: 'tutorial',
+                title: `GeeksforGeeks - ${keyword}`,
+                url: resources.gfg,
+              })
+            }
+            break
+          }
+        }
+      }
+
+      // If we found specific materials, return them
+      if (materials.length > 0) {
+        return materials
+      }
+      
+      // Fallback: try to match by broader topic
+      const topicMap: { [key: string]: string } = {
           // JavaScript
           'javascript': 'https://www.geeksforgeeks.org/javascript/',
-          'javascript basics': 'https://www.geeksforgeeks.org/introduction-to-javascript/',
-          'javascript fundamentals': 'https://www.geeksforgeeks.org/javascript-tutorial/',
           'js': 'https://www.geeksforgeeks.org/javascript/',
           // TypeScript
           'typescript': 'https://www.geeksforgeeks.org/typescript/',
           // React
           'react': 'https://www.geeksforgeeks.org/react-tutorial/',
-          'react basics': 'https://www.geeksforgeeks.org/reactjs-tutorials/',
-          'react components': 'https://www.geeksforgeeks.org/react-components/',
-          'react hooks': 'https://www.geeksforgeeks.org/reactjs-hooks/',
           // Node.js
           'node': 'https://www.geeksforgeeks.org/nodejs/',
           'nodejs': 'https://www.geeksforgeeks.org/nodejs-tutorial/',
@@ -153,114 +211,38 @@ export async function POST(request: NextRequest) {
         }
         
         // Try exact match first
-        const lower = topic.toLowerCase()
-        if (topicMap[lower]) return topicMap[lower]
+        const lower = cleanTopic.toLowerCase()
+        if (topicMap[lower]) {
+          return [
+            {
+              type: 'documentation',
+              title: `${cleanTopic} - Official Resources`,
+              url: topicMap[lower],
+            }
+          ]
+        }
         
         // Try partial matches
         for (const [key, url] of Object.entries(topicMap)) {
           if (lower.includes(key) || key.includes(lower.split(' ')[0])) {
-            return url
+            return [
+              {
+                type: 'documentation',
+                title: `${cleanTopic} - Resources`,
+                url: url,
+              }
+            ]
           }
         }
         
-        // Fallback to search
-        return `https://www.geeksforgeeks.org/?s=${encodeURIComponent(topic)}`
-      }
-      
-      // Map topics to their official documentation
-      const getOfficialDocs = (topic: string): { title: string; url: string } => {
-        const topicLower = topic.toLowerCase()
-        
-        // JavaScript/TypeScript
-        if (topicLower.includes('javascript') || topicLower.includes('js')) {
-          return { title: 'MDN JavaScript Guide', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide' }
-        }
-        if (topicLower.includes('typescript') || topicLower.includes('ts')) {
-          return { title: 'TypeScript Official Handbook', url: 'https://www.typescriptlang.org/docs/handbook/intro.html' }
-        }
-        // React
-        if (topicLower.includes('react')) {
-          return { title: 'React Official Documentation', url: 'https://react.dev/learn' }
-        }
-        // Node.js
-        if (topicLower.includes('node')) {
-          return { title: 'Node.js Official Docs', url: 'https://nodejs.org/en/docs/' }
-        }
-        // Python
-        if (topicLower.includes('python')) {
-          return { title: 'Python Official Tutorial', url: 'https://docs.python.org/3/tutorial/' }
-        }
-        // CSS
-        if (topicLower.includes('css')) {
-          return { title: 'MDN CSS Guide', url: 'https://developer.mozilla.org/en-US/docs/Web/CSS' }
-        }
-        // HTML
-        if (topicLower.includes('html')) {
-          return { title: 'MDN HTML Guide', url: 'https://developer.mozilla.org/en-US/docs/Web/HTML' }
-        }
-        // SQL
-        if (topicLower.includes('sql') || topicLower.includes('database')) {
-          return { title: 'SQL Tutorial - W3Schools', url: 'https://www.w3schools.com/sql/' }
-        }
-        // Git
-        if (topicLower.includes('git')) {
-          return { title: 'Git Official Documentation', url: 'https://git-scm.com/doc' }
-        }
-        // W3Schools for web technologies
-        if (topicLower.includes('web') || topicLower.includes('http') || topicLower.includes('api')) {
-          return { title: `${cleanTopic} - W3Schools`, url: 'https://www.w3schools.com/' }
-        }
-        // Default to MDN Web Docs
-        return { title: `${cleanTopic} - Web Documentation`, url: 'https://developer.mozilla.org/en-US/' }
-      }
-      
-      const officialDocs = matchedKeyword && keywordResources[matchedKeyword].official
-        ? keywordResources[matchedKeyword].official!
-        : getOfficialDocs(cleanTopic)
-
-      const gfgUrl = matchedKeyword && keywordResources[matchedKeyword].gfg
-        ? keywordResources[matchedKeyword].gfg!
-        : getGeeksforGeeksUrl(cleanTopic)
-
-      const fccUrl = matchedKeyword && keywordResources[matchedKeyword].fcc
-        ? keywordResources[matchedKeyword].fcc!
-        : `https://www.freecodecamp.org/news/search/?query=${encodeURIComponent(cleanTopic)}`
-
-      const devtoUrl = matchedKeyword && keywordResources[matchedKeyword].devto
-        ? keywordResources[matchedKeyword].devto!
-        : `https://dev.to/search?q=${encodeURIComponent(cleanTopic)}`
-      
-      const readingMaterials = [
-        {
-          title: `${cleanTopic} - GeeksforGeeks`,
-          source: 'GeeksforGeeks',
-          url: gfgUrl,
-          difficulty: difficulty || 'beginner',
-          estimatedReadTime: moduleNum <= 3 ? '20 mins' : '30 mins',
-        },
-        {
-          title: officialDocs.title,
-          source: 'Official Documentation',
-          url: officialDocs.url,
-          difficulty: difficulty || 'intermediate',
-          estimatedReadTime: '25 mins',
-        },
-        {
-          title: `${cleanTopic} Tutorial - freeCodeCamp`,
-          source: 'freeCodeCamp',
-          url: fccUrl,
-          difficulty: difficulty || 'beginner',
-          estimatedReadTime: '15 mins',
-        },
-        {
-          title: `${cleanTopic} Guide - Dev.to`,
-          source: 'Dev.to',
-          url: devtoUrl,
-          difficulty: difficulty || 'intermediate',
-          estimatedReadTime: '20 mins',
-        },
-      ]
-      return readingMaterials
+        // Final fallback to search
+        return [
+          {
+            type: 'documentation',
+            title: `${cleanTopic} - GeeksforGeeks Search`,
+            url: `https://www.geeksforgeeks.org/?s=${encodeURIComponent(cleanTopic)}`,
+          }
+        ]
     }
 
     // Helper function to generate real course-level resources based on user profile and topic

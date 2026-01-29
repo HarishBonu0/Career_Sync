@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
 import User from '../models/User.js';
 import { sendOtpEmail } from '../services/email.js';
+import { getDeviceInfo, generateSessionId } from '../utils/deviceDetector.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -66,7 +67,7 @@ router.post('/signup', async (req, res) => {
 // Login endpoint
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, deviceInfo } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
@@ -82,15 +83,32 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    await user.recordLogin();
+    // Capture device information from request
+    const detectedDeviceInfo = await getDeviceInfo(req);
+    const mergedDeviceInfo = { ...detectedDeviceInfo, ...deviceInfo };
 
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    // Record device login and sync credentials
+    await user.recordDeviceLogin(mergedDeviceInfo);
+
+    const sessionId = generateSessionId();
+    const token = jwt.sign({ 
+      id: user._id, 
+      email: user.email,
+      sessionId
+    }, JWT_SECRET, { expiresIn: '7d' });
+
     setAuthCookie(res, token);
+    
+    // Return user data with device sync info
     res.json({ 
       message: 'Login successful',
-      user: user.toSafeObject()
+      user: user.toSafeObject(),
+      devices: user.getActiveDevices(),
+      sessionId,
+      lastSyncAt: user.lastProfileUpdateAt
     });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -138,7 +156,7 @@ router.post('/request-otp', async (req, res) => {
 // Login with OTP
 router.post('/login-otp', async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email, otp, deviceInfo } = req.body;
 
     if (!email || !otp) {
       return res.status(400).json({ error: 'Email and OTP are required' });
@@ -160,13 +178,28 @@ router.post('/login-otp', async (req, res) => {
 
     user.otpCode = undefined;
     user.otpExpiresAt = undefined;
-    await user.recordLogin();
+    
+    // Capture device information from request
+    const detectedDeviceInfo = await getDeviceInfo(req);
+    const mergedDeviceInfo = { ...detectedDeviceInfo, ...deviceInfo };
+    
+    // Record device login and sync credentials
+    await user.recordDeviceLogin(mergedDeviceInfo);
 
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    const sessionId = generateSessionId();
+    const token = jwt.sign({ 
+      id: user._id, 
+      email: user.email,
+      sessionId
+    }, JWT_SECRET, { expiresIn: '7d' });
+    
     setAuthCookie(res, token);
     res.json({
       message: 'Login successful',
-      user: user.toSafeObject()
+      user: user.toSafeObject(),
+      devices: user.getActiveDevices(),
+      sessionId,
+      lastSyncAt: user.lastProfileUpdateAt
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -321,6 +354,158 @@ router.post('/google-signin', async (req, res) => {
   } catch (error) {
     console.error('Google Sign-In error:', error.message);
     res.status(500).json({ error: 'Google Sign-In failed: ' + error.message });
+  }
+});
+
+// ============ MULTI-DEVICE SYNC ENDPOINTS ============
+
+// Get all devices for current user
+router.get('/devices', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'Token required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      devices: user.getActiveDevices(),
+      syncedAt: user.lastProfileUpdateAt
+    });
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+// Sync user data across all devices
+router.post('/sync-devices', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'Token required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Sync data to all devices
+    const syncData = await user.syncToAllDevices();
+
+    res.json({
+      message: 'Devices synced successfully',
+      ...syncData
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update user profile and sync across all devices
+router.post('/update-profile', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'Token required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { name, phone, metadata } = req.body;
+
+    // Update credentials
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+    if (metadata) user.metadata = { ...user.metadata, ...metadata };
+
+    // Update across all devices
+    await user.updateCredentialsAcrossDevices({ name, phone, metadata });
+
+    res.json({
+      message: 'Profile updated across all devices',
+      user: user.toSafeObject(),
+      devices: user.getActiveDevices(),
+      syncedAt: user.lastProfileUpdateAt
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Mark device as inactive
+router.post('/logout-device', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'Token required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { deviceId } = req.body;
+
+    // Find and deactivate device
+    const deviceIndex = user.devices.findIndex(d => d.deviceId === deviceId);
+    if (deviceIndex >= 0) {
+      user.devices[deviceIndex].isActive = false;
+      await user.save();
+    }
+
+    res.json({
+      message: 'Device logged out',
+      devices: user.getActiveDevices()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Logout from all devices
+router.post('/logout-all-devices', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'Token required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Deactivate all devices
+    user.devices.forEach(device => {
+      device.isActive = false;
+    });
+    user.activeSessions = [];
+    await user.save();
+
+    res.json({
+      message: 'Logged out from all devices'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
