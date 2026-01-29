@@ -29,7 +29,7 @@ export interface GeneratedCourse {
 
 async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`
-  const token = typeof window !== 'undefined' ? localStorage.getItem('careeros_token') : null
+  const token = typeof window !== 'undefined' ? localStorage.getItem('Career Sync_token') : null
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',

@@ -166,35 +166,84 @@ export default function TopicPage() {
         // Use the specific search query generated for this module
         searchQuery = moduleData.youtubeSearch
         console.log('🎥 Using module-specific search query:', searchQuery)
-      } else if (courseTitle) {
+        console.log('🎥 Module:', topicId, '|', moduleData.title)
+      } else if (courseTitle && topic.title) {
         // Fallback to course title + topic for more relevant videos
-        searchQuery = `${courseTitle} ${topic.title} tutorial`
-        console.log('🎥 Using fallback search query:', searchQuery)
+        // Extract clean module title (remove "Module X:" prefix)
+        const cleanTitle = topic.title.replace(/^Module\s+\d+[:\s]*/i, '').trim()
+        searchQuery = `${cleanTitle} tutorial`
+        console.log('🎥 Using fallback search query (from title):', searchQuery)
       } else {
         // Final fallback
         searchQuery = `${topic.title} tutorial course`
         console.log('🎥 Using generic search query:', searchQuery)
       }
       
-      console.log('🎥 Final search query for video:', searchQuery)
+      console.log('🎥 === FETCHING VIDEO ===')
+      console.log('🎥 Module #:', topicId)
+      console.log('🎥 Search Query:', searchQuery)
+      console.log('🎥 Expected: Unique video per module')
       
-      const video = await getYouTubeVideoForTopic(searchQuery)
-      setYoutubeVideo(video)
+      try {
+        const video = await getYouTubeVideoForTopic(searchQuery)
+        if (video) {
+          console.log('✅ Video fetched:', video.title)
+          setYoutubeVideo(video)
+        } else {
+          console.warn('⚠️ No video found for query:', searchQuery)
+        }
+      } catch (error) {
+        console.error('❌ Error fetching video:', error)
+      }
     }
     
-    if (!loading) {
+    if (!loading && moduleData) {
       fetchVideo()
     }
-  }, [moduleData, loading])
+  }, [moduleData, loading, topicId])
 
   const topic = moduleData || mockTopics[0]
 
-  const markAsCompleted = () => {
+  const markAsCompleted = async () => {
     setCompleted(true)
     const completedTopics = JSON.parse(localStorage.getItem('completedTopics') || '[]')
     if (!completedTopics.includes(topicId)) {
       completedTopics.push(topicId)
       localStorage.setItem('completedTopics', JSON.stringify(completedTopics))
+      
+      // Update progress in backend
+      try {
+        const userStr = localStorage.getItem('careeros_user')
+        const user = userStr ? JSON.parse(userStr) : null
+        const enrolledCourses = JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]')
+        
+        if (user && enrolledCourses.length > 0) {
+          const generatedCourse = localStorage.getItem('generatedCourse')
+          const courseData = generatedCourse ? JSON.parse(generatedCourse) : null
+          
+          if (courseData) {
+            // Find the enrollment for this course
+            const enrollment = enrolledCourses.find((e: any) => e.title === courseData.title)
+            const totalModules = courseData.modules?.length || 1
+            const progress = Math.round((completedTopics.length / totalModules) * 100)
+            
+            // Update in backend
+            await fetch(`http://localhost:5000/api/profile/progress/course/${enrollment?.id || 'new'}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                progress,
+                completed: progress === 100,
+                completedModules: completedTopics
+              })
+            })
+            
+            console.log('📊 Progress updated in backend:', progress + '%')
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update progress in backend:', error)
+      }
     }
   }
 

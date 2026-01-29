@@ -14,7 +14,7 @@ export async function sendOtpEmail({ toEmail, otp, serviceId, templateId, public
       to_email: toEmail,
       otp_code: otp,
       to_name: toEmail.split('@')[0],
-      from_name: 'careersync Team',
+      from_name: 'Career Sync Team',
     },
   };
 
@@ -28,4 +28,3 @@ export async function sendOtpEmail({ toEmail, otp, serviceId, templateId, public
   console.log('✅ OTP email sent successfully to:', toEmail);
   return resp.data;
 }
-

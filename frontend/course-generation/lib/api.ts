@@ -10,7 +10,7 @@ class ApiClient {
 
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseUrl}${endpoint}`
-    const token = typeof window !== 'undefined' ? localStorage.getItem('careeros_token') : null
+    const token = typeof window !== 'undefined' ? localStorage.getItem('Career Sync_token') : null
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -54,9 +54,9 @@ class ApiClient {
 
   async signOut() {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('careeros_token')
-      localStorage.removeItem('careeros_user')
-      localStorage.removeItem('careeros_auth')
+      localStorage.removeItem('Career Sync_token')
+      localStorage.removeItem('Career Sync_user')
+      localStorage.removeItem('Career Sync_auth')
     }
     return { success: true }
   }

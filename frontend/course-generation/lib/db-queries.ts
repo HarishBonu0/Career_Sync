@@ -1,23 +1,45 @@
-// Mock database functions for course-generation app
-// These are fallback implementations when no real database is available
+// Database functions for course-generation app
+// Calls MongoDB backend API for real data persistence
+
+const BACKEND_API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api'
 
 export async function saveGeneratedCourse(course: any, userId?: string) {
-  console.log('Saving course with mock implementation:', course.title)
+  console.log('Saving course to MongoDB:', course.title)
   
-  // Generate a mock ID
-  const courseId = `course_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  
-  // Store in localStorage-like structure (would be backend in production)
-  const courseData = {
-    ...course,
-    id: courseId,
-    userId: userId || 'guest',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+  try {
+    // Get user from localStorage
+    const userStr = typeof window !== 'undefined' ? localStorage.getItem('careeros_user') : null
+    const user = userStr ? JSON.parse(userStr) : null
+    
+    const response = await fetch(`${BACKEND_API}/courses/save`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId: user?.id || user?.email || userId || 'guest',
+        title: course.title,
+        description: course.description,
+        level: course.difficulty || course.level,
+        duration: course.duration,
+        modules: course.modules,
+        objectives: course.objectives,
+        course: course
+      }),
+    })
+    
+    const data = await response.json()
+    
+    if (data.success) {
+      console.log('✅ Course saved to MongoDB:', data.courseId)
+      return { courseId: data.courseId }
+    } else {
+      throw new Error(data.error || 'Failed to save course')
+    }
+  } catch (error) {
+    console.error('❌ Error saving course to MongoDB:', error)
+    throw error
   }
-  
-  console.log('Mock course saved:', courseData)
-  return { courseId }
 }
 
 export async function createRoadmap(roadmap: any, userId?: string) {
