@@ -19,31 +19,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Helper function to generate specific YouTube search queries per module
+    // Helper function to generate HIGHLY SPECIFIC YouTube search queries per module
+    // This ensures each module gets unique, relevant videos from live YouTube data
     const generateModuleVideoSearch = (moduleTitle: string, moduleTopic: string, moduleNum: number, totalModules: number) => {
       // Clean up module topic - remove "Module X:" prefix
       const cleanTopic = moduleTopic.replace(/^Module\s*\d+[:\s]*/i, '').trim()
       
-      // Extract primary concept from the module title
-      // Split by common separators to get individual concepts
-      const concepts = cleanTopic.split(/[,&]/).map(c => c.trim()).filter(c => c.length > 0)
-      const primaryConcept = concepts[0] || cleanTopic
+      // Extract ALL concepts from the module title for better specificity
+      // Split by common separators: commas, 'and', '&'
+      const concepts = cleanTopic
+        .split(/[,&]/)
+        .map(c => c.replace(/\band\b/gi, '').trim())
+        .filter(c => c.length > 2)
       
       // Determine difficulty level based on module position
       const progressPercentage = (moduleNum / totalModules)
       let difficultyKeyword: string
       
-      if (progressPercentage < 0.35) {
-        difficultyKeyword = 'basics tutorial'
-      } else if (progressPercentage < 0.75) {
-        difficultyKeyword = 'complete guide'
+      if (progressPercentage < 0.30) {
+        difficultyKeyword = 'tutorial for beginners'
+      } else if (progressPercentage < 0.70) {
+        difficultyKeyword = 'complete course'
       } else {
-        difficultyKeyword = 'advanced masterclass'
+        difficultyKeyword = 'advanced tutorial'
       }
       
-      // Build targeted search query using primary concept
-      // This ensures better matching with actual YouTube videos
-      return `${primaryConcept} ${difficultyKeyword}`
+      // Build HIGHLY SPECIFIC search query:
+      // Use first TWO concepts if available for maximum specificity
+      if (concepts.length >= 2) {
+        // Use multiple concepts to ensure unique videos per module
+        return `${concepts[0]} ${concepts[1]} ${difficultyKeyword}`
+      } else if (concepts.length === 1) {
+        // Single concept - add module number context for uniqueness
+        return `${concepts[0]} ${difficultyKeyword} part ${moduleNum}`
+      } else {
+        // Fallback - use full clean topic
+        return `${cleanTopic} ${difficultyKeyword}`
+      }
     }
 
     // Helper function to generate reading materials for a module
@@ -235,12 +247,29 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // Final fallback to search
+        // Final fallback to LIVE search URLs (not demo/placeholder URLs)
+        // These will fetch current, relevant content from the web
+        const searchTerm = encodeURIComponent(cleanTopic)
         return [
           {
+            type: 'tutorial',
+            title: `${cleanTopic} - GeeksforGeeks`,
+            url: `https://www.geeksforgeeks.org/${cleanTopic.toLowerCase().replace(/\s+/g, '-')}/`,
+          },
+          {
             type: 'documentation',
-            title: `${cleanTopic} - GeeksforGeeks Search`,
-            url: `https://www.geeksforgeeks.org/?s=${encodeURIComponent(cleanTopic)}`,
+            title: `${cleanTopic} - MDN Web Docs`,
+            url: `https://developer.mozilla.org/en-US/search?q=${searchTerm}`,
+          },
+          {
+            type: 'article',
+            title: `${cleanTopic} - freeCodeCamp`,
+            url: `https://www.freecodecamp.org/news/search/?query=${searchTerm}`,
+          },
+          {
+            type: 'tutorial',
+            title: `${cleanTopic} - Dev.to Community`,
+            url: `https://dev.to/search?q=${searchTerm}`,
           }
         ]
     }
@@ -446,71 +475,72 @@ export async function POST(request: NextRequest) {
         return topicResources[userLevel] || topicResources.beginner
       }
 
-      // Fallback: Generate high-quality resources based on topic and level
+      // Fallback: Generate high-quality, SPECIFIC resources with actual search URLs
       const genericResources: Array<{ type: string; title: string; url: string }> = []
+      const encodedTopic = encodeURIComponent(courseTopic)
 
       if (userLevel === 'beginner') {
         genericResources.push({
           type: 'official-docs',
           title: `${courseTopic} - MDN Web Docs`,
-          url: `https://developer.mozilla.org/en-US/`,
+          url: `https://developer.mozilla.org/en-US/search?q=${encodedTopic}`,
         })
         genericResources.push({
           type: 'video-course',
-          title: `${courseTopic} Complete Course - freeCodeCamp`,
-          url: `https://www.freecodecamp.org/`,
+          title: `${courseTopic} Complete Tutorial - freeCodeCamp`,
+          url: `https://www.freecodecamp.org/news/search/?query=${encodedTopic}`,
         })
         genericResources.push({
-          type: 'interactive-tutorial',
-          title: `${courseTopic} - Codecademy Learn Platform`,
-          url: `https://www.codecademy.com/`,
+          type: 'tutorial',
+          title: `${courseTopic} Tutorial - GeeksforGeeks`,
+          url: `https://www.geeksforgeeks.org/${courseTopic.toLowerCase().replace(/\s+/g, '-')}/`,
         })
         genericResources.push({
-          type: 'documentation',
-          title: `${courseTopic} - GeeksforGeeks Tutorial`,
-          url: `https://www.geeksforgeeks.org/`,
+          type: 'article',
+          title: `${courseTopic} Guide - Dev.to Community`,
+          url: `https://dev.to/search?q=${encodedTopic}`,
         })
       } else if (userLevel === 'intermediate') {
         genericResources.push({
           type: 'official-docs',
           title: `${courseTopic} Official Documentation`,
-          url: `https://developer.mozilla.org/en-US/`,
+          url: `https://developer.mozilla.org/en-US/search?q=${encodedTopic}`,
         })
         genericResources.push({
           type: 'video-course',
-          title: `Advanced ${courseTopic} - Frontend Masters`,
-          url: `https://frontendmasters.com/`,
+          title: `Advanced ${courseTopic} Course`,
+          url: `https://www.youtube.com/results?search_query=${encodedTopic}+advanced+course`,
         })
         genericResources.push({
           type: 'practice-platform',
-          title: `${courseTopic} Practice - LeetCode`,
-          url: `https://leetcode.com/`,
+          title: `${courseTopic} Practice Problems`,
+          url: `https://www.hackerrank.com/domains?query=${encodedTopic}`,
         })
         genericResources.push({
-          type: 'documentation',
-          title: `${courseTopic} Code Examples - GitHub`,
-          url: `https://github.com/`,
+          type: 'github',
+          title: `${courseTopic} Open Source Projects`,
+          url: `https://github.com/search?q=${encodedTopic}`,
         })
       } else {
         genericResources.push({
           type: 'official-docs',
-          title: `${courseTopic} API Reference & Specification`,
-          url: `https://developer.mozilla.org/en-US/`,
+          title: `${courseTopic} Advanced Documentation`,
+          url: `https://developer.mozilla.org/en-US/search?q=${encodedTopic}+advanced`,
         })
         genericResources.push({
           type: 'video-course',
-          title: `${courseTopic} System Design & Architecture - Udemy`,
-          url: `https://www.udemy.com/`,
+          title: `${courseTopic} System Design & Best Practices`,
+          url: `https://www.youtube.com/results?search_query=${encodedTopic}+system+design`,
         })
         genericResources.push({
-          type: 'github-resources',
-          title: `${courseTopic} Design Patterns - Awesome Lists`,
-          url: `https://github.com/`,
+          type: 'github',
+          title: `${courseTopic} Design Patterns & Examples`,
+          url: `https://github.com/search?q=${encodedTopic}+design+patterns`,
         })
         genericResources.push({
-          type: 'documentation',
-          title: `${courseTopic} Architecture & System Design Patterns`,
-          url: `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(courseTopic)}`,
+          type: 'article',
+          title: `${courseTopic} Expert Articles & Guides`,
+          url: `https://medium.com/search?q=${encodedTopic}`,
         })
       }
 

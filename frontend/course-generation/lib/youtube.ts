@@ -13,8 +13,19 @@ export interface YouTubeVideo {
   viewCount?: string
 }
 
-// Cache videos to avoid excessive API calls
-const videoCache = new Map<string, YouTubeVideo[]>()
+// Light cache for very recent identical searches only (1-minute expiry)
+const videoCache = new Map<string, { videos: YouTubeVideo[], timestamp: number }>()
+const CACHE_EXPIRY_MS = 60000 // 1 minute
+
+// Clear expired cache entries
+const clearExpiredCache = () => {
+  const now = Date.now()
+  for (const [key, value] of videoCache.entries()) {
+    if (now - value.timestamp > CACHE_EXPIRY_MS) {
+      videoCache.delete(key)
+    }
+  }
+}
 
 // Premium educational YouTube channels for quality filtering
 const EDUCATIONAL_CHANNELS = {
@@ -49,26 +60,36 @@ export function extractCoreConceptsFromModule(moduleTitle: string): string[] {
 
 // Build smart search query based on module topic and difficulty
 function buildSearchQuery(topic: string, difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate'): string {
-  const topicLower = topic.toLowerCase()
+  // Remove "Module X:" prefix if present
+  let cleanTopic = topic.replace(/^Module\s+\d+[:\s]+/i, '').trim()
+  const topicLower = cleanTopic.toLowerCase()
   
-  // Extract specific concepts from module title
+  // Extract ALL specific concepts from module title (split by commas, 'and', '&')
   const concepts = topicLower
-    .split(/[,;:\-and]/)
-    .map(s => s.trim())
-    .filter(s => s.length > 0)
+    .split(/[,;&]/)
+    .map(s => s.replace(/\band\b/gi, '').trim())
+    .filter(s => s.length > 3) // Filter out very short words
   
   // Difficulty-based keywords
   const difficultyKeywords = {
-    beginner: ['tutorial', 'introduction', 'for beginners', 'basics'],
-    intermediate: ['practical', 'real-world', 'hands-on', 'course'],
-    advanced: ['deep dive', 'expert', 'production', 'mastery']
+    beginner: ['tutorial', 'introduction', 'for beginners', 'basics', 'fundamentals'],
+    intermediate: ['complete guide', 'course', 'explained', 'practical'],
+    advanced: ['advanced', 'deep dive', 'expert', 'masterclass', 'production']
   }
   
-  const keyword = difficultyKeywords[difficulty][0]
+  // Pick a keyword based on difficulty
+  const keywords = difficultyKeywords[difficulty]
+  const keyword = keywords[Math.floor(Math.random() * keywords.length)]
   
-  // Build query: primary concept + keyword + "tutorial"
-  const primaryConcept = concepts[0] || topic
-  return `${primaryConcept} ${keyword} tutorial`
+  // Build highly specific query:
+  // Use first 2 concepts if available for better specificity
+  if (concepts.length >= 2) {
+    return `${concepts[0]} ${concepts[1]} ${keyword}`
+  } else if (concepts.length === 1) {
+    return `${concepts[0]} ${keyword} tutorial`
+  } else {
+    return `${cleanTopic} ${keyword}`
+  }
 }
 
 // Main search function - relies entirely on YouTube API
@@ -77,11 +98,15 @@ export async function searchYouTubeVideos(
   maxResults: number = 3,
   searchType: 'beginner' | 'intermediate' | 'advanced' = 'intermediate'
 ): Promise<YouTubeVideo[]> {
-  // Check cache first
+  // Clear expired cache entries
+  clearExpiredCache()
+  
+  // Check cache first (only if recent)
   const cacheKey = `${topic}_${maxResults}_${searchType}`
-  if (videoCache.has(cacheKey)) {
-    console.log('📦 Using cached videos for:', topic)
-    return videoCache.get(cacheKey)!
+  const cached = videoCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < CACHE_EXPIRY_MS) {
+    console.log('📦 Using cached videos (fresh) for:', topic)
+    return cached.videos
   }
 
   // Check if API key is configured
@@ -90,6 +115,8 @@ export async function searchYouTubeVideos(
     console.error(errorMsg)
     throw new Error(errorMsg)
   }
+  
+  console.log('🔍 Fetching FRESH videos from YouTube API for:', topic)
 
   try {
     console.log('🔍 Fetching from YouTube API for:', topic)
@@ -158,8 +185,9 @@ export async function searchYouTubeVideos(
       }))
 
     if (filteredVideos.length > 0) {
-      console.log(`✅ Found ${filteredVideos.length} videos for ${topic}`)
-      videoCache.set(cacheKey, filteredVideos)
+      console.log(`✅ Found ${filteredVideos.length} unique videos for: "${topic}"`)
+      console.log(`📹 Videos:`, filteredVideos.map(v => v.title.substring(0, 50)).join(', '))
+      videoCache.set(cacheKey, { videos: filteredVideos, timestamp: Date.now() })
       return filteredVideos
     }
 
@@ -181,8 +209,9 @@ export async function searchYouTubeVideos(
       }))
 
     if (relaxedResults.length > 0) {
-      console.log(`✅ Found ${relaxedResults.length} videos (relaxed filtering) for ${topic}`)
-      videoCache.set(cacheKey, relaxedResults)
+      console.log(`✅ Found ${relaxedResults.length} videos (relaxed filtering) for: "${topic}"`)
+      console.log(`📹 Videos:`, relaxedResults.map(v => v.title.substring(0, 50)).join(', '))
+      videoCache.set(cacheKey, { videos: relaxedResults, timestamp: Date.now() })
       return relaxedResults
     }
 

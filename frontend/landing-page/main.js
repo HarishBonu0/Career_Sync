@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         skillEval: 'http://localhost:3001'
     };
 
-    const MODULE_LINKS = { ...defaultModuleLinks, ...(window.Career Sync_MODULE_URLS || {}) };
+    const MODULE_LINKS = { ...defaultModuleLinks, ...(window.CareerSync_MODULE_URLS || {}) };
 
     // UI Elements
     const navAuthContainer = document.getElementById('nav-auth-container');

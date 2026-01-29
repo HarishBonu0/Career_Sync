@@ -166,26 +166,41 @@ export default function TopicPage() {
         // Use the specific search query generated for this module
         searchQuery = moduleData.youtubeSearch
         console.log('🎥 Using module-specific search query:', searchQuery)
-      } else if (courseTitle) {
+        console.log('🎥 Module:', topicId, '|', moduleData.title)
+      } else if (courseTitle && topic.title) {
         // Fallback to course title + topic for more relevant videos
-        searchQuery = `${courseTitle} ${topic.title} tutorial`
-        console.log('🎥 Using fallback search query:', searchQuery)
+        // Extract clean module title (remove "Module X:" prefix)
+        const cleanTitle = topic.title.replace(/^Module\s+\d+[:\s]*/i, '').trim()
+        searchQuery = `${cleanTitle} tutorial`
+        console.log('🎥 Using fallback search query (from title):', searchQuery)
       } else {
         // Final fallback
         searchQuery = `${topic.title} tutorial course`
         console.log('🎥 Using generic search query:', searchQuery)
       }
       
-      console.log('🎥 Final search query for video:', searchQuery)
+      console.log('🎥 === FETCHING VIDEO ===')
+      console.log('🎥 Module #:', topicId)
+      console.log('🎥 Search Query:', searchQuery)
+      console.log('🎥 Expected: Unique video per module')
       
-      const video = await getYouTubeVideoForTopic(searchQuery)
-      setYoutubeVideo(video)
+      try {
+        const video = await getYouTubeVideoForTopic(searchQuery)
+        if (video) {
+          console.log('✅ Video fetched:', video.title)
+          setYoutubeVideo(video)
+        } else {
+          console.warn('⚠️ No video found for query:', searchQuery)
+        }
+      } catch (error) {
+        console.error('❌ Error fetching video:', error)
+      }
     }
     
-    if (!loading) {
+    if (!loading && moduleData) {
       fetchVideo()
     }
-  }, [moduleData, loading])
+  }, [moduleData, loading, topicId])
 
   const topic = moduleData || mockTopics[0]
 
