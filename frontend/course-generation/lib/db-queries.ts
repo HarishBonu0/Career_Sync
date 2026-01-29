@@ -75,22 +75,33 @@ export async function saveGeneratedCourse(course: any, userId?: string) {
     console.log('📧 User email for course:', userEmail)
     console.log('👤 User ID for course:', extractedUserId)
     
+    // FINAL VALIDATION BEFORE SENDING
+    console.log('\n🚨 VALIDATION CHECK:')
+    console.log('   ✓ Has userEmail?', !!userEmail, '(value:', userEmail, ')')
+    console.log('   ✓ Has extractedUserId?', !!extractedUserId, '(value:', extractedUserId, ')')
+    console.log('   ✓ extractedUserId !== "guest"?', extractedUserId !== 'guest')
+    
+    const requestBody = {
+      userId: extractedUserId || 'guest',
+      userEmail: userEmail || null,
+      title: course.title,
+      description: course.description,
+      level: course.difficulty || course.level,
+      duration: course.duration,
+      modules: course.modules,
+      objectives: course.objectives,
+      course: course
+    }
+    
+    console.log('📤 SENDING TO BACKEND:')
+    console.log(JSON.stringify(requestBody, null, 2))
+    
     const response = await fetch(`${BACKEND_API}/courses/save`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        userId: extractedUserId || 'guest',
-        userEmail: userEmail || null,
-        title: course.title,
-        description: course.description,
-        level: course.difficulty || course.level,
-        duration: course.duration,
-        modules: course.modules,
-        objectives: course.objectives,
-        course: course
-      }),
+      body: JSON.stringify(requestBody),
     })
     
     const data = await response.json()

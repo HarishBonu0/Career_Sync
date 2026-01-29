@@ -93,6 +93,13 @@ router.post('/save', async (req, res) => {
   try {
     const { userId, userEmail, generationId, title, description, level, duration, modules, course } = req.body;
 
+    // LOG EVERYTHING RECEIVED
+    console.log('\n🔍 COURSE SAVE REQUEST RECEIVED:');
+    console.log('   userId:', userId);
+    console.log('   userEmail:', userEmail);
+    console.log('   title:', title);
+    console.log('   Full body:', JSON.stringify(req.body, null, 2));
+
     // Handle both formats - direct course object or individual fields
     const courseData = course || { title, description, level, duration, modules };
 
@@ -105,6 +112,11 @@ router.post('/save', async (req, res) => {
     if (userId && userId !== 'guest' && mongoose.Types.ObjectId.isValid(userId)) {
       userObjectId = userId;
     }
+
+    console.log('✅ SAVING WITH:');
+    console.log('   user:', userObjectId);
+    console.log('   userId:', userId || 'guest');
+    console.log('   userEmail:', userEmail || null);
 
     const newCourse = await Course.create({
       user: userObjectId,
@@ -128,7 +140,7 @@ router.post('/save', async (req, res) => {
       await CourseGeneration.findByIdAndUpdate(generationId, { status: 'saved' });
     }
 
-    res.status(201).json({ success: true, courseId: newCourse._id, data: newCourse });
+    console.log('✅ COURSE SAVED WITH ID:', newCourse._id);    res.status(201).json({ success: true, courseId: newCourse._id, data: newCourse });
   } catch (error) {
     console.error('Save course error:', error);
     res.status(500).json({ error: error.message });
