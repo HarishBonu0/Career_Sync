@@ -4,7 +4,7 @@
    =================================== */
 
 /* IMPROVED HEADER */
-.careeros-header {
+.Career Sync-header {
     position: sticky;
     top: 0;
     z-index: 100;
@@ -15,12 +15,12 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.careeros-brand-icon {
+.Career Sync-brand-icon {
     box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.careeros-brand-icon:hover {
+.Career Sync-brand-icon:hover {
     transform: scale(1.05);
     box-shadow: 0 3px 8px rgba(79, 70, 229, 0.35);
 }
@@ -316,7 +316,7 @@ a:focus:not(:focus-visible) {
 
 /* PRINT STYLES */
 @media print {
-    .careeros-header {
+    .Career Sync-header {
         display: none;
     }
 

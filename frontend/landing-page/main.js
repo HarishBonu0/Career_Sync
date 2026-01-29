@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         skillEval: 'http://localhost:3001'
     };
 
-    const MODULE_LINKS = { ...defaultModuleLinks, ...(window.CAREEROS_MODULE_URLS || {}) };
+    const MODULE_LINKS = { ...defaultModuleLinks, ...(window.Career Sync_MODULE_URLS || {}) };
 
     // UI Elements
     const navAuthContainer = document.getElementById('nav-auth-container');
@@ -118,7 +118,7 @@ document.querySelectorAll('.feature-card, .module-card, .step').forEach(card => 
 });
 
 // Log module status
-console.log('CareerOS Landing Page loaded successfully');
+console.log('Career Sync Landing Page loaded successfully');
 console.log('Available modules:');
 console.log('- Course Generator: http://localhost:3002');
 console.log('- Skill Evaluator: http://localhost:3001');

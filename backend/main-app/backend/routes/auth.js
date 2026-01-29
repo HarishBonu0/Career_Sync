@@ -28,7 +28,7 @@ function generateOtp() {
 
 // Helper function to set auth cookie
 function setAuthCookie(res, token) {
-  res.cookie('careeros_token', token, COOKIE_OPTIONS);
+  res.cookie('Career Sync_token', token, COOKIE_OPTIONS);
 }
 
 // Register/Signup endpoint
@@ -231,14 +231,14 @@ router.post('/verify', async (req, res) => {
 
 // Logout endpoint
 router.post('/logout', (req, res) => {
-  res.clearCookie('careeros_token', { path: '/' });
+  res.clearCookie('Career Sync_token', { path: '/' });
   res.json({ message: 'Logout successful' });
 });
 
 // Get current user endpoint (check authentication)
 router.get('/me', async (req, res) => {
   try {
-    const token = req.cookies.careeros_token;
+    const token = req.cookies.Career Sync_token;
     
     if (!token) {
       return res.status(401).json({ error: 'Not authenticated' });

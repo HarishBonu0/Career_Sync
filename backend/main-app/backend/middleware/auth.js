@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
  */
 export const authenticate = async (req, res, next) => {
   try {
-    const token = req.cookies.careeros_token;
+    const token = req.cookies.Career Sync_token;
     
     if (!token) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -40,7 +40,7 @@ export const authenticate = async (req, res, next) => {
  */
 export const optionalAuth = async (req, res, next) => {
   try {
-    const token = req.cookies.careeros_token;
+    const token = req.cookies.Career Sync_token;
     
     if (token) {
       const decoded = jwt.verify(token, JWT_SECRET);

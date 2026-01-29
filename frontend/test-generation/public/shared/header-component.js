@@ -52,7 +52,7 @@ const createHeaderHTML = (user, authenticated) => {
             font-size: 20px;
             font-weight: 600;
             color: #111827;
-          ">CareerOS</span>
+          ">Career Sync</span>
         </a>
 
         <!-- Navigation -->

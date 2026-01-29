@@ -115,7 +115,7 @@ Comprehensive testing interface:
 
 ### MongoDB Schema
 ```
-Database: CareerOs
+Database: Career Sync
 Collection: userenrollments
 
 Document Structure:
@@ -168,19 +168,19 @@ Document Structure:
    ↓
 3. Frontend calls: handleCourseEnrollment(courseData)
    ├─ Saves to localStorage (instant)
-   └─ Calls: CareerOSProfile.saveCourse()
+   └─ Calls: Career SyncProfile.saveCourse()
        └─ Sends POST /api/profile/enroll/course
            └─ Backend creates UserEnrollment in MongoDB
                └─ Returns enrollment._id
    ↓
 4. User completes 3 modules (30% progress)
    ├─ Frontend calls: handleModuleCompletion(id, 2, 10)
-   └─ Calls: CareerOSProfile.updateCourseProgress(id, 30, 3)
+   └─ Calls: Career SyncProfile.updateCourseProgress(id, 30, 3)
        └─ Sends PUT /api/profile/progress/course/{id}
            └─ Backend updates MongoDB record
    ↓
 5. Profile page auto-refreshes (every 5 seconds)
-   ├─ Calls: CareerOSProfile.getProfileData()
+   ├─ Calls: Career SyncProfile.getProfileData()
    └─ Gets: GET /api/profile/{userId}
        └─ Backend queries MongoDB
            └─ Returns user's all enrollments

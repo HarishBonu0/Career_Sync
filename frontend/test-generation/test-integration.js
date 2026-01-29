@@ -36,7 +36,7 @@ async function handleTestSubmission(testData) {
         }
         
         // Save to backend and localStorage
-        const result = await CareerOSProfile.saveEvaluation(evaluationData);
+        const result = await Career SyncProfile.saveEvaluation(evaluationData);
         
         if (result) {
             console.log('Test submission successful:', result);

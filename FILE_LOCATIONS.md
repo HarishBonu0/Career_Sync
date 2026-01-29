@@ -92,10 +92,10 @@ frontend/
 └── course-generation/
     └─ course-integration.js                [NEW - Ready to use]
        ├─ handleCourseEnrollment()
-       │  └─ Calls: CareerOSProfile.saveCourse()
+       │  └─ Calls: Career SyncProfile.saveCourse()
        │
        ├─ handleModuleCompletion()
-       │  └─ Calls: CareerOSProfile.updateCourseProgress()
+       │  └─ Calls: Career SyncProfile.updateCourseProgress()
        │
        ├─ handleCourseCompletion()
        │  └─ Marks course as 100% complete
@@ -119,10 +119,10 @@ frontend/
 └── roadmap/
     └─ roadmap-integration.js               [NEW - Ready to use]
        ├─ handleRoadmapEnrollment()
-       │  └─ Calls: CareerOSProfile.saveRoadmap()
+       │  └─ Calls: Career SyncProfile.saveRoadmap()
        │
        ├─ handleStageCompletion()
-       │  └─ Calls: CareerOSProfile.updateRoadmapProgress()
+       │  └─ Calls: Career SyncProfile.updateRoadmapProgress()
        │
        ├─ handleRoadmapProgressUpdate()
        │  └─ Manual progress tracking
@@ -148,7 +148,7 @@ frontend/
        │  └─ Initialize test state
        │
        ├─ handleTestSubmission()
-       │  └─ Calls: CareerOSProfile.saveEvaluation()
+       │  └─ Calls: Career SyncProfile.saveEvaluation()
        │
        ├─ handleTestSave()
        │  └─ Save progress on exit
@@ -328,7 +328,7 @@ profile.html (auto-refresh every 5 sec)
 → Check: `backend/routes/profile.js`
 
 **See database**
-→ MongoDB Atlas → CareerOs → userenrollments
+→ MongoDB Atlas → Career Sync → userenrollments
 
 ---
 

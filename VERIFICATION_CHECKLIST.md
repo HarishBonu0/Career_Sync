@@ -70,7 +70,7 @@ Open: `http://localhost:4173/test-database-integration.html`
 
 1. [ ] Open MongoDB Compass
 2. [ ] Click "Connect" with default settings (or paste connection string)
-3. [ ] Navigate to: `CareerOs` database
+3. [ ] Navigate to: `Career Sync` database
 4. [ ] Click on `userenrollments` collection
 5. [ ] View documents tab shows 3+ records:
    - [ ] One with `type: "course"`
@@ -87,7 +87,7 @@ Open: `http://localhost:4173/test-database-integration.html`
 2. [ ] Sign in to your account
 3. [ ] Select cluster
 4. [ ] Go to "Collections"
-5. [ ] Navigate to: CareerOs → userenrollments
+5. [ ] Navigate to: Career Sync → userenrollments
 6. [ ] Click "Aggregation"
 7. [ ] Should see documents from test suite
 
@@ -131,11 +131,11 @@ Open: `http://localhost:4173/test-database-integration.html`
 1. [ ] Open DevTools → Application → Local Storage
 2. [ ] Find http://localhost:4173
 3. [ ] Verify keys exist:
-   - [ ] `careeros_enrolled_courses` - contains course array
-   - [ ] `careeros_saved_roadmaps` - contains roadmap array
-   - [ ] `careeros_evaluations` - contains evaluation array
-   - [ ] `careeros_user` - contains user data
-   - [ ] `careeros_token` - contains auth token
+   - [ ] `Career Sync_enrolled_courses` - contains course array
+   - [ ] `Career Sync_saved_roadmaps` - contains roadmap array
+   - [ ] `Career Sync_evaluations` - contains evaluation array
+   - [ ] `Career Sync_user` - contains user data
+   - [ ] `Career Sync_token` - contains auth token
 
 ### Console Logs
 
@@ -259,17 +259,17 @@ Expected: 200 OK, returns {courses: [], roadmaps: [], evaluations: []}
 
 ### Code Quality Checks
 - [ ] profile-utils.js loads without errors
-- [ ] All functions callable from console: `window.CareerOSProfile.getProfileData()`
+- [ ] All functions callable from console: `window.Career SyncProfile.getProfileData()`
 - [ ] Integration files have no syntax errors
 - [ ] Functions have proper error handling
 
 ### Function Availability
-- [ ] `CareerOSProfile.saveCourse` is a function ✓
-- [ ] `CareerOSProfile.updateCourseProgress` is a function ✓
-- [ ] `CareerOSProfile.saveRoadmap` is a function ✓
-- [ ] `CareerOSProfile.updateRoadmapProgress` is a function ✓
-- [ ] `CareerOSProfile.saveEvaluation` is a function ✓
-- [ ] `CareerOSProfile.getProfileData` is a function ✓
+- [ ] `Career SyncProfile.saveCourse` is a function ✓
+- [ ] `Career SyncProfile.updateCourseProgress` is a function ✓
+- [ ] `Career SyncProfile.saveRoadmap` is a function ✓
+- [ ] `Career SyncProfile.updateRoadmapProgress` is a function ✓
+- [ ] `Career SyncProfile.saveEvaluation` is a function ✓
+- [ ] `Career SyncProfile.getProfileData` is a function ✓
 
 ---
 

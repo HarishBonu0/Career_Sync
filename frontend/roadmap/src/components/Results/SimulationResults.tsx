@@ -19,11 +19,11 @@ export default function SimulationResults({ result }: SimulationResultsProps) {
   useEffect(() => {
     const trackRoadmap = async () => {
       try {
-        const user = localStorage.getItem('careeros_user');
+        const user = localStorage.getItem('Career Sync_user');
         if (!user) return;
 
         const userData = JSON.parse(user);
-        const savedRoadmaps = JSON.parse(localStorage.getItem('careeros_saved_roadmaps') || '[]');
+        const savedRoadmaps = JSON.parse(localStorage.getItem('Career Sync_saved_roadmaps') || '[]');
         
         const roadmapRecord = {
           id: `roadmap_${Date.now()}`,
@@ -37,7 +37,7 @@ export default function SimulationResults({ result }: SimulationResultsProps) {
         const existingIndex = savedRoadmaps.findIndex((r: any) => r.title === roadmapRecord.title);
         if (existingIndex === -1) {
           savedRoadmaps.push(roadmapRecord);
-          localStorage.setItem('careeros_saved_roadmaps', JSON.stringify(savedRoadmaps));
+          localStorage.setItem('Career Sync_saved_roadmaps', JSON.stringify(savedRoadmaps));
           console.log('🗺️ Roadmap saved:', roadmapRecord.title);
 
           // Send to MongoDB backend
@@ -60,14 +60,14 @@ export default function SimulationResults({ result }: SimulationResultsProps) {
         }
 
         // Update profile data
-        const profileData = JSON.parse(localStorage.getItem('careeros_profile_data') || '{}');
+        const profileData = JSON.parse(localStorage.getItem('Career Sync_profile_data') || '{}');
         profileData.totalRoadmaps = savedRoadmaps.length;
         profileData.roadmaps = savedRoadmaps;
-        localStorage.setItem('careeros_profile_data', JSON.stringify(profileData));
+        localStorage.setItem('Career Sync_profile_data', JSON.stringify(profileData));
         
         // Trigger storage event for cross-tab/cross-page updates
         window.dispatchEvent(new StorageEvent('storage', {
-          key: 'careeros_saved_roadmaps',
+          key: 'Career Sync_saved_roadmaps',
           newValue: JSON.stringify(savedRoadmaps)
         }));
       } catch (e) {

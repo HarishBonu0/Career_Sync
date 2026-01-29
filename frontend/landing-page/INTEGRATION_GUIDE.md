@@ -21,7 +21,7 @@
    };
    
    // Call the function from profile-utils.js
-   await CareerOSProfile.saveCourse(courseData);
+   await Career SyncProfile.saveCourse(courseData);
 
 2. When user completes a module, update progress:
    
@@ -29,7 +29,7 @@
    const currentProgress = 25; // 25% complete (3 of 12 modules)
    const completedModules = 3;
    
-   await CareerOSProfile.updateCourseProgress(enrollmentId, currentProgress, completedModules);
+   await Career SyncProfile.updateCourseProgress(enrollmentId, currentProgress, completedModules);
 
 3. If module completion UI shows percentage:
    
@@ -38,7 +38,7 @@
    const totalModules = 12;
    const newProgress = ((currentModuleIndex + 1) / totalModules) * 100;
    
-   await CareerOSProfile.updateCourseProgress(enrollmentId, newProgress, currentModuleIndex + 1);
+   await Career SyncProfile.updateCourseProgress(enrollmentId, newProgress, currentModuleIndex + 1);
 
 */
 
@@ -60,7 +60,7 @@
        status: 'in-progress'
    };
    
-   await CareerOSProfile.saveRoadmap(roadmapData);
+   await Career SyncProfile.saveRoadmap(roadmapData);
 
 2. When user completes a stage, update progress:
    
@@ -68,7 +68,7 @@
    const completedStage = 1; // Completed stage 1 of 5
    const currentProgress = (completedStage / roadmapData.stages) * 100; // 20%
    
-   await CareerOSProfile.updateRoadmapProgress(enrollmentId, currentProgress, completedStage);
+   await Career SyncProfile.updateRoadmapProgress(enrollmentId, currentProgress, completedStage);
 
 3. Update progress after each stage:
    
@@ -77,7 +77,7 @@
    const totalStages = 5;
    const newProgress = ((stageIndex + 1) / totalStages) * 100;
    
-   await CareerOSProfile.updateRoadmapProgress(enrollmentId, newProgress, stageIndex + 1);
+   await Career SyncProfile.updateRoadmapProgress(enrollmentId, newProgress, stageIndex + 1);
 
 */
 
@@ -97,7 +97,7 @@
        results: [...detailed results...]
    };
    
-   await CareerOSProfile.saveEvaluation(evaluationData);
+   await Career SyncProfile.saveEvaluation(evaluationData);
 
 2. To calculate score percentage:
    
@@ -112,7 +112,7 @@
 1. To fetch and display all profile data:
    
    // This is called automatically in profile.html, but can be called manually too
-   const profileData = await CareerOSProfile.getProfileData();
+   const profileData = await Career SyncProfile.getProfileData();
    
    console.log('Courses:', profileData.courses);
    console.log('Roadmaps:', profileData.roadmaps);
@@ -151,7 +151,7 @@
    - Add module completion handler that calls: updateCourseProgress()
    - Example:
      document.getElementById('enrollBtn').addEventListener('click', async () => {
-         const result = await CareerOSProfile.saveCourse(courseData);
+         const result = await Career SyncProfile.saveCourse(courseData);
          alert('Enrolled! Enrollment ID: ' + result._id);
      });
 
@@ -162,7 +162,7 @@
      document.getElementById('completeStageBtn').addEventListener('click', async () => {
          const stageIndex = getCurrentStageIndex();
          const progress = ((stageIndex + 1) / totalStages) * 100;
-         await CareerOSProfile.updateRoadmapProgress(enrollmentId, progress, stageIndex + 1);
+         await Career SyncProfile.updateRoadmapProgress(enrollmentId, progress, stageIndex + 1);
      });
 
 4. In Skill Evaluator Page:
@@ -171,7 +171,7 @@
      const score = (correctAnswers / totalQuestions) * 100;
    - Example:
      document.getElementById('submitBtn').addEventListener('click', async () => {
-         const result = await CareerOSProfile.saveEvaluation(evaluationData);
+         const result = await Career SyncProfile.saveEvaluation(evaluationData);
          alert('Test submitted! Score: ' + result.score + '%');
      });
 
@@ -180,7 +180,7 @@
    - Refresh data every 5 seconds or when user switches tabs
    - Example:
      window.addEventListener('focus', async () => {
-         const data = await CareerOSProfile.getProfileData();
+         const data = await Career SyncProfile.getProfileData();
          displayProfile(data);
      });
 

@@ -170,7 +170,7 @@ http://localhost:5000/api/auth/me
 1. Open test suite
 2. Run "Enroll in Course"
 3. Open MongoDB compass
-4. Check collection: db.CareerOs.userenrollments
+4. Check collection: db.Career Sync.userenrollments
 5. Should see new enrollment record
 ```
 
@@ -191,7 +191,7 @@ MongoDB Atlas
   ↓
 Cluster: Career-Sync or similar
   ↓
-Database: CareerOs
+Database: Career Sync
   ↓
 Collections:
   - users
@@ -235,7 +235,7 @@ http://localhost:4173/test-database-integration.html
 http://localhost:4173/profile.html
 
 # Check database
-# Open MongoDB Compass → Connect → Navigate to CareerOs.userenrollments
+# Open MongoDB Compass → Connect → Navigate to Career Sync.userenrollments
 ```
 
 ---

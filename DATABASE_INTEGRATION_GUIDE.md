@@ -118,13 +118,13 @@ saveEvaluation() in profile-utils.js
 
 Located in: `frontend/landing-page/profile-utils.js`
 
-All functions are available via `window.CareerOSProfile` object:
+All functions are available via `window.Career SyncProfile` object:
 
 #### Course Functions
 
 ```javascript
 // Enroll in course
-await CareerOSProfile.saveCourse({
+await Career SyncProfile.saveCourse({
     id: 'course-001',
     title: 'Advanced JavaScript',
     modules: 12,
@@ -132,7 +132,7 @@ await CareerOSProfile.saveCourse({
 });
 
 // Update course progress
-await CareerOSProfile.updateCourseProgress(
+await Career SyncProfile.updateCourseProgress(
     enrollmentId,  // From saveCourse() result._id
     30,           // Progress percentage
     3             // Completed modules count
@@ -143,7 +143,7 @@ await CareerOSProfile.updateCourseProgress(
 
 ```javascript
 // Enroll in roadmap
-await CareerOSProfile.saveRoadmap({
+await Career SyncProfile.saveRoadmap({
     id: 'roadmap-001',
     title: 'Backend Developer',
     stages: 5,
@@ -151,7 +151,7 @@ await CareerOSProfile.saveRoadmap({
 });
 
 // Update roadmap progress
-await CareerOSProfile.updateRoadmapProgress(
+await Career SyncProfile.updateRoadmapProgress(
     enrollmentId,  // From saveRoadmap() result._id
     20,           // Progress percentage (1 of 5 stages)
     1             // Completed stages count
@@ -162,7 +162,7 @@ await CareerOSProfile.updateRoadmapProgress(
 
 ```javascript
 // Submit test results
-await CareerOSProfile.saveEvaluation({
+await Career SyncProfile.saveEvaluation({
     title: 'JavaScript Test',
     totalQuestions: 20,
     correctAnswers: 17,
@@ -175,7 +175,7 @@ await CareerOSProfile.saveEvaluation({
 
 ```javascript
 // Fetch profile from backend
-const profile = await CareerOSProfile.getProfileData();
+const profile = await Career SyncProfile.getProfileData();
 
 // Returns:
 {
@@ -365,7 +365,7 @@ The profile page auto-refreshes every 5 seconds:
 ```javascript
 // In profile.html (already implemented)
 setInterval(async () => {
-    const data = await CareerOSProfile.getProfileData();
+    const data = await Career SyncProfile.getProfileData();
     // Update display with latest data
     displayCachedProfile(userData);
 }, 5000);
@@ -408,7 +408,7 @@ This means:
 
 ### Profile not updating?
 - Check browser console for errors
-- Verify user is logged in (check localStorage for careeros_user)
+- Verify user is logged in (check localStorage for Career Sync_user)
 - Ensure backend is running on port 5000
 - Check MongoDB connection in backend logs
 
@@ -420,7 +420,7 @@ This means:
 
 ### Integration functions not available?
 - Ensure profile-utils.js is loaded before calling functions
-- Check that functions are available via window.CareerOSProfile
+- Check that functions are available via window.Career SyncProfile
 - Verify no JavaScript errors in console
 
 ## Key Files
