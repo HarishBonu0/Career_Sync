@@ -93,6 +93,18 @@ const MODULE_VIDEO_MAP: { [key: string]: string[] } = {
   'sql basics': ['HXV3zeQKqGY', 'zbMHLJ0dY4w', '7S_tz1z_5bA'],
   'sql joins': ['SpNSGNB7Y48', 'Te-BFzBmb0c', 'K-keE3Ekyh4'],
   'mongodb basics': ['ofme2o29ngU', 'PkZNo7MFNFg', 'jS4aFq5-91M'],
+  
+  // Data Science
+  'machine learning basics': ['8385iqKev88', 'F2WtWvZT8KE', 'sRIi8JqiB9I'],
+  'tensorflow basics': ['tPYj3fFJbGo', '_Gu7AvXOckQ', 'ixVh6vhc5Ss'],
+  'deep learning': ['pHMzNiTJoaU', 'dXwSTFy1I14', 'aircAruvnKk'],
+  'computer vision': ['n7LbFLqIGSI', 'Hqawwfup6Ug', 'CrCvD4e4W3c'],
+  'natural language': ['xC-c_4eweVQ', 'c-Iokmww9d0', 'kCc8FmEb1nY'],
+  
+  // Mobile Development
+  'android basics': ['fis26HvfBBw', 'ZYekMGeYAqM', 'Mw89w_pAHvg'],
+  'swift basics': ['comQ1-x2ogQ', 'TsYscdUSsZ0', 'n7fnWqvFjNU'],
+  'react native': ['ur6I5GQvWQA', 'JesusG8V-Bc', 'cOye28zG-14'],
 }
 
 // Generate curated video recommendations based on module topic
