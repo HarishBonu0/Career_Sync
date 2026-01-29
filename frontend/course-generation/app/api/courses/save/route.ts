@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { saveGeneratedCourse } from '../../../../../db/queries/courses'
+import { saveGeneratedCourse } from '@/lib/db-queries'
 
 export async function POST(request: NextRequest) {
   try {

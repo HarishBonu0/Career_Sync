@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Play, CheckCircle2, BookmarkedIcon, Bookmark } from 'lucide-react'
+import { ArrowLeft, Play, CheckCircle2, Bookmark } from 'lucide-react'
 import Link from 'next/link'
 import { getYouTubeVideoForTopic } from '@/lib/youtube'
 import { YouTubeVideo } from '@/lib/youtube'
@@ -139,10 +139,27 @@ export default function TopicPage() {
   }, [topicId])
 
   useEffect(() => {
-    // Fetch YouTube video for the module
+    // Fetch YouTube video for the module with course context
     const fetchVideo = async () => {
       const topic = moduleData || mockTopics[0]
-      const video = await getYouTubeVideoForTopic(topic.title)
+      
+      // Get course title from localStorage for better video matching
+      let courseTitle = ''
+      try {
+        const generatedCourse = localStorage.getItem('generatedCourse')
+        if (generatedCourse) {
+          const courseData = JSON.parse(generatedCourse)
+          courseTitle = courseData.title || ''
+        }
+      } catch (e) {
+        console.error('Error getting course title:', e)
+      }
+      
+      // Use course title + topic for more relevant videos
+      const searchQuery = courseTitle ? `${courseTitle} ${topic.title} tutorial` : `${topic.title} tutorial course`
+      console.log('🎥 Searching for video:', searchQuery)
+      
+      const video = await getYouTubeVideoForTopic(searchQuery)
       setYoutubeVideo(video)
     }
     

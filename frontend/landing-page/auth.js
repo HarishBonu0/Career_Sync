@@ -1,6 +1,12 @@
 import { register, login, requestOtp, loginWithOtp } from './api-auth.js';
 
+// Google OAuth Configuration
+const GOOGLE_CLIENT_ID = '844001953688-5r9hfnp15akd17ouu20h2hgv8s4jbprm.apps.googleusercontent.com'; // Replace with your actual Google Client ID
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Google Sign-In
+    initializeGoogleSignIn();
+
     // DOM Elements
     const views = {
         login: document.getElementById('view-login'),
@@ -75,7 +81,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: result.user.name || result.user.email.split('@')[0]
             }));
             localStorage.setItem('careeros_token', result.token);
-            window.location.href = '/';
+            
+            // Force immediate redirect
+            console.log('Login successful, redirecting...');
+            setTimeout(() => {
+                window.location.href = 'http://localhost:4173/';
+            }, 100);
         } else {
             setButtonLoading(submitBtn, false);
             showError(forms.login, result.error || 'Invalid email or password');
@@ -107,16 +118,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const result = await register(email, password, name);
 
         if (result.success) {
-            // User created successfully, now send OTP for verification
-            const otpResult = await requestOtp(email);
+            console.log('Registration successful:', result);
+            
+            // Store user data and token
+            localStorage.setItem('careeros_user', JSON.stringify({ 
+                email: result.user.email,
+                id: result.user.id,
+                name: result.user.name || name || result.user.email.split('@')[0]
+            }));
+            localStorage.setItem('careeros_token', result.token);
+            
             setButtonLoading(submitBtn, false);
             
-            if (otpResult.success) {
-                // Redirect to OTP verification page
-                window.location.href = `/verify-otp.html?email=${encodeURIComponent(email)}`;
-            } else {
-                showError(forms.signup, 'Account created, but failed to send OTP. Please sign in.');
-            }
+            // Show success message
+            const successDiv = document.createElement('div');
+            successDiv.style.cssText = 'color: #10b981; background: #d1fae5; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 14px;';
+            successDiv.textContent = 'Account created successfully! Redirecting...';
+            forms.signup.insertBefore(successDiv, forms.signup.firstChild);
+            
+            // Redirect to home page
+            setTimeout(() => {
+                window.location.href = 'http://localhost:4173/';
+            }, 1000);
         } else {
             setButtonLoading(submitBtn, false);
             showError(forms.signup, result.error || 'Failed to create account');
@@ -163,3 +186,151 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// ===== GOOGLE SIGN-IN INTEGRATION =====
+
+function initializeGoogleSignIn() {
+    // Wait for Google SDK to load
+    const initGoogle = () => {
+        if (typeof google !== 'undefined' && google.accounts) {
+            try {
+                google.accounts.id.initialize({
+                    client_id: GOOGLE_CLIENT_ID,
+                    callback: handleGoogleSignIn,
+                    auto_select: false,
+                });
+                console.log('✅ Google Sign-In initialized successfully');
+            } catch (error) {
+                console.error('❌ Error initializing Google Sign-In:', error);
+            }
+        } else {
+            console.log('⏳ Waiting for Google SDK to load...');
+            setTimeout(initGoogle, 500);
+        }
+    };
+
+    // Start initialization
+    setTimeout(initGoogle, 100);
+
+    // Attach click handlers to Google buttons
+    const googleSignInBtn = document.getElementById('google-signin-btn');
+    const googleSignUpBtn = document.getElementById('google-signup-btn');
+
+    if (googleSignInBtn) {
+        googleSignInBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Google Sign-In button clicked');
+            triggerGoogleSignIn();
+        });
+    }
+
+    if (googleSignUpBtn) {
+        googleSignUpBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Google Sign-Up button clicked');
+            triggerGoogleSignIn();
+        });
+    }
+}
+
+function triggerGoogleSignIn() {
+    console.log('Triggering Google Sign-In...');
+    
+    if (typeof google === 'undefined' || !google.accounts) {
+        console.error('❌ Google Sign-In SDK not loaded');
+        alert('Google Sign-In is loading. Please wait a moment and try again.');
+        
+        // Try to reinitialize
+        setTimeout(() => {
+            initializeGoogleSignIn();
+        }, 1000);
+        return;
+    }
+    
+    try {
+        google.accounts.id.prompt((notification) => {
+            console.log('Google prompt notification:', notification);
+            
+            if (notification.isNotDisplayed()) {
+                console.log('Prompt not displayed, using alternative flow');
+                // Show a message to user
+                alert('Please enable pop-ups or click the button again to sign in with Google.');
+            } else if (notification.isSkippedMoment()) {
+                console.log('User skipped the moment');
+            }
+        });
+    } catch (error) {
+        console.error('Error triggering Google Sign-In:', error);
+        alert('Unable to start Google Sign-In. Please try using email/password instead.');
+    }
+}
+
+async function handleGoogleSignIn(response) {
+    try {
+        // Decode the JWT credential
+        const credential = response.credential;
+        const payload = parseJwt(credential);
+        
+        console.log('Google Sign-In successful:', payload);
+
+        // Create user object from Google data
+        const user = {
+            id: payload.sub,
+            email: payload.email,
+            name: payload.name,
+            picture: payload.picture,
+            email_verified: payload.email_verified,
+            google_id: payload.sub,
+        };
+
+        // Store user data in localStorage
+        localStorage.setItem('careeros_user', JSON.stringify({
+            email: user.email,
+            id: user.google_id,
+            name: user.name,
+            picture: user.picture,
+            google_id: user.google_id,
+            email_verified: user.email_verified
+        }));
+        
+        // Generate a simple token (in production, you should get this from your backend)
+        localStorage.setItem('careeros_token', `google_${credential}`);
+        
+        // Optional: Send to backend to register/verify user
+        try {
+            await fetch('http://localhost:5000/api/auth/google-signin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    credential,
+                    user: user
+                })
+            });
+        } catch (backendError) {
+            console.warn('Backend registration skipped:', backendError);
+        }
+
+        // Redirect to home
+        console.log('Google Sign-In successful, redirecting...');
+        setTimeout(() => {
+            window.location.href = 'http://localhost:4173/';
+        }, 100);
+    } catch (error) {
+        console.error('Error handling Google Sign-In:', error);
+        alert('Failed to sign in with Google. Please try again.');
+    }
+}
+
+function parseJwt(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (error) {
+        console.error('Error parsing JWT:', error);
+        return null;
+    }
+}

@@ -140,6 +140,237 @@
             font-size: 0.875rem;
             font-weight: 500;
         }
+
+        /* Profile Dropdown Styles */
+        .profile-dropdown {
+            position: relative;
+        }
+
+        .profile-trigger {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(79, 70, 229, 0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .profile-trigger:hover {
+            background: rgba(79, 70, 229, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .profile-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .profile-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            min-width: 380px;
+            z-index: 1000;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .profile-menu.active {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%);
+        }
+
+        .profile-user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .profile-large-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .profile-details h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .profile-details p {
+            margin: 4px 0 0 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 8px;
+            background: rgba(79, 70, 229, 0.05);
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            display: block;
+            font-size: 20px;
+            font-weight: 700;
+            color: #4F46E5;
+        }
+
+        .stat-label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .profile-content {
+            padding: 16px;
+        }
+
+        .courses-section {
+            margin-bottom: 16px;
+        }
+
+        .courses-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .course-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(79, 70, 229, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid #4F46E5;
+            transition: all 0.2s;
+        }
+
+        .course-item:hover {
+            background: rgba(79, 70, 229, 0.1);
+            transform: translateX(4px);
+        }
+
+        .course-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 4px 0;
+        }
+
+        .course-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin: 0;
+            display: flex;
+            gap: 8px;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .profile-action-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .profile-action-btn.primary {
+            background: #4F46E5;
+            color: white;
+        }
+
+        .profile-action-btn.primary:hover {
+            background: #3F3DBF;
+        }
+
+        .profile-action-btn.secondary {
+            background: rgba(79, 70, 229, 0.1);
+            color: #4F46E5;
+        }
+
+        .profile-action-btn.secondary:hover {
+            background: rgba(79, 70, 229, 0.2);
+        }
+
+        .empty-courses {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
     </style>
 
     <!-- EmailJS SDK -->
@@ -171,6 +402,61 @@
             <div class="careeros-nav-auth" id="careeros-nav-auth">
                 <a href="http://localhost:4173/auth.html" class="careeros-btn careeros-btn-primary">Sign In</a>
             </div>
+
+            <!-- Profile Dropdown -->
+            <div class="profile-dropdown" id="profile-dropdown" style="display: none;">
+                <div class="profile-trigger" id="profile-trigger">
+                    <div class="profile-avatar" id="profile-avatar">U</div>
+                    <span id="profile-name">Profile</span>
+                </div>
+                
+                <div class="profile-menu" id="profile-menu">
+                    <!-- Header -->
+                    <div class="profile-header">
+                        <div class="profile-user-info">
+                            <div class="profile-large-avatar" id="profile-large-avatar">U</div>
+                            <div class="profile-details">
+                                <h3 id="profile-user-name">User Name</h3>
+                                <p id="profile-user-email">user@email.com</p>
+                            </div>
+                        </div>
+                        
+                        <div class="profile-stats">
+                            <div class="stat-item">
+                                <span class="stat-number" id="stat-courses">0</span>
+                                <span class="stat-label">Courses</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="stat-roadmaps">0</span>
+                                <span class="stat-label">Roadmaps</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="stat-evaluations">0</span>
+                                <span class="stat-label">Tests</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="profile-content">
+                        <div class="courses-section">
+                            <div class="courses-title">📚 Recent Courses</div>
+                            <div id="courses-list"></div>
+                        </div>
+
+                        <div class="courses-section">
+                            <div class="courses-title">🗺️ Active Roadmaps</div>
+                            <div id="roadmaps-list"></div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="profile-actions" style="padding: 16px;">
+                        <a href="#" class="profile-action-btn primary" id="view-profile-btn">View Profile</a>
+                        <button class="profile-action-btn secondary" id="logout-btn">Sign Out</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -178,32 +464,33 @@
         // Update auth UI
         function updateAuthUI() {
             const authContainer = document.getElementById('careeros-nav-auth');
-            if (!authContainer) return;
-
+            const profileDropdown = document.getElementById('profile-dropdown');
             const user = localStorage.getItem('careeros_user');
             const token = localStorage.getItem('careeros_token');
 
             if (user && token) {
                 try {
                     const userData = JSON.parse(user);
-                    authContainer.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <span class="careeros-user-info">
-                                👤 ${userData.name || userData.full_name || 'User'}
-                            </span>
-                            <button id="careeros-logout-btn" class="careeros-btn careeros-btn-danger">
-                                Sign Out
-                            </button>
-                        </div>
-                    `;
-
-                    document.getElementById('careeros-logout-btn').addEventListener('click', (e) => {
-                        e.preventDefault();
-                        localStorage.removeItem('careeros_user');
-                        localStorage.removeItem('careeros_token');
-                        localStorage.removeItem('careeros_auth');
-                        window.location.href = 'http://localhost:4173/auth.html';
-                    });
+                    
+                    // Hide Sign In, show Profile Dropdown
+                    authContainer.style.display = 'none';
+                    profileDropdown.style.display = 'block';
+                    
+                    // Update profile display
+                    const userName = userData.full_name || userData.name || userData.email || 'User';
+                    const userInitial = userName.charAt(0).toUpperCase();
+                    
+                    document.getElementById('profile-name').textContent = userName.split(' ')[0];
+                    document.getElementById('profile-avatar').textContent = userInitial;
+                    document.getElementById('profile-large-avatar').textContent = userInitial;
+                    document.getElementById('profile-user-name').textContent = userName;
+                    document.getElementById('profile-user-email').textContent = userData.email || '';
+                    
+                    // Setup profile trigger click
+                    setupProfileDropdown(userData);
+                    
+                    // Load user profile data
+                    loadUserProfileData(userData);
                 } catch (e) {
                     console.error('Invalid user data:', e);
                     localStorage.removeItem('careeros_user');
@@ -211,22 +498,157 @@
                     localStorage.removeItem('careeros_auth');
                 }
             } else {
-                authContainer.innerHTML = `
-                    <a href="http://localhost:4173/auth.html" class="careeros-btn careeros-btn-primary">
-                        Sign In
-                    </a>
-                `;
+                authContainer.style.display = 'flex';
+                profileDropdown.style.display = 'none';
             }
         }
 
-        // Check auth on load and every 2 seconds
-        document.addEventListener('DOMContentLoaded', updateAuthUI);
+        // Setup Profile Dropdown
+        function setupProfileDropdown(userData) {
+            const profileTrigger = document.getElementById('profile-trigger');
+            const profileMenu = document.getElementById('profile-menu');
+            
+            profileTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                profileMenu.classList.toggle('active');
+            });
+
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!profileDropdown.contains(e.target)) {
+                    profileMenu.classList.remove('active');
+                }
+            });
+
+            // Close menu when clicking a link
+            document.querySelectorAll('.profile-action-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    profileMenu.classList.remove('active');
+                });
+            });
+        }
+
+        // Load User Profile Data
+        async function loadUserProfileData(userData) {
+            try {
+                // First, load from localStorage immediately
+                const enrolledCourses = JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]');
+                const savedRoadmaps = JSON.parse(localStorage.getItem('careeros_saved_roadmaps') || '[]');
+
+                // Update stats from localStorage
+                document.getElementById('stat-courses').textContent = enrolledCourses.length;
+                document.getElementById('stat-roadmaps').textContent = savedRoadmaps.length;
+                document.getElementById('stat-evaluations').textContent = '0';
+
+                // Update courses list
+                const coursesList = document.getElementById('courses-list');
+                if (enrolledCourses.length > 0) {
+                    coursesList.innerHTML = enrolledCourses.slice(0, 3).map(course => `
+                        <div class="course-item" onclick="window.location.href='http://localhost:3002/course-generated/${course.id}'">
+                            <p class="course-name">${course.title}</p>
+                            <p class="course-meta">
+                                <span>${course.modules || 0} modules</span>
+                                <span>${course.progress || 0}% complete</span>
+                            </p>
+                        </div>
+                    `).join('');
+                } else {
+                    coursesList.innerHTML = '<div class="empty-courses">No courses yet</div>';
+                }
+
+                // Update roadmaps list
+                const roadmapsList = document.getElementById('roadmaps-list');
+                if (savedRoadmaps.length > 0) {
+                    roadmapsList.innerHTML = savedRoadmaps.slice(0, 2).map(roadmap => `
+                        <div class="course-item" onclick="window.location.href='http://localhost:5173'">
+                            <p class="course-name">${roadmap.title}</p>
+                            <p class="course-meta">
+                                <span>${roadmap.pathways || roadmap.stages || 0} pathways</span>
+                            </p>
+                        </div>
+                    `).join('');
+                } else {
+                    roadmapsList.innerHTML = '<div class="empty-courses">No roadmaps yet</div>';
+                }
+
+                // Setup profile link
+                document.getElementById('view-profile-btn').href = 'http://localhost:4173/profile.html';
+
+                // Try to fetch from backend API for additional data
+                const userId = userData.id || userData._id;
+                if (userId) {
+                    try {
+                        const response = await fetch(`http://localhost:5000/api/profile/${userId}`, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('careeros_token')}`
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.profile) {
+                                const profile = data.profile;
+
+                                // Update with backend data if available
+                                if (profile.stats) {
+                                    document.getElementById('stat-evaluations').textContent = profile.stats.totalEvaluations || '0';
+                                }
+                            }
+                        }
+                    } catch (apiError) {
+                        console.log('Backend profile API not available, using localStorage data');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+        }
+
+        // Logout Handler
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAuthUI();
+            
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.removeItem('careeros_user');
+                    localStorage.removeItem('careeros_token');
+                    localStorage.removeItem('careeros_auth');
+                    window.location.href = 'http://localhost:4173/auth.html';
+                });
+            }
+        });
+
+        // Check auth every 2 seconds
         setInterval(updateAuthUI, 2000);
+
+        // Refresh profile data every 3 seconds to show enrolled courses
+        setInterval(() => {
+            const user = localStorage.getItem('careeros_user');
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    loadUserProfileData(userData);
+                } catch (e) {
+                    console.error('Error refreshing profile:', e);
+                }
+            }
+        }, 3000);
 
         // Also update auth UI when storage changes
         window.addEventListener('storage', (e) => {
-            if (e.key === 'careeros_user' || e.key === 'careeros_token') {
+            if (e.key === 'careeros_user' || e.key === 'careeros_token' || e.key === 'careeros_enrolled_courses' || e.key === 'careeros_saved_roadmaps') {
                 updateAuthUI();
+                const user = localStorage.getItem('careeros_user');
+                if (user) {
+                    try {
+                        const userData = JSON.parse(user);
+                        loadUserProfileData(userData);
+                    } catch (e) {}
+                }
             }
         });
     </script>
@@ -473,6 +895,86 @@
 
     <!-- MAIN SCRIPT -->
     <script type="module" src="/main.js"></script>
+    <script src="/shared-header.js"></script>
+    <script>
+        // Initialize authentication check on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthenticationStatus();
+            
+            // Check auth status every 2 seconds
+            setInterval(checkAuthenticationStatus, 2000);
+        });
+
+        function checkAuthenticationStatus() {
+            const user = localStorage.getItem('careeros_user');
+            const token = localStorage.getItem('careeros_token');
+            const authContainer = document.querySelector('.careeros-nav-auth');
+            
+            if (!authContainer) return;
+
+            if (user && token) {
+                try {
+                    const userData = JSON.parse(user);
+                    const displayName = userData.name || userData.full_name || userData.email?.split('@')[0] || 'User';
+                    const initials = displayName.charAt(0).toUpperCase();
+                    const profileUrl = '/profile.html';
+                    
+                    authContainer.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <a href="${profileUrl}" onclick="saveUserProfileData()" style="color: var(--text-secondary); font-size: 0.875rem; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='rgba(248, 250, 252, 1)'" onmouseout="this.style.background='transparent'">
+                                <span style="display: inline-block; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);">
+                                    ${initials}
+                                </span>
+                                <span style="font-weight: 500;">${displayName}</span>
+                            </a>
+                            <button onclick="handleLogout()" class="careeros-btn careeros-btn-danger">
+                                Sign Out
+                            </button>
+                        </div>
+                    `;
+                } catch (e) {
+                    console.error('Error parsing user data:', e);
+                    showSignInButton(authContainer);
+                }
+            } else {
+                showSignInButton(authContainer);
+            }
+        }
+
+        function showSignInButton(container) {
+            container.innerHTML = `
+                <a href="/auth.html" class="careeros-btn careeros-btn-primary">
+                    Sign In
+                </a>
+            `;
+        }
+
+        function saveUserProfileData() {
+            const user = localStorage.getItem('careeros_user');
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    const profileData = {
+                        ...userData,
+                        lastAccessed: new Date().toISOString(),
+                        visitCount: (parseInt(localStorage.getItem('careeros_profile_visits') || '0') + 1)
+                    };
+                    localStorage.setItem('careeros_profile_data', JSON.stringify(profileData));
+                    localStorage.setItem('careeros_profile_visits', profileData.visitCount.toString());
+                } catch (e) {
+                    console.error('Error saving profile data:', e);
+                }
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('careeros_user');
+            localStorage.removeItem('careeros_token');
+            localStorage.removeItem('careeros_auth');
+            localStorage.removeItem('careeros_profile_data');
+            window.location.href = '/auth.html';
+        }
+    </script>
 
     <!-- Newsletter Logic -->
     <script>

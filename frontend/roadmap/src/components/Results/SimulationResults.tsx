@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SimulationResult, FilterOptions } from '../../types/index';
 import StatsCard from './StatsCard';
 import PathwayCard from './PathwayCard';
@@ -14,6 +14,69 @@ export default function SimulationResults({ result }: SimulationResultsProps) {
     sort: 'Best Match',
   });
   const [displayCount, setDisplayCount] = useState(6);
+
+  // Track roadmap creation
+  useEffect(() => {
+    const trackRoadmap = async () => {
+      try {
+        const user = localStorage.getItem('careeros_user');
+        if (!user) return;
+
+        const userData = JSON.parse(user);
+        const savedRoadmaps = JSON.parse(localStorage.getItem('careeros_saved_roadmaps') || '[]');
+        
+        const roadmapRecord = {
+          id: `roadmap_${Date.now()}`,
+          title: result.careerGoal || 'Career Roadmap',
+          createdAt: new Date().toISOString(),
+          stages: result.pathways?.length || 0,
+          userId: userData.id || userData.email,
+          pathways: result.pathways?.length || 0
+        };
+
+        const existingIndex = savedRoadmaps.findIndex((r: any) => r.title === roadmapRecord.title);
+        if (existingIndex === -1) {
+          savedRoadmaps.push(roadmapRecord);
+          localStorage.setItem('careeros_saved_roadmaps', JSON.stringify(savedRoadmaps));
+          console.log('🗺️ Roadmap saved:', roadmapRecord.title);
+
+          // Send to MongoDB backend
+          try {
+            await fetch('http://localhost:5000/api/profile/enroll/roadmap', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: userData.id,
+                userEmail: userData.email,
+                roadmapId: roadmapRecord.id,
+                roadmapTitle: roadmapRecord.title,
+                roadmapStages: roadmapRecord.stages
+              })
+            });
+            console.log('🗺️ Roadmap synced to database');
+          } catch (apiError) {
+            console.log('Database sync failed, data saved locally');
+          }
+        }
+
+        // Update profile data
+        const profileData = JSON.parse(localStorage.getItem('careeros_profile_data') || '{}');
+        profileData.totalRoadmaps = savedRoadmaps.length;
+        profileData.roadmaps = savedRoadmaps;
+        localStorage.setItem('careeros_profile_data', JSON.stringify(profileData));
+        
+        // Trigger storage event for cross-tab/cross-page updates
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'careeros_saved_roadmaps',
+          newValue: JSON.stringify(savedRoadmaps)
+        }));
+      } catch (e) {
+        console.error('Error tracking roadmap:', e);
+      }
+    };
+
+    trackRoadmap();
+  }, [result]);
 
   const handleFilterChange = (filterType: keyof FilterOptions, value: string) => {
     setFilters((prev) => ({

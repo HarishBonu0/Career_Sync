@@ -8,13 +8,32 @@ export async function connectMongo() {
   }
 
   try {
+    console.log('🔄 Connecting to MongoDB Atlas...');
     await mongoose.connect(uri, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
     });
-    console.log(`✅ MongoDB connected: ${mongoose.connection.host}`);
+    console.log(`✅ MongoDB connected successfully!`);
+    console.log(`📦 Database: ${mongoose.connection.db.databaseName}`);
+    console.log(`🌐 Host: ${mongoose.connection.host}`);
   } catch (err) {
     console.error('❌ MongoDB connection error:', err.message);
+    console.error('💡 Make sure your IP is whitelisted in MongoDB Atlas');
+    console.error('💡 Check your connection string and credentials');
     process.exit(1);
   }
+
+  // Handle connection events
+  mongoose.connection.on('disconnected', () => {
+    console.warn('⚠️  MongoDB disconnected');
+  });
+
+  mongoose.connection.on('error', (err) => {
+    console.error('❌ MongoDB error:', err.message);
+  });
+
+  mongoose.connection.on('reconnected', () => {
+    console.log('✅ MongoDB reconnected');
+  });
 }

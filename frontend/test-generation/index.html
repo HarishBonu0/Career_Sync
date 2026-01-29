@@ -134,6 +134,20 @@
             font-weight: 500;
         }
 
+        .careeros-brand-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 0.75rem;
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25);
+        }
+
         @media (max-width: 768px) {
             .careeros-nav-links {
                 display: none;
@@ -142,7 +156,7 @@
     </style>
 </head>
 <body>
-    <!-- Shared Header -->
+    <!-- CareerOS Header -->
     <header class="careeros-header">
         <div class="careeros-header-container">
             <a href="http://localhost:4173" class="careeros-brand">
@@ -153,11 +167,11 @@
             <nav class="careeros-nav-links" id="careeros-main-nav">
                 <a href="http://localhost:3002" class="careeros-nav-link">📚 Course Gen</a>
                 <a href="http://localhost:5173" class="careeros-nav-link">🗺️ Roadmaps</a>
-                <a href="http://localhost:3001" class="careeros-nav-link">✅ Evaluator</a>
+                <a href="http://localhost:3001" class="careeros-nav-link" style="color: #4F46E5; border-bottom: 2px solid #4F46E5;">✅ Evaluator</a>
             </nav>
 
             <div class="careeros-nav-auth" id="careeros-nav-auth">
-                <a href="http://localhost:4173/auth.html" class="careeros-btn careeros-btn-primary">Sign In</a>
+                <!-- Profile will be injected here by JavaScript -->
             </div>
         </div>
     </header>
@@ -356,11 +370,8 @@
                     localStorage.removeItem('careeros_auth');
                 }
             } else {
-                authContainer.innerHTML = `
-                    <a href="http://localhost:4173/auth.html" class="careeros-btn careeros-btn-primary">
-                        Sign In
-                    </a>
-                `;
+                // Don't show Sign In button, leave empty
+                authContainer.innerHTML = '';
             }
         }
 
@@ -376,5 +387,87 @@
         });
     </script>
     <script src="script.js"></script>
+    <script src="../shared-header.js"></script>
+    <script>
+        // Initialize auth check for test page
+        document.addEventListener('DOMContentLoaded', function() {
+            checkEvaluatorAuth();
+            
+            // Check auth every 1 second
+            setInterval(checkEvaluatorAuth, 1000);
+
+            // Listen for storage changes
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'careeros_user' || e.key === 'careeros_token') {
+                    checkEvaluatorAuth();
+                }
+            });
+        });
+
+        function checkEvaluatorAuth() {
+            const user = localStorage.getItem('careeros_user');
+            const token = localStorage.getItem('careeros_token');
+            
+            if (user && token) {
+                console.log('User authenticated on test page');
+                updateAuthUI(JSON.parse(user));
+            } else {
+                updateAuthUI(null);
+            }
+        }
+
+        function updateAuthUI(user) {
+            const authContainer = document.getElementById('careeros-nav-auth');
+            if (!authContainer) return;
+
+            if (user) {
+                const displayName = user.name || user.full_name || user.username || user.email?.split('@')[0] || 'User';
+                const initials = displayName.charAt(0).toUpperCase();
+                
+                authContainer.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <a href="http://localhost:4173/profile.html" onclick="saveUserData()" style="color: var(--text-secondary); font-size: 0.875rem; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
+                            <span style="display: inline-block; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);">
+                                ${initials}
+                            </span>
+                            <span style="font-weight: 500;">${displayName}</span>
+                        </a>
+                        <button onclick="handleLogout()" class="careeros-btn careeros-btn-danger">
+                            Sign Out
+                        </button>
+                    </div>
+                `;
+            } else {
+                // Don't show Sign In button, leave empty
+                authContainer.innerHTML = '';
+            }
+        }
+
+        function saveUserData() {
+            const user = localStorage.getItem('careeros_user');
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    const profileData = {
+                        ...userData,
+                        lastAccessed: new Date().toISOString(),
+                        visitCount: (parseInt(localStorage.getItem('careeros_profile_visits') || '0') + 1)
+                    };
+                    localStorage.setItem('careeros_profile_data', JSON.stringify(profileData));
+                    localStorage.setItem('careeros_profile_visits', profileData.visitCount.toString());
+                } catch (e) {
+                    console.error('Error saving profile data:', e);
+                }
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('careeros_user');
+            localStorage.removeItem('careeros_token');
+            localStorage.removeItem('careeros_auth');
+            localStorage.removeItem('careeros_profile_data');
+            window.location.href = 'http://localhost:4173/auth.html';
+        }
+    </script>
 </body>
 </html>

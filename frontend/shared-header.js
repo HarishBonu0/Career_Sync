@@ -393,13 +393,17 @@ class CareerosHeader {
 
     if (this.isAuthenticated && this.currentUser) {
       const displayName = this.currentUser.name || this.currentUser.full_name || this.currentUser.email?.split('@')[0] || 'User';
+      const profileUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:4173/profile.html' 
+        : '/profile.html';
+      
       authContainer.innerHTML = `
         <div style="display: flex; align-items: center; gap: 12px;">
-          <a href="/profile.html" style="color: var(--text-secondary); font-size: 0.875rem; text-decoration: none; display: flex; align-items: center; gap: 6px;">
-            <span style="display: inline-block; width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px;">
+          <a href="${profileUrl}" onclick="saveUserData()" style="color: var(--text-secondary); font-size: 0.875rem; text-decoration: none !important; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-hover, #F8FAFC)'" onmouseout="this.style.background='transparent'">
+            <span style="display: inline-block; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);">
               ${displayName.charAt(0).toUpperCase()}
             </span>
-            <span>${displayName}</span>
+            <span style="font-weight: 500;">${displayName}</span>
           </a>
           <button id="careeros-logout-btn" class="careeros-btn careeros-btn-danger">
             Sign Out
@@ -416,8 +420,12 @@ class CareerosHeader {
         });
       }
     } else {
+      const authUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:4173/auth.html'
+        : '/auth.html';
+      
       authContainer.innerHTML = `
-        <a href="/auth" class="careeros-btn careeros-btn-primary">
+        <a href="${authUrl}" class="careeros-btn careeros-btn-primary">
           Sign In
         </a>
       `;
@@ -469,6 +477,31 @@ if (typeof document !== 'undefined') {
     window.careeroHeader = new CareerosHeader({ debugMode: false });
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════
+
+// Save user data to localStorage when navigating to profile
+window.saveUserData = function() {
+  const user = localStorage.getItem('careeros_user');
+  if (user) {
+    try {
+      const userData = JSON.parse(user);
+      // Store additional profile metadata
+      const profileData = {
+        ...userData,
+        lastAccessed: new Date().toISOString(),
+        visitCount: (parseInt(localStorage.getItem('careeros_profile_visits') || '0') + 1)
+      };
+      localStorage.setItem('careeros_profile_data', JSON.stringify(profileData));
+      localStorage.setItem('careeros_profile_visits', profileData.visitCount.toString());
+      console.log('User profile data saved');
+    } catch (e) {
+      console.error('Error saving profile data:', e);
+    }
+  }
+};
 
 // Export for use as ES module (Next.js)
 if (typeof module !== 'undefined' && module.exports) {

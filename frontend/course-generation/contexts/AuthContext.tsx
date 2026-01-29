@@ -35,40 +35,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check localStorage for saved user and token (use careeros keys for consistency)
-    const savedUser = localStorage.getItem('careeros_user')
-    const savedToken = localStorage.getItem('careeros_token')
-    if (savedUser && savedToken) {
-      try {
-        setUser(JSON.parse(savedUser))
-        setToken(savedToken)
-      } catch (e) {
-        console.error('Invalid user data:', e)
-        localStorage.removeItem('careeros_user')
-        localStorage.removeItem('careeros_token')
+    const checkAuth = () => {
+      const savedUser = localStorage.getItem('careeros_user')
+      const savedToken = localStorage.getItem('careeros_token')
+      if (savedUser && savedToken) {
+        try {
+          const parsedUser = JSON.parse(savedUser)
+          setUser(parsedUser)
+          setToken(savedToken)
+        } catch (e) {
+          console.error('Invalid user data:', e)
+          localStorage.removeItem('careeros_user')
+          localStorage.removeItem('careeros_token')
+        }
+      } else if (!savedUser || !savedToken) {
+        setUser(null)
+        setToken(null)
       }
     }
+
+    // Initial check
+    checkAuth()
+
+    // Check auth every 2 seconds
+    const authCheckInterval = setInterval(checkAuth, 2000)
     
     // Listen for storage changes from other tabs/windows
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'careeros_user' || e.key === 'careeros_token') {
-        if (e.key === 'careeros_user' && e.newValue) {
-          try {
-            setUser(JSON.parse(e.newValue))
-          } catch (err) {
-            console.error('Invalid user data:', err)
-          }
-        } else if (e.key === 'careeros_user' && !e.newValue) {
-          setUser(null)
-        }
-        
-        if (e.key === 'careeros_token') {
-          setToken(e.newValue)
-        }
+        checkAuth()
       }
     }
     
     window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
+    return () => {
+      clearInterval(authCheckInterval)
+      window.removeEventListener('storage', handleStorageChange)
+    }
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {

@@ -22,8 +22,8 @@ export default function Header({ onConfigClick, showNewSimulation, onNewSimulati
   useEffect(() => {
     checkAuthStatus();
     
-    // Check auth every 2 seconds
-    const interval = setInterval(checkAuthStatus, 2000);
+    // Check auth every 1 second for immediate updates
+    const interval = setInterval(checkAuthStatus, 1000);
     
     // Listen for storage changes from other tabs/windows
     const handleStorageChange = (e: StorageEvent) => {
@@ -68,20 +68,43 @@ export default function Header({ onConfigClick, showNewSimulation, onNewSimulati
     localStorage.removeItem('careeros_auth');
     setIsAuthenticated(false);
     setCurrentUser(null);
-    window.location.href = '/auth';
+    window.location.href = 'http://localhost:4173/auth.html';
+  };
+
+  const saveUserData = () => {
+    const user = localStorage.getItem('careeros_user');
+    if (user) {
+      try {
+        const userData = JSON.parse(user);
+        const profileData = {
+          ...userData,
+          lastAccessed: new Date().toISOString(),
+          visitCount: (parseInt(localStorage.getItem('careeros_profile_visits') || '0') + 1)
+        };
+        localStorage.setItem('careeros_profile_data', JSON.stringify(profileData));
+        localStorage.setItem('careeros_profile_visits', profileData.visitCount.toString());
+      } catch (e) {
+        console.error('Error saving profile data:', e);
+      }
+    }
+  };
+
+  const getUserDisplayName = () => {
+    if (!currentUser) return 'User';
+    return currentUser.name || currentUser.full_name || currentUser.username || currentUser.email?.split('@')[0] || 'User';
   };
 
   return (
     <header style={headerStyles.header}>
       <div style={headerStyles.container}>
-        <a href="/" style={headerStyles.brand}>
+        <a href="http://localhost:4173" style={headerStyles.brand}>
           <div style={headerStyles.brandIcon}>C</div>
           <span>CareerOS</span>
         </a>
 
         <nav style={headerStyles.navLinks} className={mobileMenuOpen ? 'mobile-open' : ''}>
           <a 
-            href="/course-generator"
+            href="http://localhost:3002"
             style={{
               ...headerStyles.navLink,
               color: hoveredLink === 'course' ? '#4f46e5' : '#475569',
@@ -93,7 +116,7 @@ export default function Header({ onConfigClick, showNewSimulation, onNewSimulati
             📚 Course Gen
           </a>
           <a 
-            href="/roadmap"
+            href="http://localhost:5173"
             style={{
               ...headerStyles.navLink,
               color: hoveredLink === 'roadmap' ? '#4f46e5' : '#475569',
@@ -105,7 +128,7 @@ export default function Header({ onConfigClick, showNewSimulation, onNewSimulati
             🗺️ Roadmaps
           </a>
           <a 
-            href="/evaluator"
+            href="http://localhost:3001"
             style={{
               ...headerStyles.navLink,
               color: hoveredLink === 'eval' ? '#4f46e5' : '#475569',
@@ -120,22 +143,50 @@ export default function Header({ onConfigClick, showNewSimulation, onNewSimulati
 
         {/* Auth Section */}
         <div style={headerStyles.navAuth}>
-          {isAuthenticated && currentUser ? (
-            <>
-              <span style={headerStyles.userInfo}>
-                👤 {currentUser.full_name || currentUser.email || 'User'}
-              </span>
+          {isAuthenticated && currentUser && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <a 
+                href="http://localhost:4173/profile.html"
+                onClick={saveUserData}
+                style={{
+                  color: '#475569',
+                  fontSize: '0.875rem',
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <span style={{
+                  display: 'inline-block',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 600,
+                  fontSize: '15px',
+                  boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)',
+                }}>
+                  {getUserDisplayName().charAt(0).toUpperCase()}
+                </span>
+                <span style={{ fontWeight: 500 }}>{getUserDisplayName()}</span>
+              </a>
               <button
                 onClick={handleLogout}
                 style={headerStyles.signOutBtn}
               >
                 Sign Out
               </button>
-            </>
-          ) : (
-            <a href="/auth" style={headerStyles.signInBtn}>
-              Sign In
-            </a>
+            </div>
           )}
         </div>
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, BookOpen, Target, CheckCircle, Download } from 'lucide-react'
 import Link from 'next/link'
-import api from '../../../../../../lib/api'
+import api from '@/lib/api'
 
 interface Module {
   id: number
@@ -99,6 +99,65 @@ export default function GeneratedCoursePage() {
     })
   }
 
+  // Track course enrollment
+  const trackCourseEnrollment = async (courseData: any) => {
+    try {
+      const user = localStorage.getItem('careeros_user')
+      if (!user) return
+
+      const userData = JSON.parse(user)
+      const enrolledCourses = JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]')
+      
+      const courseRecord = {
+        id: courseData.id || `course_${Date.now()}`,
+        title: courseData.title,
+        enrolledAt: new Date().toISOString(),
+        progress: 0,
+        userId: userData.id || userData.email,
+        modules: courseData.modules?.length || 0
+      }
+
+      const existingIndex = enrolledCourses.findIndex((c: any) => c.title === courseData.title)
+      if (existingIndex === -1) {
+        enrolledCourses.push(courseRecord)
+        localStorage.setItem('careeros_enrolled_courses', JSON.stringify(enrolledCourses))
+        console.log('📚 Course enrolled:', courseData.title)
+
+        // Send to MongoDB backend
+        try {
+          await fetch('http://localhost:5000/api/profile/enroll/course', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: userData.id,
+              userEmail: userData.email,
+              courseId: courseRecord.id,
+              courseTitle: courseRecord.title,
+              courseModules: courseRecord.modules
+            })
+          })
+          console.log('📚 Course enrollment synced to database')
+        } catch (apiError) {
+          console.log('Database sync failed, data saved locally')
+        }
+      }
+
+      // Update profile data
+      const profileData = JSON.parse(localStorage.getItem('careeros_profile_data') || '{}')
+      profileData.totalCourses = enrolledCourses.length
+      profileData.courses = enrolledCourses
+      localStorage.setItem('careeros_profile_data', JSON.stringify(profileData))
+      
+      // Trigger storage event for cross-tab/cross-page updates
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'careeros_enrolled_courses',
+        newValue: JSON.stringify(enrolledCourses)
+      }))
+    } catch (e) {
+      console.error('Error tracking course enrollment:', e)
+    }
+  }
+
   useEffect(() => {
     const loadCourse = async () => {
       console.log('Loading course from localStorage...')
@@ -115,6 +174,7 @@ export default function GeneratedCoursePage() {
             console.log('📚 First module has reading materials:', !!parsedCourse.modules?.[0]?.readingMaterials)
             console.log('📚 Reading materials count:', parsedCourse.modules?.[0]?.readingMaterials?.length || 0)
             setCourse(parsedCourse)
+            trackCourseEnrollment(parsedCourse)
             setLoading(false)
             return
           }

@@ -16,13 +16,34 @@ export default function Navbar() {
   const { user, logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // No need for local state or polling, use AuthContext
+  const saveUserData = () => {
+    const userStr = localStorage.getItem('careeros_user')
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr)
+        const profileData = {
+          ...userData,
+          lastAccessed: new Date().toISOString(),
+          visitCount: (parseInt(localStorage.getItem('careeros_profile_visits') || '0') + 1)
+        }
+        localStorage.setItem('careeros_profile_data', JSON.stringify(profileData))
+        localStorage.setItem('careeros_profile_visits', profileData.visitCount.toString())
+      } catch (e) {
+        console.error('Error saving profile data:', e)
+      }
+    }
+  }
+
+  const getUserDisplayName = () => {
+    if (!user) return 'User'
+    return user.name || user.full_name || user.username || user.email?.split('@')[0] || 'User'
+  }
 
   return (
     <header style={navbarStyles.header}>
       <div style={navbarStyles.container}>
         {/* Brand */}
-        <a href="/" style={navbarStyles.brand}>
+        <a href="http://localhost:4173" style={navbarStyles.brand}>
           <div style={navbarStyles.brandIcon}>C</div>
           <span>CareerOS</span>
         </a>
@@ -30,7 +51,7 @@ export default function Navbar() {
         {/* Navigation Links */}
         <nav style={navbarStyles.navLinks} className={mobileMenuOpen ? 'mobile-open' : ''}>
           <a 
-            href="/course-generator"
+            href="http://localhost:3002"
             style={{
               ...navbarStyles.navLink,
               color: hoveredLink === 'course' ? '#4f46e5' : '#475569',
@@ -42,7 +63,7 @@ export default function Navbar() {
             📚 Course Gen
           </a>
           <a 
-            href="/roadmap"
+            href="http://localhost:5173"
             style={{
               ...navbarStyles.navLink,
               color: hoveredLink === 'roadmap' ? '#4f46e5' : '#475569',
@@ -54,7 +75,7 @@ export default function Navbar() {
             🗺️ Roadmaps
           </a>
           <a 
-            href="/evaluator"
+            href="http://localhost:3001"
             style={{
               ...navbarStyles.navLink,
               color: hoveredLink === 'eval' ? '#4f46e5' : '#475569',
@@ -69,13 +90,29 @@ export default function Navbar() {
 
         {/* Auth Area */}
         <div style={navbarStyles.navAuth}>
-          {user ? (
-            <>
-              <a href="/profile.html" style={navbarStyles.userInfo}>
-                <div style={{
+          {user && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <a 
+                href="http://localhost:4173/profile.html"
+                onClick={saveUserData}
+                style={{
+                  color: '#475569',
+                  fontSize: '0.875rem',
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <span style={{
                   display: 'inline-block',
-                  width: '32px',
-                  height: '32px',
+                  width: '36px',
+                  height: '36px',
                   borderRadius: '50%',
                   background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
                   color: 'white',
@@ -83,27 +120,23 @@ export default function Navbar() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 600,
-                  fontSize: '14px',
-                  marginRight: '8px'
+                  fontSize: '15px',
+                  boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)',
                 }}>
-                  {(user.name || user.email || 'U').charAt(0).toUpperCase()}
-                </div>
-                {user.name || user.email?.split('@')[0] || 'User'}
+                  {getUserDisplayName().charAt(0).toUpperCase()}
+                </span>
+                <span style={{ fontWeight: 500 }}>{getUserDisplayName()}</span>
               </a>
               <button
                 onClick={() => {
                   logout()
-                  window.location.href = '/auth'
+                  window.location.href = 'http://localhost:4173/auth.html'
                 }}
                 style={navbarStyles.signOutBtn}
               >
                 Sign Out
               </button>
-            </>
-          ) : (
-            <a href="/auth" style={navbarStyles.signInBtn}>
-              Sign In
-            </a>
+            </div>
           )}
         </div>
 

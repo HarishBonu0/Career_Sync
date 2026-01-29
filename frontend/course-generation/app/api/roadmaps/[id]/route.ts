@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRoadmapDeep } from '../../../../../db/queries/roadmaps'
+import { getRoadmapDeep } from '@/lib/db-queries'
 
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
   try {
