@@ -226,10 +226,6 @@
             border: 1px solid var(--border-light);
             border-radius: 8px;
             margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            cursor: pointer;
             transition: all 0.2s;
         }
 
@@ -243,11 +239,20 @@
             background: #F0FDF4;
         }
 
+        .topic-item-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+
         .topic-checkbox {
             width: 24px;
             height: 24px;
             cursor: pointer;
             accent-color: var(--brand-primary);
+            flex-shrink: 0;
+            margin-top: 2px;
         }
 
         .topic-content {
@@ -255,18 +260,92 @@
         }
 
         .topic-title {
-            font-weight: 500;
+            font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 4px;
+            font-size: 15px;
         }
 
         .topic-item.completed .topic-title {
             color: var(--success-color);
         }
 
+        .topic-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-top: 8px;
+        }
+
         .topic-duration {
             font-size: 13px;
             color: var(--text-tertiary);
+        }
+
+        .module-content {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+            margin-bottom: 24px;
+        }
+
+        .module-content h3 {
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        .module-content p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .module-content ul, .module-content ol {
+            margin-left: 20px;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
+
+        .module-content li {
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+
+        .reading-materials {
+            margin-top: 24px;
+        }
+
+        .reading-item {
+            padding: 12px 16px;
+            background: #F0F9FF;
+            border-left: 3px solid #3B82F6;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .reading-item-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .reading-item-meta {
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        .reading-item-link {
+            color: var(--brand-primary);
+            text-decoration: none;
+            font-size: 13px;
+            margin-top: 4px;
+            display: inline-block;
+        }
+
+        .reading-item-link:hover {
+            text-decoration: underline;
         }
 
         .activities-section {
@@ -522,59 +601,160 @@
                 <span>⏱️ ${module.duration || 'Duration not set'}</span>
             `;
 
-            // Update body
+            // Update body with rich content
             const contentBody = document.getElementById('content-body');
             const topics = module.topics || [];
             const activities = module.activities || [];
+            const readingMaterials = module.readingMaterials || [];
             
-            contentBody.innerHTML = `
-                ${module.description ? `<div class="module-description">${module.description}</div>` : ''}
+            let contentHTML = '';
+
+            // Module description
+            if (module.description) {
+                contentHTML += `<div class="module-description">${module.description}</div>`;
+            }
+
+            // Main module content (if available)
+            if (module.content) {
+                contentHTML += `<div class="module-content">${formatModuleContent(module.content)}</div>`;
+            }
+
+            // Topics section
+            if (topics.length > 0) {
+                contentHTML += `<div class="topics-section">
+                    <div class="section-title">📝 Topics to Learn</div>`;
                 
-                ${topics.length > 0 ? `
-                    <div class="topics-section">
-                        <div class="section-title">📝 Topics to Learn</div>
-                        ${topics.map((topic, topicIndex) => {
-                            const topicId = `topic_${topicIndex}`;
-                            const isCompleted = isTopicCompleted(courseId, moduleId, topicId);
-                            return `
-                                <div class="topic-item ${isCompleted ? 'completed' : ''}" id="topic-${topicIndex}">
-                                    <input 
-                                        type="checkbox" 
-                                        class="topic-checkbox"
-                                        ${isCompleted ? 'checked' : ''}
-                                        onchange="toggleTopicCompletion('${courseId}', '${moduleId}', '${topicId}', this.checked)"
-                                    >
-                                    <div class="topic-content">
-                                        <div class="topic-title">${topic}</div>
-                                    </div>
+                topics.forEach((topic, topicIndex) => {
+                    const topicId = `topic_${topicIndex}`;
+                    const isCompleted = isTopicCompleted(courseId, moduleId, topicId);
+                    
+                    // Handle both string topics and object topics
+                    const topicTitle = typeof topic === 'string' ? topic : (topic.title || topic.name || `Topic ${topicIndex + 1}`);
+                    const topicDesc = typeof topic === 'object' ? (topic.description || topic.content || '') : '';
+                    
+                    contentHTML += `
+                        <div class="topic-item ${isCompleted ? 'completed' : ''}" id="topic-${topicIndex}">
+                            <div class="topic-item-header">
+                                <input 
+                                    type="checkbox" 
+                                    class="topic-checkbox"
+                                    ${isCompleted ? 'checked' : ''}
+                                    onchange="toggleTopicCompletion('${courseId}', '${moduleId}', '${topicId}', this.checked)"
+                                >
+                                <div class="topic-content">
+                                    <div class="topic-title">${topicTitle}</div>
+                                    ${topicDesc ? `<div class="topic-description">${topicDesc}</div>` : ''}
                                 </div>
-                            `;
-                        }).join('')}
-                    </div>
-                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                contentHTML += `</div>`;
+            }
 
-                ${activities.length > 0 ? `
-                    <div class="activities-section">
-                        <div class="section-title">🎯 Activities</div>
-                        ${activities.map(activity => `
-                            <div class="activity-item">${activity}</div>
-                        `).join('')}
-                    </div>
-                ` : ''}
+            // Activities section
+            if (activities.length > 0) {
+                contentHTML += `<div class="activities-section">
+                    <div class="section-title">🎯 Activities & Exercises</div>`;
+                
+                activities.forEach(activity => {
+                    const activityText = typeof activity === 'string' ? activity : (activity.title || activity.description || 'Activity');
+                    contentHTML += `<div class="activity-item">${activityText}</div>`;
+                });
+                
+                contentHTML += `</div>`;
+            }
 
-                ${module.project ? `
+            // Project section
+            if (module.project) {
+                const projectText = typeof module.project === 'string' ? module.project : (module.project.description || module.project.title || 'Project');
+                contentHTML += `
                     <div class="activities-section">
-                        <div class="section-title">🚀 Project</div>
+                        <div class="section-title">🚀 Module Project</div>
                         <div class="activity-item" style="background: #F0F9FF; border-left-color: #3B82F6;">
-                            ${module.project}
+                            ${projectText}
                         </div>
                     </div>
-                ` : ''}
-            `;
+                `;
+            }
+
+            // Assessment section
+            if (module.assessment) {
+                const assessmentText = typeof module.assessment === 'string' ? module.assessment : (module.assessment.description || 'Assessment available');
+                contentHTML += `
+                    <div class="activities-section">
+                        <div class="section-title">✅ Assessment</div>
+                        <div class="activity-item" style="background: #FEF3C7; border-left-color: #F59E0B;">
+                            ${assessmentText}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Reading materials section
+            if (readingMaterials.length > 0) {
+                contentHTML += `<div class="reading-materials">
+                    <div class="section-title">📖 Reading Materials</div>`;
+                
+                readingMaterials.forEach((material, idx) => {
+                    const title = material.title || `Reading Material ${idx + 1}`;
+                    const source = material.source || '';
+                    const url = material.url || '#';
+                    const difficulty = material.difficulty || '';
+                    const readTime = material.estimatedReadTime || material.readTime || '';
+                    
+                    contentHTML += `
+                        <div class="reading-item">
+                            <div class="reading-item-title">${title}</div>
+                            ${source ? `<div class="reading-item-meta">📚 Source: ${source}</div>` : ''}
+                            ${difficulty ? `<div class="reading-item-meta">📊 Level: ${difficulty}</div>` : ''}
+                            ${readTime ? `<div class="reading-item-meta">⏱️ ${readTime}</div>` : ''}
+                            ${url !== '#' ? `<a href="${url}" target="_blank" class="reading-item-link">Open Resource →</a>` : ''}
+                        </div>
+                    `;
+                });
+                
+                contentHTML += `</div>`;
+            }
+
+            // If no content at all
+            if (!contentHTML) {
+                contentHTML = `
+                    <div class="empty-state">
+                        <h3>No content available for this module yet</h3>
+                        <p>Content will be added soon.</p>
+                    </div>
+                `;
+            }
+
+            contentBody.innerHTML = contentHTML;
 
             // Update navigation buttons
             document.getElementById('prev-btn').disabled = index === 0;
             document.getElementById('next-btn').disabled = index === modules.length - 1;
+        }
+
+        // Format module content (convert line breaks, lists, etc.)
+        function formatModuleContent(content) {
+            if (!content) return '';
+            
+            // If content is already HTML-like, return as is
+            if (content.includes('<')) return content;
+            
+            // Convert markdown-style formatting to HTML
+            let formatted = content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+            
+            // Wrap in paragraph tags if not already wrapped
+            if (!formatted.startsWith('<')) {
+                formatted = `<p>${formatted}</p>`;
+            }
+            
+            return formatted;
         }
 
         function navigateToPrevious() {
