@@ -97,11 +97,7 @@ const userSchema = new mongoose.Schema({
   timestamps: true 
 });
 
-<<<<<<< HEAD
-// Indexes (email index removed - already unique in schema)
-=======
 // Indexes
->>>>>>> karu
 userSchema.index({ status: 1 });
 userSchema.index({ createdAt: 1 });
 
