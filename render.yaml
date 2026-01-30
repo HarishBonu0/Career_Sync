@@ -80,3 +80,18 @@ services:
         sync: false
       - key: NPM_CONFIG_PRODUCTION
         value: "false"
+  # Test Generation / Evaluator Frontend
+  - type: web
+    name: careersync-evaluator
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd frontend/test-generation && npm install --include=dev && npm run build
+    startCommand: cd frontend/test-generation && npm run preview -- --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: VITE_API_URL
+        value: https://careersync-backend.onrender.com
+      - key: VITE_GEMINI_API_KEY
+        sync: false
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"

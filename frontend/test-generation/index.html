@@ -3,8 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Career Sync | Skill Evaluator</title>
+    <title>careersync | Skill Evaluator</title>
     <link rel="stylesheet" href="styles.css">
+    <script>
+        // Auto-update URLs based on environment (localhost vs Render)
+        window.getModuleUrls = function() {
+            const isProduction = window.location.hostname.includes('onrender.com');
+            if (isProduction) {
+                const hostname = window.location.hostname;
+                const baseUrl = hostname.replace(/^[^.]+\./, '');
+                return {
+                    course: `https://careersync-course-gen.${baseUrl}`,
+                    roadmap: `https://careersync-roadmap.${baseUrl}`,
+                    skillEval: `https://careersync-evaluator.${baseUrl}`,
+                    backend: `https://careersync-backend.${baseUrl}`
+                };
+            }
+            return {
+                course: 'http://localhost:3002',
+                roadmap: 'http://localhost:5173',
+                skillEval: 'http://localhost:3001',
+                backend: 'http://localhost:5000'
+            };
+        };
+    </script>
 </head>
 <body>
     <!-- Shared Header Component - Injected at body start -->

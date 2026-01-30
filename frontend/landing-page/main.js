@@ -1,16 +1,13 @@
 import { api } from './scripts/api.js';
 import { getCurrentUser, logout } from '../shared/auth.js';
+import { getModuleUrls } from '../shared/module-config.js';
 
 // Initialize header component
 import '../shared/header-component.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Module Links Configuration
-    const defaultModuleLinks = {
-        course: 'http://localhost:3002',
-        roadmap: 'http://localhost:5173',
-        skillEval: 'http://localhost:3001'
-    };
+    // Module Links Configuration - Dynamic based on environment
+    const defaultModuleLinks = getModuleUrls();
 
     const MODULE_LINKS = { ...defaultModuleLinks, ...(window.careersync_MODULE_URLS || {}) };
 

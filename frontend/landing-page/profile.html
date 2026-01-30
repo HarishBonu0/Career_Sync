@@ -7,6 +7,29 @@
     <title>careersync | My Profile</title>
     <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%234F46E5'/%3E%3Ccircle cx='16' cy='16' r='6' fill='white'/%3E%3C/svg%3E">
+    <script>
+        // Global module URL helper - detects environment and provides correct URLs
+        window.getModuleUrls = function() {
+            const isProduction = window.location.hostname.includes('onrender.com');
+            if (isProduction) {
+                const baseUrl = window.location.hostname.replace(/^[^.]+\./, '');
+                return {
+                    course: `https://careersync-course-gen.${baseUrl}`,
+                    roadmap: `https://careersync-roadmap.${baseUrl}`,
+                    skillEval: `https://careersync-evaluator.${baseUrl}`,
+                    backend: `https://careersync-backend.${baseUrl}`,
+                    landing: `https://careersync-landing.${baseUrl}`
+                };
+            }
+            return {
+                course: 'http://localhost:3002',
+                roadmap: 'http://localhost:5173',
+                skillEval: 'http://localhost:3001',
+                backend: 'http://localhost:5000',
+                landing: 'http://localhost:4173'
+            };
+        };
+    </script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -1201,7 +1224,7 @@
                             <p style="margin-bottom: 24px; color: var(--text-secondary);">
                                 You need to be logged in to view your profile.
                             </p>
-                            <a href="http://localhost:4173/auth.html" 
+                            <a href="' + getModuleUrls().landing + '/auth.html" 
                                style="display: inline-block; padding: 12px 24px; background: var(--brand-primary); 
                                       color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
                                 Go to Login
@@ -1443,7 +1466,7 @@
                 console.log('🎯 Final window.courseData:', window.courseData);
                 console.log('📊 Stored course IDs:', Object.keys(window.courseData));
             } else {
-                courseContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No courses yet</div><a href="http://localhost:3002" class="action-btn primary">Create Course</a></div>';
+                courseContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No courses yet</div><a href="' + getModuleUrls().course + '" class="action-btn primary">Create Course</a></div>';
             }
 
             renderRoadmaps(roadmaps);
@@ -1482,7 +1505,7 @@
                     </div>
                 `).join('');
             } else {
-                roadmapContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No roadmaps yet</div><a href="http://localhost:5173" class="action-btn primary">Create Roadmap</a></div>';
+                roadmapContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No roadmaps yet</div><a href="' + getModuleUrls().roadmap + '" class="action-btn primary">Create Roadmap</a></div>';
             }
         }
 
@@ -1522,7 +1545,7 @@
                     `;
                 }).join('');
             } else {
-                evalContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No evaluations yet</div><a href="http://localhost:3001" class="action-btn primary">Take Test</a></div>';
+                evalContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No evaluations yet</div><a href="' + getModuleUrls().skillEval + '" class="action-btn primary">Take Test</a></div>';
             }
         }
 

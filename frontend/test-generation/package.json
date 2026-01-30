@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node serve.js",
     "serve": "node serve.js",
-    "build": "react-scripts build",
+    "build": "echo 'Static site - no build needed'",
+    "preview": "node serve.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "server": "cd backend && npm run dev",
