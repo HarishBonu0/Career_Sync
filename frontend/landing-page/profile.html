@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Career Sync | My Profile</title>
+    <title>careersync | My Profile</title>
     <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%234F46E5'/%3E%3Ccircle cx='16' cy='16' r='6' fill='white'/%3E%3C/svg%3E">
 
@@ -36,7 +36,7 @@
             min-height: 100vh;
         }
 
-        .Career Sync-header {
+        .careersync-header {
             position: sticky;
             top: 0;
             z-index: 100;
@@ -47,7 +47,7 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
-        .Career Sync-header-container {
+        .careersync-header-container {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -57,7 +57,7 @@
             height: 100%;
         }
 
-        .Career Sync-brand {
+        .careersync-brand {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -67,7 +67,7 @@
             font-weight: 700;
         }
 
-        .Career Sync-brand-icon {
+        .careersync-brand-icon {
             width: 28px;
             height: 28px;
             border-radius: 6px;
@@ -80,14 +80,14 @@
             font-size: 0.75rem;
         }
 
-        .Career Sync-nav-links {
+        .careersync-nav-links {
             display: flex;
             gap: 32px;
             flex: 1;
             justify-content: center;
         }
 
-        .Career Sync-nav-link {
+        .careersync-nav-link {
             color: var(--text-secondary);
             font-weight: 500;
             text-decoration: none;
@@ -95,17 +95,17 @@
             transition: color 0.2s;
         }
 
-        .Career Sync-nav-link:hover {
+        .careersync-nav-link:hover {
             color: var(--brand-primary);
         }
 
-        .Career Sync-nav-auth {
+        .careersync-nav-auth {
             display: flex;
             gap: 16px;
             align-items: center;
         }
 
-        .Career Sync-btn {
+        .careersync-btn {
             padding: 10px 20px;
             border: none;
             border-radius: 6px;
@@ -116,12 +116,12 @@
             transition: all 0.2s;
         }
 
-        .Career Sync-btn-secondary {
+        .careersync-btn-secondary {
             background: rgba(79, 70, 229, 0.1);
             color: var(--brand-primary);
         }
 
-        .Career Sync-btn-secondary:hover {
+        .careersync-btn-secondary:hover {
             background: rgba(79, 70, 229, 0.2);
         }
 
@@ -490,7 +490,7 @@
                 grid-template-columns: 1fr;
             }
 
-            .Career Sync-nav-links {
+            .careersync-nav-links {
                 display: none;
             }
         }
@@ -587,14 +587,216 @@
                 </div>
             </div>
         </div>
+        <!-- Modal for viewing course modules -->
+        <div id="modules-modal" class="modules-modal" style="display: none;">
+            <div class="modules-modal-content">
+                <div class="modules-modal-header">
+                    <h2 id="modules-title"></h2>
+                    <button class="modules-close-btn" onclick="closeModulesModal()">&times;</button>
+                </div>
+                <div class="modules-modal-body">
+                    <div id="modules-list"></div>
+                </div>
+                <div class="modules-modal-footer">
+                    <button class="btn-close-modal" onclick="closeModulesModal()">Close</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Debug button -->
+        <button id="debug-modal-btn" onclick="testModalDisplay()" style="position: fixed; bottom: 20px; right: 20px; padding: 10px 15px; background: #FF6B6B; color: white; border: none; border-radius: 5px; cursor: pointer; z-index: 999;">Test Modal</button>
     </main>
 
+    <style>
+        .modules-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modules-modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modules-modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.02) 0%, rgba(124, 58, 237, 0.02) 100%);
+        }
+
+        .modules-modal-header h2 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 1.375rem;
+        }
+
+        .modules-close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--text-tertiary);
+            transition: color 0.2s;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modules-close-btn:hover {
+            color: var(--text-primary);
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 6px;
+        }
+
+        .modules-modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modules-modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+            background: #FAFBFC;
+        }
+
+        .module-item {
+            padding: 20px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            background: white;
+            transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .module-item:hover {
+            border-color: var(--brand-primary);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+        }
+
+        .module-item.completed {
+            border-color: #10B981;
+            background: #F0FDF4;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+        }
+
+        .module-item-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            gap: 12px;
+        }
+
+        .module-item-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 4px 0;
+            font-size: 15px;
+        }
+
+        .module-completion-checkbox {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            accent-color: var(--brand-primary);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .module-item-meta {
+            font-size: 0.8125rem;
+            color: var(--text-tertiary);
+            margin: 0;
+        }
+
+        .module-item-description {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin: 8px 0 0 0;
+            line-height: 1.4;
+        }
+
+        .modules-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn-close-modal {
+            padding: 10px 20px;
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-close-modal:hover {
+            background: var(--brand-secondary);
+        }
+    </style>
+
     <script>
+        // Initialize global course data storage at the very beginning
+        if (!window.courseData) {
+            window.courseData = {};
+            console.log('✅ Initialized window.courseData');
+        }
+        
         // Debug logging
         console.log('Profile page loaded');
         console.log('LocalStorage keys:', Object.keys(localStorage));
-        console.log('Career Sync_user:', localStorage.getItem('Career Sync_user'));
-        console.log('Career Sync_token:', localStorage.getItem('Career Sync_token'));
+        console.log('careersync_user:', localStorage.getItem('careersync_user'));
+        console.log('careersync_token:', localStorage.getItem('careersync_token'));
         console.log('Cookies:', document.cookie);
 
         // Helper function to get cookie value
@@ -605,14 +807,350 @@
             return null;
         }
 
+        // ==================== MODULE COMPLETION TRACKING ====================
+        
+        /**
+         * Get the storage key for a course's completed modules
+         */
+        function getCompletedModulesKey(courseId) {
+            return `careersync_course_${courseId}_completed_modules`;
+        }
+
+        /**
+         * Get list of completed module IDs for a course
+         */
+        function getCompletedModules(courseId) {
+            const key = getCompletedModulesKey(courseId);
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : [];
+        }
+
+        /**
+         * Get count of completed modules
+         */
+        function getCompletedModulesCount(courseId) {
+            return getCompletedModules(courseId).length;
+        }
+
+        /**
+         * Mark a module as completed
+         */
+        function markModuleCompleted(courseId, moduleId) {
+            const completed = getCompletedModules(courseId);
+            if (!completed.includes(moduleId)) {
+                completed.push(moduleId);
+                const key = getCompletedModulesKey(courseId);
+                localStorage.setItem(key, JSON.stringify(completed));
+                console.log(`✅ Module marked completed: ${moduleId}`);
+                // Refresh profile to update percentages
+                location.reload();
+            }
+        }
+
+        /**
+         * Unmark a module as completed
+         */
+        function unmarkModuleCompleted(courseId, moduleId) {
+            const completed = getCompletedModules(courseId);
+            const index = completed.indexOf(moduleId);
+            if (index > -1) {
+                completed.splice(index, 1);
+                const key = getCompletedModulesKey(courseId);
+                localStorage.setItem(key, JSON.stringify(completed));
+                console.log(`❌ Module unmarked: ${moduleId}`);
+                // Refresh profile to update percentages
+                location.reload();
+            }
+        }
+
+        /**
+         * Check if a module is completed
+         */
+        function isModuleCompleted(courseId, moduleId) {
+            return getCompletedModules(courseId).includes(moduleId);
+        }
+
+        /**
+         * Navigate to course viewer and pass full course data
+         */
+        function navigateToCourseViewer(courseId) {
+            console.log('🚀 Navigating to course viewer for:', courseId);
+            
+            if (window.courseData && window.courseData[courseId]) {
+                const courseInfo = window.courseData[courseId];
+                console.log('📚 Passing course data:', courseInfo);
+                
+                // Store the full course object in localStorage for the viewer
+                localStorage.setItem('careersync_current_course_id', courseId);
+                localStorage.setItem('careersync_current_course_data', JSON.stringify(courseInfo));
+                
+                // Navigate to course viewer
+                window.location.href = `course-viewer.html?courseId=${courseId}`;
+            } else {
+                console.error('❌ Course data not found for:', courseId);
+                alert('Course data not available');
+            }
+        }
+
+        /**
+         * Open modules modal using stored course data
+         */
+        function openModulesFromStorage(courseId) {
+            console.log('🔍 openModulesFromStorage called');
+            console.log('  courseId:', courseId);
+            console.log('  window.courseData:', window.courseData);
+            console.log('  Available courseIds:', Object.keys(window.courseData || {}));
+            
+            if (!window.courseData) {
+                window.courseData = {};
+            }
+            
+            if (window.courseData && window.courseData[courseId]) {
+                const courseInfo = window.courseData[courseId];
+                console.log('✅ Found course info:', courseInfo);
+                console.log('📚 Modules count:', courseInfo.modules ? courseInfo.modules.length : 0);
+                if (courseInfo.modules && courseInfo.modules.length > 0) {
+                    console.log('First module:', courseInfo.modules[0]);
+                }
+                openModulesModal(courseId, courseInfo.title, courseInfo.modules);
+            } else {
+                console.error('❌ Course data not found for:', courseId);
+                console.error('Available keys:', Object.keys(window.courseData || {}));
+                alert('Course data not available. Please refresh the page.');
+            }
+        }
+
+        /**
+         * Open modules modal and display course modules with detailed content
+         */
+        function openModulesModal(courseId, courseTitle, modulesData) {
+            console.log('🎯 openModulesModal called');
+            console.log('  courseId:', courseId);
+            console.log('  courseTitle:', courseTitle);
+            console.log('  modulesData:', modulesData);
+            
+            const modal = document.getElementById('modules-modal');
+            const titleElement = document.getElementById('modules-title');
+            const listElement = document.getElementById('modules-list');
+
+            titleElement.textContent = `📚 ${courseTitle}`;
+
+            // Ensure modulesData is an array
+            const modules = Array.isArray(modulesData) ? modulesData : [];
+            const completedModules = getCompletedModules(courseId);
+            
+            console.log('📊 Module count:', modules.length);
+            console.log('✅ Completed modules:', completedModules);
+
+            if (modules.length === 0) {
+                listElement.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-tertiary);">No modules available for this course</div>';
+            } else {
+                listElement.innerHTML = modules.map((module, index) => {
+                    const moduleId = module.id || module._id || `module_${index}`;
+                    const isCompleted = completedModules.includes(moduleId);
+                    
+                    // Extract content details
+                    const topics = module.topics || [];
+                    const activities = module.activities || [];
+                    const readingMaterials = module.readingMaterials || [];
+                    const youtubeLinks = module.youtubeLinks || [];
+                    const project = module.project;
+                    const assessment = module.assessment;
+                    
+                    // Count total items to complete
+                    const totalItems = topics.length + activities.length + readingMaterials.length + youtubeLinks.length + (project ? 1 : 0) + (assessment ? 1 : 0);
+                    
+                    return `
+                        <div class="module-item ${isCompleted ? 'completed' : ''}" style="border-left: 4px solid ${isCompleted ? '#10B981' : '#4F46E5'};">
+                            <div class="module-item-header">
+                                <div style="flex: 1;">
+                                    <p class="module-item-title">${module.title || `Module ${index + 1}`}</p>
+                                    <p class="module-item-meta">${module.duration || 'Duration not specified'} • ${totalItems} items</p>
+                                    ${module.description ? `<p class="module-item-description">${module.description}</p>` : ''}
+                                </div>
+                                <input 
+                                    type="checkbox" 
+                                    class="module-completion-checkbox"
+                                    ${isCompleted ? 'checked' : ''}
+                                    onchange="handleModuleCheckbox(this, '${courseId}', '${moduleId}')"
+                                    title="Mark as completed"
+                                >
+                            </div>
+                            
+                            <!-- Module Content Details -->
+                            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E2E8F0;">
+                                ${topics.length > 0 ? `
+                                    <div style="margin-bottom: 12px;">
+                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">📝 Topics (${topics.length})</p>
+                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px;">
+                                            ${topics.map((topic, topicIdx) => `
+                                                <div style="padding: 8px 0; border-bottom: ${topicIdx < topics.length - 1 ? '1px solid #E2E8F0' : 'none'}; font-size: 13px; color: #475569;">
+                                                    ${typeof topic === 'object' ? `
+                                                        <strong>${topic.name || topic.title || 'Topic ' + (topicIdx + 1)}</strong>
+                                                        ${topic.description ? `<div style="color: #94A3B8; margin-top: 4px;">${topic.description}</div>` : ''}
+                                                    ` : `
+                                                        ✓ ${topic}
+                                                    `}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${activities.length > 0 ? `
+                                    <div style="margin-bottom: 12px;">
+                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">🎯 Activities (${activities.length})</p>
+                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px;">
+                                            ${activities.map((activity, actIdx) => `
+                                                <div style="padding: 8px 0; border-bottom: ${actIdx < activities.length - 1 ? '1px solid #E2E8F0' : 'none'}; font-size: 13px; color: #475569;">
+                                                    ${typeof activity === 'object' ? `
+                                                        <strong>${activity.name || activity.title || 'Activity ' + (actIdx + 1)}</strong>
+                                                        ${activity.description ? `<div style="color: #94A3B8; margin-top: 4px;">${activity.description}</div>` : ''}
+                                                        ${activity.type ? `<div style="color: #94A3B8; margin-top: 4px; font-size: 12px;">Type: ${activity.type}</div>` : ''}
+                                                    ` : `
+                                                        ✓ ${activity}
+                                                    `}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${readingMaterials.length > 0 ? `
+                                    <div style="margin-bottom: 12px;">
+                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">📖 Reading Materials (${readingMaterials.length})</p>
+                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px;">
+                                            ${readingMaterials.map((material, matIdx) => `
+                                                <div style="padding: 8px 0; border-bottom: ${matIdx < readingMaterials.length - 1 ? '1px solid #E2E8F0' : 'none'}; font-size: 13px;">
+                                                    ${material.url ? `
+                                                        <a href="${material.url}" target="_blank" style="color: #4F46E5; text-decoration: none; font-weight: 500;">
+                                                            ${material.title || 'Reading Material'}
+                                                        </a>
+                                                    ` : `
+                                                        <strong style="color: #0F172A;">${material.title || 'Reading Material'}</strong>
+                                                    `}
+                                                    ${material.source ? `<div style="color: #94A3B8; margin-top: 4px; font-size: 12px;">Source: ${material.source}</div>` : ''}
+                                                    ${material.estimatedReadTime ? `<div style="color: #94A3B8; margin-top: 2px; font-size: 12px;">⏱️ ${material.estimatedReadTime}</div>` : ''}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${youtubeLinks.length > 0 ? `
+                                    <div style="margin-bottom: 12px;">
+                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">🎥 Video Resources (${youtubeLinks.length})</p>
+                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px;">
+                                            ${youtubeLinks.map((link, vidIdx) => `
+                                                <div style="padding: 8px 0; border-bottom: ${vidIdx < youtubeLinks.length - 1 ? '1px solid #E2E8F0' : 'none'}; font-size: 13px;">
+                                                    ${link.url ? `
+                                                        <a href="${link.url}" target="_blank" style="color: #DC2626; text-decoration: none; font-weight: 500;">
+                                                            🎬 ${link.title || 'Watch Video'}
+                                                        </a>
+                                                    ` : `
+                                                        <strong style="color: #0F172A;">${link.title || 'Video'}</strong>
+                                                    `}
+                                                    ${link.duration ? `<div style="color: #94A3B8; margin-top: 4px; font-size: 12px;">Duration: ${link.duration}</div>` : ''}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${project ? `
+                                    <div style="margin-bottom: 12px;">
+                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">🚀 Project</p>
+                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 3px solid #F59E0B;">
+                                            <strong style="color: #0F172A;">${project.title || project.name || 'Project'}</strong>
+                                            ${project.description ? `<div style="color: #475569; margin-top: 6px; font-size: 13px;">${project.description}</div>` : ''}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${assessment ? `
+                                    <div style="margin-bottom: 0;">
+                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">✅ Assessment</p>
+                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 3px solid #10B981;">
+                                            <strong style="color: #0F172A;">${assessment.title || assessment.name || 'Assessment'}</strong>
+                                            ${assessment.description ? `<div style="color: #475569; margin-top: 6px; font-size: 13px;">${assessment.description}</div>` : ''}
+                                            ${assessment.type ? `<div style="color: #94A3B8; margin-top: 6px; font-size: 12px;">Type: ${assessment.type}</div>` : ''}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            console.log('📋 Modal HTML content length:', listElement.innerHTML.length);
+            console.log('🎨 Setting modal display to flex');
+            
+            // Make absolutely sure the modal is visible
+            modal.style.display = 'flex';
+            modal.style.visibility = 'visible';
+            modal.style.opacity = '1';
+            modal.classList.remove('hidden');
+            
+            // Force reflow to ensure rendering
+            modal.offsetHeight;
+            
+            console.log('✅ Modal should now be visible!');
+            console.log('Modal element:', modal);
+            console.log('Modal display style:', window.getComputedStyle(modal).display);
+            console.log('Modal visibility:', window.getComputedStyle(modal).visibility);
+        }
+
+        /**
+         * Handle module checkbox change
+         */
+        function handleModuleCheckbox(checkbox, courseId, moduleId) {
+            if (checkbox.checked) {
+                markModuleCompleted(courseId, moduleId);
+            } else {
+                unmarkModuleCompleted(courseId, moduleId);
+            }
+        }
+
+        /**
+         * Close modules modal
+         */
+        function closeModulesModal() {
+            const modal = document.getElementById('modules-modal');
+            modal.style.display = 'none';
+        }
+
+        /**
+         * Test modal display
+         */
+        function testModalDisplay() {
+            console.log('🧪 Testing modal display...');
+            const modal = document.getElementById('modules-modal');
+            console.log('Modal element:', modal);
+            console.log('Current display:', modal.style.display);
+            modal.style.display = 'flex';
+            console.log('Display changed to:', modal.style.display);
+            console.log('Computed display:', window.getComputedStyle(modal).display);
+        }
+
+        /**
+         * Close modal when clicking outside
+         */
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('modules-modal');
+            if (event.target === modal) {
+                closeModulesModal();
+            }
+        });
+
         async function loadProfile() {
             try {
                 // Check multiple auth storage methods
-                let user = localStorage.getItem('Career Sync_user');
-                let token = localStorage.getItem('Career Sync_token');
+                let user = localStorage.getItem('careersync_user');
+                let token = localStorage.getItem('careersync_token');
                 
                 // Also check cookies (backend sets cookies)
-                const cookieToken = getCookie('Career Sync_token');
+                const cookieToken = getCookie('careersync_token');
                 
                 console.log('Initial auth check - user:', !!user, 'token:', !!token, 'cookieToken:', !!cookieToken);
                 
@@ -622,7 +1160,7 @@
                     console.log('Fallback user check:', !!user);
                 }
                 if (!token) {
-                    token = localStorage.getItem('token') || localStorage.getItem('Career Sync_auth') || cookieToken;
+                    token = localStorage.getItem('token') || localStorage.getItem('careersync_auth') || cookieToken;
                     console.log('Fallback token check:', !!token);
                 }
 
@@ -642,7 +1180,7 @@
                             console.log('Fetched user from backend:', data);
                             if (data.user || data.data) {
                                 user = JSON.stringify(data.user || data.data);
-                                localStorage.setItem('Career Sync_user', user);
+                                localStorage.setItem('careersync_user', user);
                                 token = cookieToken;
                                 console.log('User data stored in localStorage');
                             }
@@ -691,7 +1229,7 @@
                             console.log('Additional backend fetch:', data);
                             if (data.user || data.data) {
                                 user = JSON.stringify(data.user || data.data);
-                                localStorage.setItem('Career Sync_user', user);
+                                localStorage.setItem('careersync_user', user);
                             }
                             console.log('Fetched user from backend');
                         }
@@ -721,9 +1259,9 @@
                 displayCachedProfile(userData);
 
                 // Increment visit count
-                let visitCount = parseInt(localStorage.getItem('Career Sync_profile_visits') || '0');
+                let visitCount = parseInt(localStorage.getItem('careersync_profile_visits') || '0');
                 visitCount++;
-                localStorage.setItem('Career Sync_profile_visits', visitCount.toString());
+                localStorage.setItem('careersync_profile_visits', visitCount.toString());
                 console.log('Profile visit count:', visitCount);
 
                 // Then try to fetch additional data from backend if available
@@ -743,6 +1281,7 @@
                             if (data.success && data.profile) {
                                 // Update with backend data if available
                                 displayProfile(data.profile);
+                                fetchSupplementalProfileData(userId, userData.email || data.profile.email, token);
                             }
                         } else {
                             console.log('Backend response not OK:', response.status);
@@ -778,239 +1317,295 @@
             document.getElementById('profile-full-email').textContent = userData.email || 'No email';
         }
 
-        function displayCachedProfile(profile) {
-            // Handle different profile data structures
-            const name = profile.name || profile.full_name || profile.username || profile.displayName || (profile.email ? profile.email.split('@')[0] : 'User');
-            const email = profile.email || profile.user_email || 'user@example.com';
+        function displayCachedProfile(userData) {
+            // Just show basic user info - don't load data yet
+            const initials = (userData.name || userData.email || 'U').charAt(0).toUpperCase();
+            document.getElementById('profile-avatar-large').textContent = initials;
+            document.getElementById('profile-full-name').textContent = userData.name || 'User';
+            document.getElementById('profile-full-email').textContent = userData.email || 'user@example.com';
+            document.getElementById('profile-full-bio').textContent = userData.bio || 'Welcome to Career Sync';
+            document.getElementById('profile-joined').textContent = 'Recently';
+            document.getElementById('profile-role').textContent = 'Learner';
+            document.getElementById('profile-active-days').textContent = '0 visits';
+
+            // Show loading state
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('profile-content').style.display = 'block';
+        }
+
+        function displayProfile(profileData) {
+            console.log('displayProfile:', profileData);
+            
+            // User Info
+            const name = profileData.name || 'User';
+            const email = profileData.email || 'user@example.com';
             const initials = name.charAt(0).toUpperCase();
-            const displayName = name;
+            
+            document.getElementById('profile-avatar-large').textContent = initials;
+            document.getElementById('profile-full-name').textContent = name;
+            document.getElementById('profile-full-email').textContent = email;
+            document.getElementById('profile-full-bio').textContent = profileData.bio || 'Welcome to Career Sync';
+            document.getElementById('profile-joined').textContent = 'Recently';
+            document.getElementById('profile-role').textContent = 'Learner';
+            
+            // Visit count
+            const visits = localStorage.getItem('careersync_profile_visits') || 0;
+            document.getElementById('profile-active-days').textContent = `${visits} visits`;
 
-            // Update header info safely
-            const avatarEl = document.getElementById('profile-avatar-large');
-            const nameEl = document.getElementById('profile-full-name');
-            const emailEl = document.getElementById('profile-full-email');
-            const bioEl = document.getElementById('profile-full-bio');
-            
-            if (avatarEl) avatarEl.textContent = initials;
-            if (nameEl) nameEl.textContent = displayName;
-            if (emailEl) emailEl.textContent = email;
-            if (bioEl) bioEl.textContent = profile.bio || 'Welcome to Career Sync! Start creating courses, roadmaps, and taking evaluations.';
-            
-            // Show visit count
-            const visitCount = profile.visitCount || localStorage.getItem('Career Sync_profile_visits') || 0;
-            const lastAccessed = profile.lastAccessed ? new Date(profile.lastAccessed).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Today';
-            
-            document.getElementById('profile-joined').textContent = profile.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recently';
-            document.getElementById('profile-role').textContent = profile.role || 'Learner';
-            document.getElementById('profile-active-days').textContent = `${visitCount} visits`;
+            // Get all data: Backend > localStorage > empty
+            const courses = profileData.courses || JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]') || [];
+            const roadmaps = profileData.roadmaps || JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]') || [];
+            const evaluations = profileData.evaluations || JSON.parse(localStorage.getItem('careersync_evaluations') || '[]') || [];
 
-            // Get enrolled courses from localStorage
-            const enrolledCourses = JSON.parse(localStorage.getItem('Career Sync_enrolled_courses') || '[]');
-            const savedRoadmaps = JSON.parse(localStorage.getItem('Career Sync_saved_roadmaps') || '[]');
-            const completedEvaluations = JSON.parse(localStorage.getItem('Career Sync_evaluations') || '[]');
+            // Save courses to localStorage for course-viewer access
+            if (courses.length > 0) {
+                console.log('📚 SAVING COURSES TO LOCALSTORAGE:');
+                console.log('Number of courses:', courses.length);
+                console.log('First course:', JSON.stringify(courses[0], null, 2));
+                if (courses[0] && courses[0].modules && courses[0].modules.length > 0) {
+                    console.log('First module of first course:', JSON.stringify(courses[0].modules[0], null, 2));
+                }
+                localStorage.setItem('careersync_enrolled_courses', JSON.stringify(courses));
+                console.log('✅ Courses saved to localStorage');
+            }
 
             // Update stats
-            document.getElementById('stat-courses').textContent = enrolledCourses.length;
-            document.getElementById('stat-roadmaps').textContent = savedRoadmaps.length;
-            document.getElementById('stat-evaluations').textContent = completedEvaluations.length;
+            document.getElementById('stat-courses').textContent = courses.length;
+            document.getElementById('stat-roadmaps').textContent = roadmaps.length;
+            document.getElementById('stat-evaluations').textContent = evaluations.length;
 
-            // Display courses with progress
-            const coursesContainer = document.getElementById('courses-container');
-            if (enrolledCourses.length > 0) {
-                coursesContainer.innerHTML = enrolledCourses.map(course => {
-                    const progress = course.progress || 0;
-                    const completedModules = course.completedModules || 0;
-                    const totalModules = course.modules || course.totalModules || 10;
+            // Display Courses
+            const courseContainer = document.getElementById('courses-container');
+            if (courses && courses.length > 0) {
+                // Store courses in window for modal access
+                window.courseData = {};
+                console.log('🔄 Storing courses in window.courseData...');
+                
+                courseContainer.innerHTML = courses.map(course => {
+                    const totalModules = (course.modules && course.modules.length) || course.totalModules || 8;
+                    const courseId = course._id || course.id || `course_${course.title}`;
+                    
+                    // Calculate total topics from modules
+                    let totalTopics = course.totalTopics || 0;
+                    if (!totalTopics && course.modules && course.modules.length > 0) {
+                        totalTopics = course.modules.reduce((sum, module) => {
+                            return sum + ((module.topics && module.topics.length) || 0);
+                        }, 0);
+                    }
+                    
+                    // Use saved progress from course-viewer, fallback to module-based calculation
+                    const progressPercentage = course.progress !== undefined ? course.progress : Math.round((getCompletedModulesCount(courseId) / totalModules) * 100);
+                    
+                    // Store course data globally for modal access
+                    window.courseData[courseId] = {
+                        courseId: courseId,
+                        id: courseId,
+                        _id: courseId,
+                        title: course.title,
+                        duration: course.duration,
+                        level: course.level,
+                        modules: course.modules || []
+                    };
+                    
+                    console.log(`✅ Stored course: ${courseId}`);
+                    console.log(`   Modules: ${course.modules ? course.modules.length : 0}`);
                     
                     return `
-                        <div class="item-card">
-                            <div class="item-header">
-                                <div>
-                                    <p class="item-title">${course.title || course.courseName}</p>
-                                    <div class="item-meta">
-                                        <span class="meta-tag">📚 ${totalModules} modules</span>
-                                        <span class="meta-tag">⏱️ ${course.duration || '4 weeks'}</span>
-                                        <span class="meta-tag">📊 ${course.level || 'Intermediate'}</span>
-                                    </div>
-                                </div>
-                                ${progress >= 100 ? '<span class="item-badge">Completed</span>' : ''}
-                            </div>
-                            
-                            <div class="progress-container">
-                                <div class="progress-header">
-                                    <span class="progress-label">${completedModules} of ${totalModules} modules completed</span>
-                                    <span class="progress-percent">${progress}%</span>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: ${progress}%"></div>
+                    <div class="item-card">
+                        <div class="item-header">
+                            <div>
+                                <p class="item-title">${course.title || 'Course'}</p>
+                                <div class="item-meta">
+                                    <span class="meta-tag">📚 ${totalModules} modules</span>
+                                    <span class="meta-tag">⏱️ ${course.duration || '4 weeks'}</span>
+                                    <span class="meta-tag">📊 ${course.level || 'Intermediate'}</span>
                                 </div>
                             </div>
-                            
-                            <div class="item-actions">
-                                <a href="http://localhost:3002" class="btn-continue">
-                                    ${progress > 0 ? '▶️ Continue Learning' : '🚀 Start Course'}
-                                </a>
-                                <a href="http://localhost:3002" class="btn-view">View Details</a>
+                            ${progressPercentage >= 100 ? '<span class="item-badge">Completed</span>' : ''}
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-header">
+                                <span class="progress-label">${course.completedTopics || 0} of ${totalTopics} topics completed</span>
+                                <span class="progress-percent">${progressPercentage}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progressPercentage}%"></div>
                             </div>
                         </div>
-                    `;
-                }).join('');
+                        <div class="item-actions">
+                            <button class="btn-continue" onclick="openModulesFromStorage('${courseId}')">${progressPercentage > 0 ? '▶️ Continue' : '🚀 Start'}</button>
+                            <button class="btn-view" onclick="navigateToCourseViewer('${courseId}')">Open Course</button>
+                        </div>
+                    </div>
+                `}).join('');
+                
+                // Final debug log
+                console.log('🎯 Final window.courseData:', window.courseData);
+                console.log('📊 Stored course IDs:', Object.keys(window.courseData));
             } else {
-                coursesContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No courses enrolled yet</div><a href="http://localhost:3002" class="action-btn primary" style="max-width: 220px; margin: 0 auto;">Generate Your First Course</a></div>';
+                courseContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No courses yet</div><a href="http://localhost:3002" class="action-btn primary">Create Course</a></div>';
             }
 
-            // Display roadmaps
-            const roadmapsContainer = document.getElementById('roadmaps-container');
-            if (savedRoadmaps.length > 0) {
-                roadmapsContainer.innerHTML = savedRoadmaps.map(roadmap => {
-                    const progress = roadmap.progress || 0;
-                    const completedStages = roadmap.completedStages || 0;
-                    const totalStages = roadmap.stages || roadmap.totalStages || 5;
-                    
-                    return `
-                        <div class="item-card">
-                            <div class="item-header">
-                                <div>
-                                    <p class="item-title">${roadmap.title || roadmap.careerGoal}</p>
-                                    <div class="item-meta">
-                                        <span class="meta-tag">🎯 ${roadmap.targetRole || roadmap.title}</span>
-                                        <span class="meta-tag">📍 ${totalStages} stages</span>
-                                        <span class="meta-tag">⏱️ ${roadmap.duration || '6 months'}</span>
-                                    </div>
-                                </div>
-                                ${progress >= 100 ? '<span class="item-badge">Completed</span>' : ''}
-                            </div>
-                            
-                            <div class="progress-container">
-                                <div class="progress-header">
-                                    <span class="progress-label">${completedStages} of ${totalStages} stages completed</span>
-                                    <span class="progress-percent">${progress}%</span>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: ${progress}%"></div>
+            renderRoadmaps(roadmaps);
+            renderEvaluations(evaluations);
+        }
+
+        function renderRoadmaps(roadmaps) {
+            const roadmapContainer = document.getElementById('roadmaps-container');
+            if (roadmaps && roadmaps.length > 0) {
+                roadmapContainer.innerHTML = roadmaps.map(roadmap => `
+                    <div class="item-card">
+                        <div class="item-header">
+                            <div>
+                                <p class="item-title">${roadmap.title || 'Roadmap'}</p>
+                                <div class="item-meta">
+                                    <span class="meta-tag">🎯 ${roadmap.targetRole || 'Career Path'}</span>
+                                    <span class="meta-tag">📍 ${(roadmap.stages && roadmap.stages.length) || roadmap.stages || 5} stages</span>
+                                    <span class="meta-tag">⏱️ ${roadmap.duration || roadmap.timeline || '6 months'}</span>
                                 </div>
                             </div>
-                            
-                            <div class="item-actions">
-                                <a href="http://localhost:5173" class="btn-continue">
-                                    ${progress > 0 ? '▶️ Continue Roadmap' : '🚀 Start Roadmap'}
-                                </a>
-                                <a href="http://localhost:5173" class="btn-view">View Details</a>
+                            ${(roadmap.progress || 0) >= 100 ? '<span class="item-badge">Completed</span>' : ''}
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-header">
+                                <span class="progress-label">${Math.floor(((roadmap.progress || 0) / 100) * ((roadmap.stages && roadmap.stages.length) || roadmap.stages || 5))} of ${(roadmap.stages && roadmap.stages.length) || roadmap.stages || 5} completed</span>
+                                <span class="progress-percent">${roadmap.progress || 0}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${roadmap.progress || 0}%"></div>
                             </div>
                         </div>
-                    `;
-                }).join('');
+                        <div class="item-actions">
+                            <a href="http://localhost:5173" class="btn-continue">${(roadmap.progress || 0) > 0 ? '▶️ Continue' : '🚀 Start'}</a>
+                            <a href="http://localhost:5173" class="btn-view">View</a>
+                        </div>
+                    </div>
+                `).join('');
             } else {
-                roadmapsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No roadmaps created yet</div><a href="http://localhost:5173" class="action-btn primary" style="max-width: 220px; margin: 0 auto;">Create Your First Roadmap</a></div>';
+                roadmapContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No roadmaps yet</div><a href="http://localhost:5173" class="action-btn primary">Create Roadmap</a></div>';
             }
+        }
 
-            // Display skill evaluations
-            const evaluationsContainer = document.getElementById('evaluations-container');
-            if (completedEvaluations.length > 0) {
-                evaluationsContainer.innerHTML = completedEvaluations.map(evaluation => {
-                    const score = evaluation.score || 0;
-                    const totalQuestions = evaluation.totalQuestions || 10;
-                    const correctAnswers = evaluation.correctAnswers || 0;
-                    
+        function renderEvaluations(evaluations) {
+            const evalContainer = document.getElementById('evaluations-container');
+            if (evaluations && evaluations.length > 0) {
+                evalContainer.innerHTML = evaluations.map(evaluation => {
+                    const score = evaluation.score || evaluation.percentage || 0;
+                    const passed = score >= 80;
                     return `
                         <div class="item-card">
                             <div class="item-header">
                                 <div>
-                                    <p class="item-title">${evaluation.topic || evaluation.title}</p>
+                                    <p class="item-title">${evaluation.title || evaluation.skillName || evaluation.topic || 'Evaluation'}</p>
                                     <div class="item-meta">
-                                        <span class="meta-tag">📝 ${totalQuestions} questions</span>
-                                        <span class="meta-tag">✅ ${correctAnswers} correct</span>
-                                        <span class="meta-tag">🕐 ${new Date(evaluation.completedAt || evaluation.createdAt).toLocaleDateString()}</span>
+                                        <span class="meta-tag">📝 ${evaluation.totalQuestions || 10} questions</span>
+                                        <span class="meta-tag">✅ ${evaluation.correctAnswers || 0} correct</span>
+                                        <span class="meta-tag">🕐 ${evaluation.completedAt ? new Date(evaluation.completedAt).toLocaleDateString() : 'Recent'}</span>
                                     </div>
                                 </div>
-                                ${score >= 80 ? '<span class="item-badge" style="background: #10B981;">Passed</span>' : '<span class="item-badge" style="background: #EF4444;">Needs Improvement</span>'}
+                                <span class="item-badge" style="background: ${passed ? '#10B981' : '#EF4444'}">${passed ? 'Passed' : 'Retake'}</span>
                             </div>
-                            
                             <div class="progress-container">
                                 <div class="progress-header">
                                     <span class="progress-label">Score</span>
                                     <span class="progress-percent">${score}%</span>
                                 </div>
                                 <div class="progress-bar">
-                                    <div class="progress-fill" style="width: ${score}%; background: ${score >= 80 ? 'linear-gradient(90deg, #10B981 0%, #059669 100%)' : 'linear-gradient(90deg, #EF4444 0%, #DC2626 100%)'}"></div>
+                                    <div class="progress-fill" style="width: ${score}%; background: ${passed ? 'linear-gradient(90deg, #10B981, #059669)' : 'linear-gradient(90deg, #EF4444, #DC2626)'}"></div>
                                 </div>
                             </div>
-                            
                             <div class="item-actions">
-                                <a href="http://localhost:3001" class="btn-continue">
-                                    ${score < 80 ? '🔄 Retake Test' : '✅ View Results'}
-                                </a>
+                                <a href="http://localhost:3001" class="btn-continue">${passed ? '✅ View' : '🔄 Retake'}</a>
                                 <a href="http://localhost:3001" class="btn-view">New Test</a>
                             </div>
                         </div>
                     `;
                 }).join('');
             } else {
-                evaluationsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No evaluations completed yet</div><a href="http://localhost:3001" class="action-btn primary" style="max-width: 220px; margin: 0 auto;">Take Your First Test</a></div>';
+                evalContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No evaluations yet</div><a href="http://localhost:3001" class="action-btn primary">Take Test</a></div>';
             }
-
-            // Show content, hide loading
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('profile-content').style.display = 'block';
         }
 
-        function displayProfile(profile) {
-            const initials = (profile.name || profile.email).charAt(0).toUpperCase();
+        async function fetchSupplementalProfileData(userId, email, token) {
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers.Authorization = `Bearer ${token}`;
 
-            // Update header info
-            document.getElementById('profile-avatar-large').textContent = initials;
-            document.getElementById('profile-full-name').textContent = profile.name || 'User';
-            document.getElementById('profile-full-email').textContent = profile.email;
-            document.getElementById('profile-full-bio').textContent = profile.bio || 'No bio yet';
-            document.getElementById('profile-joined').textContent = new Date(profile.joinedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-            document.getElementById('profile-role').textContent = profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
+                const query = userId ? `userId=${encodeURIComponent(userId)}` : `userEmail=${encodeURIComponent(email)}`;
+
+                const [roadmapResp, evalResp] = await Promise.all([
+                    fetch(`http://localhost:5000/api/roadmaps?${query}`, { credentials: 'include', headers }),
+                    fetch(`http://localhost:5000/api/skillEval?${query}`, { credentials: 'include', headers })
+                ]);
+
+                if (roadmapResp.ok) {
+                    const roadmapData = await roadmapResp.json();
+                    const roadmaps = roadmapData.roadmaps || roadmapData.data || [];
+                    if (roadmaps.length > 0) {
+                        localStorage.setItem('careersync_saved_roadmaps', JSON.stringify(roadmaps));
+                        renderRoadmaps(roadmaps);
+                    }
+                }
+
+                if (evalResp.ok) {
+                    const evalData = await evalResp.json();
+                    const evaluations = evalData.evaluations || evalData.data || [];
+                    if (evaluations.length > 0) {
+                        localStorage.setItem('careersync_evaluations', JSON.stringify(evaluations));
+                        renderEvaluations(evaluations);
+                    }
+                }
+            } catch (error) {
+                console.log('Supplemental profile fetch failed:', error);
+            }
+        }
+
+        // Refresh profile when page becomes visible (returns from course-viewer)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                console.log('📱 Page returned to focus, refreshing profile...');
+                refreshProfileData();
+            }
+        });
+
+        // Also refresh when navigating back to the page
+        window.addEventListener('pageshow', (event) => {
+            // Fires when navigating back via browser back button
+            if (event.persisted) {
+                console.log('📱 Page loaded from cache, refreshing profile...');
+                refreshProfileData();
+            }
+        });
+
+        // Refresh when window gains focus
+        window.addEventListener('focus', () => {
+            console.log('📱 Window focused, refreshing profile...');
+            refreshProfileData();
+        });
+
+        function refreshProfileData() {
+            const userData = JSON.parse(localStorage.getItem('careersync_user') || '{}');
+            const token = localStorage.getItem('careersync_token');
             
-            // Include visit count in active days
-            const visitCount = localStorage.getItem('Career Sync_profile_visits') || 0;
-            document.getElementById('profile-active-days').textContent = `${profile.stats.activeDays} days | ${visitCount} visits`;
-
-            // Update stats
-            document.getElementById('stat-courses').textContent = profile.stats.totalCourses;
-            document.getElementById('stat-roadmaps').textContent = profile.stats.totalRoadmaps;
-            document.getElementById('stat-evaluations').textContent = profile.stats.totalEvaluations;
-
-            // Display courses
-            const coursesContainer = document.getElementById('courses-container');
-            if (profile.courses && profile.courses.length > 0) {
-                coursesContainer.innerHTML = profile.courses.map(course => `
-                    <div class="item-card">
-                        <p class="item-title">${course.title}</p>
-                        <div class="item-meta">
-                            <span class="meta-tag">${course.level}</span>
-                            <span class="meta-tag">${course.modulesCount} modules</span>
-                            <span class="meta-tag">${course.duration}</span>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                coursesContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No courses created yet</div><a href="http://localhost:3002" class="action-btn primary" style="max-width: 200px; margin: 0 auto;">Create Your First Course</a></div>';
+            if (userData && userData.id) {
+                // Reload courses from localStorage (which may have been updated by course-viewer)
+                const courses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
+                const roadmaps = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
+                const evaluations = JSON.parse(localStorage.getItem('careersync_evaluations') || '[]');
+                
+                console.log('🔄 Refreshing with courses:', courses.map(c => ({
+                    title: c.title,
+                    progress: c.progress,
+                    completedTopics: c.completedTopics,
+                    totalTopics: c.totalTopics
+                })));
+                
+                displayProfile({
+                    courses: courses,
+                    roadmaps: roadmaps,
+                    evaluations: evaluations
+                });
             }
-
-            // Display roadmaps
-            const roadmapsContainer = document.getElementById('roadmaps-container');
-            if (profile.roadmaps && profile.roadmaps.length > 0) {
-                roadmapsContainer.innerHTML = profile.roadmaps.map(roadmap => `
-                    <div class="item-card">
-                        <p class="item-title">${roadmap.title}</p>
-                        <div class="item-meta">
-                            <span class="meta-tag">${roadmap.targetRole}</span>
-                            <span class="meta-tag">${roadmap.progress}% complete</span>
-                            <span class="meta-tag">${roadmap.status}</span>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                roadmapsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No roadmaps created yet</div><a href="http://localhost:5173" class="action-btn primary" style="max-width: 200px; margin: 0 auto;">Create Your First Roadmap</a></div>';
-            }
-
-            // Show content, hide loading
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('profile-content').style.display = 'block';
         }
 
         // Logout handler
@@ -1018,10 +1613,10 @@
             const logoutBtn = document.getElementById('logout-btn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', () => {
-                    localStorage.removeItem('Career Sync_profile_data');
-                    localStorage.removeItem('Career Sync_user');
-                    localStorage.removeItem('Career Sync_token');
-                    localStorage.removeItem('Career Sync_auth');
+                    localStorage.removeItem('careersync_profile_data');
+                    localStorage.removeItem('careersync_user');
+                    localStorage.removeItem('careersync_token');
+                    localStorage.removeItem('careersync_auth');
                     window.location.href = 'http://localhost:4173/auth.html';
                 });
             }
@@ -1029,7 +1624,7 @@
 
         // Initialize sample data for testing if no data exists
         function initializeSampleData() {
-            const courses = JSON.parse(localStorage.getItem('Career Sync_enrolled_courses') || '[]');
+            const courses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
             if (courses.length === 0) {
                 // Add sample courses for demo
                 const sampleCourses = [
@@ -1039,13 +1634,77 @@
                         courseName: 'Full Stack Web Development',
                         level: 'Intermediate',
                         duration: '12 weeks',
-                        modules: 10,
-                        totalModules: 10,
-                        completedModules: 3,
-                        progress: 30,
+                        totalModules: 3,
+                        completedModules: 1,
+                        progress: 33,
                         enrolledAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
                         lastAccessedAt: new Date().toISOString(),
-                        status: 'in-progress'
+                        status: 'in-progress',
+                        modules: [
+                            {
+                                id: 'mod1-1',
+                                title: 'HTML & CSS Fundamentals',
+                                duration: '2 weeks',
+                                description: 'Learn the basics of HTML5 and CSS3 for modern web development',
+                                topics: [
+                                    { name: 'HTML5 Semantic Elements', description: 'Understanding semantic HTML structure' },
+                                    { name: 'CSS Grid & Flexbox', description: 'Modern CSS layout techniques' },
+                                    { name: 'Responsive Design', description: 'Mobile-first design approach' }
+                                ],
+                                activities: [
+                                    { name: 'Build a Personal Portfolio', type: 'Project', description: 'Create a responsive portfolio website' }
+                                ],
+                                readingMaterials: [
+                                    { title: 'MDN Web Docs - HTML', url: 'https://developer.mozilla.org/en-US/docs/Web/HTML', source: 'MDN', estimatedReadTime: '2 hours' }
+                                ],
+                                youtubeLinks: [
+                                    { title: 'HTML Crash Course', url: 'https://youtube.com', duration: '2:30:00' }
+                                ]
+                            },
+                            {
+                                id: 'mod1-2',
+                                title: 'JavaScript Essentials',
+                                duration: '3 weeks',
+                                description: 'Master core JavaScript concepts and ES6+ features',
+                                topics: [
+                                    { name: 'Variables & Data Types', description: 'Understanding JavaScript fundamentals' },
+                                    { name: 'Functions & Arrow Functions', description: 'Function declarations and modern syntax' },
+                                    { name: 'Async/Await & Promises', description: 'Asynchronous programming patterns' }
+                                ],
+                                activities: [
+                                    { name: 'Build a Weather App', type: 'Project', description: 'Create an interactive weather application' }
+                                ],
+                                readingMaterials: [
+                                    { title: 'Eloquent JavaScript', url: 'https://eloquentjavascript.net', source: 'External', estimatedReadTime: '3 hours' }
+                                ],
+                                youtubeLinks: [
+                                    { title: 'JavaScript Complete Tutorial', url: 'https://youtube.com', duration: '3:30:00' }
+                                ],
+                                assessment: { name: 'JavaScript Quiz', title: 'Test Your Knowledge', type: 'Quiz', description: 'Test your understanding of JavaScript concepts' }
+                            },
+                            {
+                                id: 'mod1-3',
+                                title: 'React & Frontend Frameworks',
+                                duration: '4 weeks',
+                                description: 'Build modern web applications with React',
+                                topics: [
+                                    { name: 'React Components & JSX', description: 'Component-based architecture' },
+                                    { name: 'State Management & Hooks', description: 'Using useState, useEffect, and custom hooks' },
+                                    { name: 'React Router & Navigation', description: 'Building single-page applications' }
+                                ],
+                                activities: [
+                                    { name: 'Build an E-commerce App', type: 'Project', description: 'Create a full e-commerce platform with React' }
+                                ],
+                                readingMaterials: [
+                                    { title: 'React Official Documentation', url: 'https://react.dev', source: 'React', estimatedReadTime: '2.5 hours' }
+                                ],
+                                youtubeLinks: [
+                                    { title: 'React Comprehensive Course', url: 'https://youtube.com', duration: '4:00:00' }
+                                ],
+                                project: { name: 'React E-commerce App', title: 'Build E-commerce Platform', description: 'Create a full-stack e-commerce application' },
+                                assessment: { name: 'React Assessment', title: 'React Skills Test', type: 'Exam', description: 'Comprehensive React knowledge test' }
+                            }
+                        ]
                     },
                     {
                         id: 'course-2',
@@ -1053,17 +1712,57 @@
                         courseName: 'Python for Data Science',
                         level: 'Beginner',
                         duration: '8 weeks',
-                        modules: 8,
-                        totalModules: 8,
-                        completedModules: 8,
+                        totalModules: 2,
+                        completedModules: 2,
                         progress: 100,
                         enrolledAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
                         lastAccessedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
                         status: 'completed',
-                        completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+                        completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                        modules: [
+                            {
+                                id: 'mod2-1',
+                                title: 'Python Basics & NumPy',
+                                duration: '2 weeks',
+                                description: 'Get started with Python and numerical computing',
+                                topics: [
+                                    { name: 'Python Syntax & Control Flow', description: 'Fundamentals of Python programming' },
+                                    { name: 'NumPy Arrays & Operations', description: 'Numerical computing with NumPy' }
+                                ],
+                                activities: [
+                                    { name: 'Data Analysis Exercise', type: 'Exercise', description: 'Practice data manipulation' }
+                                ],
+                                readingMaterials: [
+                                    { title: 'NumPy Tutorial', url: 'https://numpy.org', source: 'NumPy', estimatedReadTime: '1.5 hours' }
+                                ],
+                                youtubeLinks: [
+                                    { title: 'Python for Beginners', url: 'https://youtube.com', duration: '2:00:00' }
+                                ]
+                            },
+                            {
+                                id: 'mod2-2',
+                                title: 'Pandas & Data Visualization',
+                                duration: '2 weeks',
+                                description: 'Explore and visualize data with Pandas and Matplotlib',
+                                topics: [
+                                    { name: 'Pandas DataFrames', description: 'Working with tabular data' },
+                                    { name: 'Data Visualization with Matplotlib', description: 'Creating meaningful visualizations' }
+                                ],
+                                activities: [
+                                    { name: 'Create Data Dashboards', type: 'Project', description: 'Build interactive dashboards' }
+                                ],
+                                readingMaterials: [
+                                    { title: 'Pandas Documentation', url: 'https://pandas.pydata.org', source: 'Pandas', estimatedReadTime: '2 hours' }
+                                ],
+                                youtubeLinks: [
+                                    { title: 'Data Visualization Guide', url: 'https://youtube.com', duration: '1:30:00' }
+                                ],
+                                project: { name: 'Data Analysis Project', title: 'Real-World Data Analysis', description: 'Analyze real datasets and create visualizations' }
+                            }
+                        ]
                     }
                 ];
-                localStorage.setItem('Career Sync_enrolled_courses', JSON.stringify(sampleCourses));
+                localStorage.setItem('careersync_enrolled_courses', JSON.stringify(sampleCourses));
                 
                 // Add sample roadmaps
                 const sampleRoadmaps = [
@@ -1082,7 +1781,7 @@
                         status: 'in-progress'
                     }
                 ];
-                localStorage.setItem('Career Sync_saved_roadmaps', JSON.stringify(sampleRoadmaps));
+                localStorage.setItem('careersync_saved_roadmaps', JSON.stringify(sampleRoadmaps));
                 
                 // Add sample evaluations
                 const sampleEvaluations = [
@@ -1107,37 +1806,40 @@
                         timeTaken: '18 min'
                     }
                 ];
-                localStorage.setItem('Career Sync_evaluations', JSON.stringify(sampleEvaluations));
+                localStorage.setItem('careersync_evaluations', JSON.stringify(sampleEvaluations));
                 
                 console.log('Sample data initialized for testing');
             }
         }
 
         // Load profile on page load
-        initializeSampleData(); // Initialize sample data
+        initializeSampleData(); // Initialize sample data as fallback
         loadProfile();
         
         // Auto-refresh profile data every 5 seconds to sync with backend updates
         setInterval(async () => {
             try {
-                let user = localStorage.getItem('Career Sync_user');
-                if (user) {
+                let user = localStorage.getItem('careersync_user');
+                let token = localStorage.getItem('careersync_token');
+                
+                if (user && token) {
                     const userData = JSON.parse(user);
                     const userId = userData.id || userData._id;
                     if (userId) {
                         const response = await fetch(`http://localhost:5000/api/profile/${userId}`, {
                             credentials: 'include',
-                            headers: { 'Content-Type': 'application/json' }
+                            headers: { 
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json' 
+                            }
                         });
                         if (response.ok) {
                             const data = await response.json();
-                            if (data.courses || data.roadmaps || data.evaluations) {
-                                // Update localStorage and refresh display
-                                if (data.courses) localStorage.setItem('Career Sync_enrolled_courses', JSON.stringify(data.courses));
-                                if (data.roadmaps) localStorage.setItem('Career Sync_saved_roadmaps', JSON.stringify(data.roadmaps));
-                                if (data.evaluations) localStorage.setItem('Career Sync_evaluations', JSON.stringify(data.evaluations));
-                                // Refresh profile display
-                                displayCachedProfile(userData);
+                            console.log('Auto-refresh fetched:', data);
+                            if (data.success && data.profile) {
+                                // Display the backend data directly
+                                displayProfile(data.profile);
+                                fetchSupplementalProfileData(userId, data.profile.email, token);
                             }
                         }
                     }
@@ -1152,3 +1854,4 @@
 </body>
 
 </html>
+

@@ -36,7 +36,7 @@ body {
   padding: 0;
 }
 
-.Career Sync-header {
+.careersync-header {
   position: sticky;
   top: 0;
   z-index: 100;
@@ -47,7 +47,7 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-.Career Sync-header-container {
+.careersync-header-container {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -57,7 +57,7 @@ body {
   height: 100%;
 }
 
-.Career Sync-brand {
+.careersync-brand {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -68,11 +68,11 @@ body {
   transition: opacity var(--transition);
 }
 
-.Career Sync-brand:hover {
+.careersync-brand:hover {
   opacity: 0.8;
 }
 
-.Career Sync-brand-icon {
+.careersync-brand-icon {
   width: 28px;
   height: 28px;
   border-radius: 6px;
@@ -85,7 +85,7 @@ body {
   font-size: 0.75rem;
 }
 
-.Career Sync-nav-links {
+.careersync-nav-links {
   display: flex;
   align-items: center;
   gap: 32px;
@@ -93,7 +93,7 @@ body {
   justify-content: center;
 }
 
-.Career Sync-nav-link {
+.careersync-nav-link {
   color: var(--text-secondary);
   font-weight: 500;
   font-size: 0.9rem;
@@ -104,23 +104,23 @@ body {
   border-bottom: 2px solid transparent;
 }
 
-.Career Sync-nav-link:hover {
+.careersync-nav-link:hover {
   color: var(--brand-primary);
   border-bottom-color: var(--brand-primary);
 }
 
-.Career Sync-nav-link.active {
+.careersync-nav-link.active {
   color: var(--brand-primary);
   border-bottom-color: var(--brand-primary);
 }
 
-.Career Sync-nav-auth {
+.careersync-nav-auth {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.Career Sync-btn {
+.careersync-btn {
   padding: 10px 20px;
   border: none;
   border-radius: 6px;
@@ -134,42 +134,42 @@ body {
   gap: 8px;
 }
 
-.Career Sync-btn-primary {
+.careersync-btn-primary {
   background: var(--brand-primary);
   color: white;
   text-decoration: none !important;
 }
 
-.Career Sync-btn-primary:hover {
+.careersync-btn-primary:hover {
   background: var(--brand-secondary);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
-.Career Sync-btn-secondary {
+.careersync-btn-secondary {
   background: var(--bg-light);
   color: var(--brand-primary);
   border: 1px solid var(--border-light);
   text-decoration: none !important;
 }
 
-.Career Sync-btn-secondary:hover {
+.careersync-btn-secondary:hover {
   background: var(--bg-hover);
   border-color: var(--brand-primary);
 }
 
-.Career Sync-btn-danger {
+.careersync-btn-danger {
   background: #EF4444;
   color: white;
   text-decoration: none !important;
 }
 
-.Career Sync-btn-danger:hover {
+.careersync-btn-danger:hover {
   background: #DC2626;
   box-shadow: var(--shadow-md);
 }
 
-.Career Sync-mobile-menu {
+.careersync-mobile-menu {
   display: none;
   background: none;
   border: none;
@@ -180,15 +180,15 @@ body {
 }
 
 @media (max-width: 768px) {
-  .Career Sync-nav-links {
+  .careersync-nav-links {
     display: none;
   }
 
-  .Career Sync-mobile-menu {
+  .careersync-mobile-menu {
     display: block;
   }
 
-  .Career Sync-nav-links.mobile-open {
+  .careersync-nav-links.mobile-open {
     display: flex;
     flex-direction: column;
     position: absolute;
@@ -201,7 +201,7 @@ body {
     gap: 8px;
   }
 
-  .Career Sync-nav-link {
+  .careersync-nav-link {
     padding: 12px;
     border-bottom: none;
   }
@@ -213,33 +213,33 @@ body {
 // ═══════════════════════════════════════════════════════════════════
 
 const HEADER_HTML = `
-<header class="Career Sync-header">
-  <div class="Career Sync-header-container">
+<header class="careersync-header">
+  <div class="careersync-header-container">
     <!-- Brand -->
-    <a href="http://localhost:4173" class="Career Sync-brand">
-      <div class="Career Sync-brand-icon">C</div>
+    <a href="http://localhost:4173" class="careersync-brand">
+      <div class="careersync-brand-icon">C</div>
       <span>Career Sync</span>
     </a>
 
     <!-- Navigation Links -->
-    <nav class="Career Sync-nav-links" id="Career Sync-nav-links">
+    <nav class="careersync-nav-links" id="careersync-nav-links">
       <a 
         href="http://localhost:3002" 
-        class="Career Sync-nav-link" 
+        class="careersync-nav-link" 
         data-module="course"
       >
         📚 Course Gen
       </a>
       <a 
         href="http://localhost:5173" 
-        class="Career Sync-nav-link" 
+        class="careersync-nav-link" 
         data-module="roadmap"
       >
         🗺️ Roadmaps
       </a>
       <a 
         href="http://localhost:3001" 
-        class="Career Sync-nav-link" 
+        class="careersync-nav-link" 
         data-module="evaluator"
       >
         ✅ Evaluator
@@ -247,14 +247,14 @@ const HEADER_HTML = `
     </nav>
 
     <!-- Auth Section -->
-    <div class="Career Sync-nav-auth" id="Career Sync-nav-auth">
-      <a href="/auth" class="Career Sync-btn Career Sync-btn-primary">
+    <div class="careersync-nav-auth" id="careersync-nav-auth">
+      <a href="/auth" class="careersync-btn careersync-btn-primary">
         Sign In
       </a>
     </div>
 
     <!-- Mobile Menu Toggle -->
-    <button class="Career Sync-mobile-menu" id="Career Sync-mobile-menu">
+    <button class="careersync-mobile-menu" id="careersync-mobile-menu">
       ☰
     </button>
   </div>
@@ -265,7 +265,7 @@ const HEADER_HTML = `
 // JAVASCRIPT FUNCTIONALITY
 // ═══════════════════════════════════════════════════════════════════
 
-class Career SyncHeader {
+class careersyncHeader {
   constructor(options = {}) {
     this.options = {
       containerSelector: 'body',
@@ -282,15 +282,15 @@ class Career SyncHeader {
   }
 
   init() {
-    this.log('Initializing Career Sync Header');
+    this.log('Initializing careersync Header');
     
     // Inject CSS if not already present
-    if (!document.getElementById('Career Sync-header-styles')) {
+    if (!document.getElementById('careersync-header-styles')) {
       this.injectStyles();
     }
 
     // Inject HTML if not already present
-    if (!document.querySelector('.Career Sync-header')) {
+    if (!document.querySelector('.careersync-header')) {
       this.injectHTML();
     }
 
@@ -303,12 +303,12 @@ class Career SyncHeader {
     // Set interval to check auth status periodically
     setInterval(() => this.checkAuthStatus(), this.options.checkAuthInterval);
 
-    this.log('Career Sync Header initialized successfully');
+    this.log('careersync Header initialized successfully');
   }
 
   injectStyles() {
     const style = document.createElement('style');
-    style.id = 'Career Sync-header-styles';
+    style.id = 'careersync-header-styles';
     style.textContent = HEADER_STYLES;
     document.head.appendChild(style);
     this.log('Styles injected');
@@ -329,8 +329,8 @@ class Career SyncHeader {
 
   setupEventListeners() {
     // Mobile menu toggle
-    const mobileMenuBtn = document.getElementById('Career Sync-mobile-menu');
-    const navLinks = document.getElementById('Career Sync-nav-links');
+    const mobileMenuBtn = document.getElementById('careersync-mobile-menu');
+    const navLinks = document.getElementById('careersync-nav-links');
 
     if (mobileMenuBtn && navLinks) {
       mobileMenuBtn.addEventListener('click', () => {
@@ -354,7 +354,7 @@ class Career SyncHeader {
     });
 
     // Logout button
-    const logoutBtn = document.getElementById('Career Sync-logout-btn');
+    const logoutBtn = document.getElementById('careersync-logout-btn');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -394,7 +394,7 @@ class Career SyncHeader {
   }
 
   updateAuthUI() {
-    const authContainer = document.getElementById('Career Sync-nav-auth');
+    const authContainer = document.getElementById('careersync-nav-auth');
     if (!authContainer) return;
 
     if (this.isAuthenticated && this.currentUser) {
@@ -411,14 +411,14 @@ class Career SyncHeader {
             </span>
             <span style="font-weight: 500;">${displayName}</span>
           </a>
-          <button id="Career Sync-logout-btn" class="Career Sync-btn Career Sync-btn-danger">
+          <button id="careersync-logout-btn" class="careersync-btn careersync-btn-danger">
             Sign Out
           </button>
         </div>
       `;
 
       // Re-attach logout event listener
-      const logoutBtn = document.getElementById('Career Sync-logout-btn');
+      const logoutBtn = document.getElementById('careersync-logout-btn');
       if (logoutBtn) {
         logoutBtn.addEventListener('click', (e) => {
           e.preventDefault();
@@ -431,7 +431,7 @@ class Career SyncHeader {
         : '/auth.html';
       
       authContainer.innerHTML = `
-        <a href="${authUrl}" class="Career Sync-btn Career Sync-btn-primary">
+        <a href="${authUrl}" class="careersync-btn careersync-btn-primary">
           Sign In
         </a>
       `;
@@ -475,7 +475,7 @@ class Career SyncHeader {
 
   log(message, data) {
     if (this.options.debugMode) {
-      console.log('[Career SyncHeader]', message, data || '');
+      console.log('[careersyncHeader]', message, data || '');
     }
   }
 }
@@ -488,14 +488,15 @@ class Career SyncHeader {
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      window.careeroHeader = new Career SyncHeader({ debugMode: false });
+      window.careeroHeader = new careersyncHeader({ debugMode: false });
     });
   } else {
-    window.careeroHeader = new Career SyncHeader({ debugMode: false });
+    window.careeroHeader = new careersyncHeader({ debugMode: false });
   }
 }
 
 // Export for use as ES module (Next.js)
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Career SyncHeader, HEADER_STYLES, HEADER_HTML };
+  module.exports = { careersyncHeader, HEADER_STYLES, HEADER_HTML };
 }
+

@@ -281,9 +281,9 @@
         });
 
         function checkAuthenticationStatus() {
-            const user = localStorage.getItem('Career Sync_user');
-            const token = localStorage.getItem('Career Sync_token');
-            const authContainer = document.querySelector('.Career Sync-nav-auth');
+            const user = localStorage.getItem('careersync_user');
+            const token = localStorage.getItem('careersync_token');
+            const authContainer = document.querySelector('.careersync-nav-auth');
             
             if (!authContainer) return;
 
@@ -302,7 +302,7 @@
                                 </span>
                                 <span style="font-weight: 500;">${displayName}</span>
                             </a>
-                            <button onclick="handleLogout()" class="Career Sync-btn Career Sync-btn-danger">
+                            <button onclick="handleLogout()" class="careersync-btn careersync-btn-danger">
                                 Sign Out
                             </button>
                         </div>
@@ -318,24 +318,24 @@
 
         function showSignInButton(container) {
             container.innerHTML = `
-                <a href="/auth.html" class="Career Sync-btn Career Sync-btn-primary">
+                <a href="/auth.html" class="careersync-btn careersync-btn-primary">
                     Sign In
                 </a>
             `;
         }
 
         function saveUserProfileData() {
-            const user = localStorage.getItem('Career Sync_user');
+            const user = localStorage.getItem('careersync_user');
             if (user) {
                 try {
                     const userData = JSON.parse(user);
                     const profileData = {
                         ...userData,
                         lastAccessed: new Date().toISOString(),
-                        visitCount: (parseInt(localStorage.getItem('Career Sync_profile_visits') || '0') + 1)
+                        visitCount: (parseInt(localStorage.getItem('careersync_profile_visits') || '0') + 1)
                     };
-                    localStorage.setItem('Career Sync_profile_data', JSON.stringify(profileData));
-                    localStorage.setItem('Career Sync_profile_visits', profileData.visitCount.toString());
+                    localStorage.setItem('careersync_profile_data', JSON.stringify(profileData));
+                    localStorage.setItem('careersync_profile_visits', profileData.visitCount.toString());
                 } catch (e) {
                     console.error('Error saving profile data:', e);
                 }
@@ -343,10 +343,10 @@
         }
 
         function handleLogout() {
-            localStorage.removeItem('Career Sync_user');
-            localStorage.removeItem('Career Sync_token');
-            localStorage.removeItem('Career Sync_auth');
-            localStorage.removeItem('Career Sync_profile_data');
+            localStorage.removeItem('careersync_user');
+            localStorage.removeItem('careersync_token');
+            localStorage.removeItem('careersync_auth');
+            localStorage.removeItem('careersync_profile_data');
             window.location.href = '/auth.html';
         }
     </script>

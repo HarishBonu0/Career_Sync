@@ -1,12 +1,51 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import SkillEvaluation from '../models/SkillEvaluation.js';
 
 const router = express.Router();
 
+// Save/Create a skill evaluation
+router.post('/', async (req, res) => {
+  try {
+    const { user, userId, userEmail, skillName, title, difficulty, questions, score, percentage, feedback, status, completedAt } = req.body;
+
+    if (!skillName && !title) {
+      return res.status(400).json({ error: 'Skill name or title is required' });
+    }
+
+    // Handle user field properly
+    let userObjectId = null;
+    if (user && user !== 'guest' && mongoose.Types.ObjectId.isValid(user)) {
+      userObjectId = user;
+    }
+
+    const evaluation = await SkillEvaluation.create({
+      user: userObjectId,
+      userId: userId || (user === 'guest' ? 'guest' : user),
+      userEmail: userEmail || null,
+      skillName: skillName || title || '',
+      title: title || skillName || '',
+      difficulty: difficulty || 'intermediate',
+      questions: questions || [],
+      totalQuestions: questions ? questions.length : 0,
+      score: score || 0,
+      percentage: percentage || 0,
+      feedback: feedback || '',
+      status: status || 'completed',
+      completedAt: completedAt || (status === 'completed' ? new Date() : null)
+    });
+
+    res.status(201).json({ success: true, evaluationId: evaluation._id, data: evaluation });
+  } catch (error) {
+    console.error('Evaluation creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Generate skill evaluation questions and persist
 router.post('/evaluate', async (req, res) => {
-  const { skillName, difficulty, questionCount, userId } = req.body;
+  const { skillName, difficulty, questionCount, userId, userEmail } = req.body;
 
   if (!skillName) {
     return res.status(400).json({ error: 'Skill name is required' });
@@ -43,11 +82,21 @@ router.post('/evaluate', async (req, res) => {
       })
       .filter(Boolean);
 
+    // Handle user field properly
+    let userObjectId = null;
+    if (userId && userId !== 'guest' && mongoose.Types.ObjectId.isValid(userId)) {
+      userObjectId = userId;
+    }
+
     const evalDoc = await SkillEvaluation.create({
-      user: userId,
+      user: userObjectId,
+      userId: userId || 'guest',
+      userEmail: userEmail || null,
       skillName,
+      title: `${skillName} Evaluation`,
       difficulty: diff,
       questions,
+      totalQuestions: questions.length,
       status: 'in-progress'
     });
 
@@ -89,32 +138,64 @@ router.post('/submit', async (req, res) => {
 
     const totalQuestions = updatedQuestions.length || 1;
     const score = (correct / totalQuestions) * 100;
+    const percentage = Math.round(score);
 
     evalDoc.questions = updatedQuestions;
     evalDoc.score = score;
+    evalDoc.percentage = percentage;
+    evalDoc.correctAnswers = correct;
     evalDoc.status = 'completed';
+    evalDoc.completedAt = new Date();
     await evalDoc.save();
 
     res.json({
       evaluationId,
       score,
+      percentage,
       correct,
-      totalQuestions,
-      submittedAt: new Date()
+      total: totalQuestions,
+      status: 'completed'
     });
   } catch (error) {
+    console.error('Evaluation submission error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get evaluations for a user
+// List evaluations for a user
 router.get('/', async (req, res) => {
   try {
-    const { userId } = req.query;
-    const filter = userId ? { user: userId } : {};
+    const { userId, userEmail } = req.query;
+    
+    let filter = {};
+    if (userId) {
+      if (mongoose.Types.ObjectId.isValid(userId) && userId !== 'guest') {
+        filter = { user: userId };
+      } else {
+        filter = { userId: userId };
+      }
+    } else if (userEmail) {
+      filter = { userEmail: userEmail };
+    }
+    
     const evaluations = await SkillEvaluation.find(filter).sort({ createdAt: -1 });
-    res.json({ evaluations });
+    res.json({ success: true, evaluations, count: evaluations.length });
   } catch (error) {
+    console.error('Evaluations fetch error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single evaluation by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const evaluation = await SkillEvaluation.findById(req.params.id);
+    if (!evaluation) {
+      return res.status(404).json({ error: 'Evaluation not found' });
+    }
+    res.json({ success: true, data: evaluation });
+  } catch (error) {
+    console.error('Evaluation fetch error:', error);
     res.status(500).json({ error: error.message });
   }
 });
