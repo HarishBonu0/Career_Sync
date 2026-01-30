@@ -128,13 +128,6 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-<<<<<<< HEAD
-    // Handle guest users - set to null if guest
-    const userData = (user && user !== 'guest') ? user : null;
-
-    const course = await Course.create({
-      user: userData,
-=======
     // Handle user field properly - convert "guest" to null for MongoDB
     let userObjectId = null;
     if (user && user !== 'guest' && mongoose.Types.ObjectId.isValid(user)) {
@@ -146,7 +139,6 @@ router.post('/', async (req, res) => {
       user: userObjectId,
       userId: userId || (user === 'guest' ? 'guest' : user),
       userEmail: userEmail || null,
->>>>>>> karu
       title,
       description: description || '',
       level: level || difficulty || 'beginner',
@@ -186,13 +178,6 @@ router.post('/save', async (req, res) => {
       return res.status(400).json({ error: 'title is required' });
     }
 
-<<<<<<< HEAD
-    // Handle guest users - don't save to database for guest, or set user to null
-    const userData = (userId && userId !== 'guest') ? userId : null;
-
-    const newCourse = await Course.create({
-      user: userData,
-=======
     // Handle user field properly
     let userObjectId = null;
     if (userId && userId !== 'guest' && mongoose.Types.ObjectId.isValid(userId)) {
@@ -209,7 +194,6 @@ router.post('/save', async (req, res) => {
       user: userObjectId,
       userId: userId || 'guest',
       userEmail: userEmail || null,
->>>>>>> karu
       generation: generationId,
       title: courseData.title,
       description: courseData.description || '',
