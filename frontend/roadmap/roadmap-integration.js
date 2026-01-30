@@ -29,7 +29,7 @@ async function handleRoadmapEnrollment(roadmapData) {
         };
         
         // Save to backend and localStorage
-        const result = await Career SyncProfile.saveRoadmap(enrollmentData);
+        const result = await careersyncProfile.saveRoadmap(enrollmentData);
         
         if (result) {
             console.log('Roadmap enrollment successful:', result);
@@ -75,7 +75,7 @@ async function handleStageCompletion(roadmapId, stageIndex, totalStages) {
         const progress = (completedStages / totalStages) * 100;
         
         // Update backend
-        const result = await Career SyncProfile.updateRoadmapProgress(
+        const result = await careersyncProfile.updateRoadmapProgress(
             enrollmentData.enrollmentId,
             Math.round(progress),
             completedStages
@@ -121,7 +121,7 @@ async function handleRoadmapProgressUpdate(roadmapId, completedStages, totalStag
         const progress = (completedStages / totalStages) * 100;
         
         // Update backend
-        const result = await Career SyncProfile.updateRoadmapProgress(
+        const result = await careersyncProfile.updateRoadmapProgress(
             enrollmentData.enrollmentId,
             Math.round(progress),
             completedStages
@@ -151,7 +151,7 @@ async function handleRoadmapCompletion(roadmapId) {
         }
         
         // Update to 100% completion
-        const result = await Career SyncProfile.updateRoadmapProgress(
+        const result = await careersyncProfile.updateRoadmapProgress(
             enrollmentData.enrollmentId,
             100,
             enrollmentData.totalStages
@@ -270,3 +270,4 @@ Add these buttons to your roadmap page:
 */
 
 export { handleRoadmapEnrollment, handleStageCompletion, handleRoadmapProgressUpdate, handleRoadmapCompletion, showToast };
+

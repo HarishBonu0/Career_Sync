@@ -21,8 +21,13 @@ export async function connectMongo() {
     console.error('❌ MongoDB connection error:', err.message);
     console.error('💡 Make sure your IP is whitelisted in MongoDB Atlas');
     console.error('💡 Check your connection string and credentials');
-    process.exit(1);
+    console.error('⚠️  Server will continue running with limited functionality (localStorage only)');
+    console.error('🔧 To fix: Update MongoDB credentials or whitelist IP: https://cloud.mongodb.com/');
+    // Don't exit - allow server to start for frontend development
+    return false;
   }
+  
+  return true;
 
   // Handle connection events
   mongoose.connection.on('disconnected', () => {

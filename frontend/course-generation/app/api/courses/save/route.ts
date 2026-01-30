@@ -9,6 +9,7 @@ export async function POST(request: NextRequest) {
 
     const course = body.course || body
     const userId = body.userId || null
+    const userEmail = body.userEmail || null
 
     if (!course?.title) {
       console.error('Missing course title')
@@ -16,6 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Attempting to save course:', course.title)
+    console.log('With userId:', userId, 'userEmail:', userEmail)
     const { courseId } = await saveGeneratedCourse(course, userId)
     
     console.log('Course saved successfully:', courseId)

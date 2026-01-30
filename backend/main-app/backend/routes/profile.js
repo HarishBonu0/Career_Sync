@@ -1,6 +1,10 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import UserEnrollment from '../models/UserEnrollment.js';
 import User from '../models/User.js';
+import Course from '../models/Course.js';
+import Roadmap from '../models/Roadmap.js';
+import SkillEvaluation from '../models/SkillEvaluation.js';
 
 const router = express.Router();
 
@@ -98,27 +102,92 @@ router.get('/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // Get enrollments by userId or email
-    const courses = await UserEnrollment.find({
-      $or: [{ userId }, { userEmail: userId }],
-      type: 'course'
-    }).sort({ createdAt: -1 });
+    console.log('Fetching profile for userId:', userId);
 
-    const roadmaps = await UserEnrollment.find({
-      $or: [{ userId }, { userEmail: userId }],
-      type: 'roadmap'
-    }).sort({ createdAt: -1 });
-
-    const evaluations = await UserEnrollment.find({
-      $or: [{ userId }, { userEmail: userId }],
-      type: 'evaluation'
-    }).sort({ createdAt: -1 });
+    // Determine if userId is an ObjectId or string identifier
+    let userQuery = {};
+    let isObjectId = mongoose.Types.ObjectId.isValid(userId) && userId !== 'guest';
+    
+    if (isObjectId) {
+      userQuery = { _id: userId };
+    } else if (userId.includes('@')) {
+      userQuery = { email: userId };
+    } else {
+      userQuery = { _id: userId }; // Try as ObjectId anyway
+    }
 
     // Try to get user info
-    let user = await User.findById(userId);
-    if (!user && userId.includes('@')) {
-      user = await User.findOne({ email: userId });
+    let user = null;
+    try {
+      user = await User.findOne(userQuery);
+    } catch (err) {
+      console.log('User not found in User collection:', err.message);
     }
+
+    // Build query for finding user's data
+    let dataQuery = {};
+    if (isObjectId && user) {
+      dataQuery = { $or: [{ user: userId }, { userId: userId }, { userEmail: user.email }] };
+    } else if (userId.includes('@')) {
+      dataQuery = { $or: [{ userEmail: userId }, { userId: userId }] };
+    } else {
+      dataQuery = { $or: [{ userId: userId }, { userEmail: userId }] };
+    }
+
+    console.log('Data query:', JSON.stringify(dataQuery));
+
+    // Get data from actual collections (not just enrollments)
+    const [courses, roadmaps, evaluations, enrollmentCourses, enrollmentRoadmaps, enrollmentEvaluations] = await Promise.all([
+      Course.find(dataQuery).sort({ createdAt: -1 }).lean(),
+      Roadmap.find(dataQuery).sort({ createdAt: -1 }).lean(),
+      SkillEvaluation.find(dataQuery).sort({ createdAt: -1 }).lean(),
+      UserEnrollment.find({ ...dataQuery, type: 'course' }).sort({ createdAt: -1 }).lean(),
+      UserEnrollment.find({ ...dataQuery, type: 'roadmap' }).sort({ createdAt: -1 }).lean(),
+      UserEnrollment.find({ ...dataQuery, type: 'evaluation' }).sort({ createdAt: -1 }).lean()
+    ]);
+
+    console.log('Found:', { 
+      courses: courses.length, 
+      roadmaps: roadmaps.length, 
+      evaluations: evaluations.length,
+      enrollmentCourses: enrollmentCourses.length,
+      enrollmentRoadmaps: enrollmentRoadmaps.length,
+      enrollmentEvaluations: enrollmentEvaluations.length
+    });
+
+    // Combine enrollment data with actual data
+    const allCourses = [...courses, ...enrollmentCourses.map(e => ({
+      _id: e.courseId || e._id,
+      title: e.courseTitle,
+      modules: e.courseModules,
+      progress: e.courseProgress,
+      enrolledAt: e.courseEnrolledAt,
+      completed: e.courseCompleted,
+      source: 'enrollment'
+    }))];
+
+    const allRoadmaps = [...roadmaps, ...enrollmentRoadmaps.map(e => ({
+      _id: e.roadmapId || e._id,
+      title: e.roadmapTitle,
+      stages: e.roadmapStages,
+      progress: e.roadmapProgress,
+      createdAt: e.roadmapCreatedAt,
+      source: 'enrollment'
+    }))];
+
+    const allEvaluations = [...evaluations, ...enrollmentEvaluations.map(e => ({
+      _id: e.evaluationId || e._id,
+      title: e.evaluationTitle,
+      skillName: e.evaluationTitle,
+      score: e.evaluationScore,
+      completedAt: e.evaluationCompletedAt,
+      source: 'enrollment'
+    }))];
+
+    // Remove duplicates
+    const uniqueCourses = Array.from(new Map(allCourses.map(c => [c._id?.toString() || c.title, c])).values());
+    const uniqueRoadmaps = Array.from(new Map(allRoadmaps.map(r => [r._id?.toString() || r.title, r])).values());
+    const uniqueEvaluations = Array.from(new Map(allEvaluations.map(e => [e._id?.toString() || e.title, e])).values());
 
     res.json({
       success: true,
@@ -127,32 +196,48 @@ router.get('/:userId', async (req, res) => {
         name: user?.name || 'User',
         email: user?.email || userId,
         stats: {
-          totalCourses: courses.length,
-          totalRoadmaps: roadmaps.length,
-          totalEvaluations: evaluations.length,
-          activeDays: Math.floor((Date.now() - (user?.createdAt || Date.now())) / (1000 * 60 * 60 * 24))
+          totalCourses: uniqueCourses.length,
+          totalRoadmaps: uniqueRoadmaps.length,
+          totalEvaluations: uniqueEvaluations.length,
+          activeDays: user?.createdAt ? Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24)) : 0
         },
-        courses: courses.map(c => ({
-          id: c.courseId,
-          title: c.courseTitle,
-          modules: c.courseModules,
-          progress: c.courseProgress,
-          enrolledAt: c.courseEnrolledAt,
-          lastAccessed: c.courseLastAccessed,
-          completed: c.courseCompleted
+        courses: uniqueCourses.map(c => ({
+          id: c._id,
+          title: c.title,
+          description: c.description,
+          level: c.level || c.difficulty,
+          duration: c.duration,
+          modules: c.modules || c.totalModules,
+          totalModules: c.totalModules || (Array.isArray(c.modules) ? c.modules.length : 0),
+          progress: c.progress || 0,
+          enrolledAt: c.enrolledAt || c.createdAt,
+          lastAccessed: c.lastAccessedAt || c.lastAccessed,
+          completed: c.completed || c.status === 'completed',
+          status: c.status
         })),
-        roadmaps: roadmaps.map(r => ({
-          id: r.roadmapId,
-          title: r.roadmapTitle,
-          stages: r.roadmapStages,
-          progress: r.roadmapProgress,
-          createdAt: r.roadmapCreatedAt
+        roadmaps: uniqueRoadmaps.map(r => ({
+          id: r._id,
+          title: r.title,
+          description: r.description,
+          currentRole: r.currentRole,
+          targetRole: r.targetRole,
+          timeline: r.timeline,
+          stages: r.stages || 0,
+          progress: r.progress || 0,
+          createdAt: r.createdAt,
+          status: r.status
         })),
-        evaluations: evaluations.map(e => ({
-          id: e.evaluationId,
-          title: e.evaluationTitle,
-          score: e.evaluationScore,
-          completedAt: e.evaluationCompletedAt
+        evaluations: uniqueEvaluations.map(e => ({
+          id: e._id,
+          title: e.title || e.skillName,
+          skillName: e.skillName,
+          difficulty: e.difficulty,
+          score: e.score,
+          percentage: e.percentage,
+          totalQuestions: e.totalQuestions,
+          correctAnswers: e.correctAnswers,
+          completedAt: e.completedAt,
+          status: e.status
         }))
       }
     });

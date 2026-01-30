@@ -99,63 +99,14 @@ export default function GeneratedCoursePage() {
     })
   }
 
-  // Track course enrollment
+  // Track course enrollment (NOTE: This was using wrong localStorage key and wrong endpoint)
+  // Commenting this out - handleSaveCourse is the proper way to save courses
   const trackCourseEnrollment = async (courseData: any) => {
-    try {
-      const user = localStorage.getItem('careeros_user')
-      if (!user) return
-
-      const userData = JSON.parse(user)
-      const enrolledCourses = JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]')
-      
-      const courseRecord = {
-        id: courseData.id || `course_${Date.now()}`,
-        title: courseData.title,
-        enrolledAt: new Date().toISOString(),
-        progress: 0,
-        userId: userData.id || userData.email,
-        modules: courseData.modules?.length || 0
-      }
-
-      const existingIndex = enrolledCourses.findIndex((c: any) => c.title === courseData.title)
-      if (existingIndex === -1) {
-        enrolledCourses.push(courseRecord)
-        localStorage.setItem('careeros_enrolled_courses', JSON.stringify(enrolledCourses))
-        console.log('📚 Course enrolled:', courseData.title)
-
-        // Send to MongoDB backend
-        try {
-          await fetch('http://localhost:5000/api/profile/enroll/course', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: userData.id,
-              userEmail: userData.email,
-              courseId: courseRecord.id,
-              courseTitle: courseRecord.title,
-              courseModules: courseRecord.modules
-            })
-          })
-          console.log('📚 Course enrollment synced to database')
-        } catch (apiError) {
-          console.log('Database sync failed, data saved locally')
-        }
-      }
-
-      // Update profile data
-      const profileData = JSON.parse(localStorage.getItem('careeros_profile_data') || '{}')
-      profileData.totalCourses = enrolledCourses.length
-      profileData.courses = enrolledCourses
-      localStorage.setItem('careeros_profile_data', JSON.stringify(profileData))
-      
-      // Trigger storage event for cross-tab/cross-page updates
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'careeros_enrolled_courses',
-        newValue: JSON.stringify(enrolledCourses)
-      }))
-    } catch (e) {
-      console.error('Error tracking course enrollment:', e)
-    }
+    // This function is intentionally disabled because it was using:
+    // 1. Wrong localStorage key: 'careeros_user' instead of 'careersync_user'
+    // 2. Wrong endpoint: '/api/profile/enroll/course' instead of '/api/courses/save'
+    // The proper way to save courses is via handleSaveCourse() which is called by user action
+    console.log('📚 Course loaded (ready for manual save):', courseData.title)
   }
 
   useEffect(() => {
@@ -230,24 +181,90 @@ export default function GeneratedCoursePage() {
 
     setSaving(true)
     try {
-      const response = await fetch('/api/courses/save', {
+      // Extract user data from localStorage
+      const userStr = localStorage.getItem('careersync_user')
+      let userId = null
+      let userEmail = null
+      
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr)
+          userId = user._id || user.id || user.id
+          userEmail = user.email
+          console.log('✅ Got user from localStorage:', { userId, userEmail })
+        } catch (e) {
+          console.error('Failed to parse user:', e)
+        }
+      }
+
+      // If still no user, try to fetch from backend
+      if (!userId || !userEmail) {
+        console.log('⚠️ User data incomplete, trying to fetch from backend...')
+        try {
+          const token = localStorage.getItem('careersync_token')
+          if (token) {
+            const response = await fetch('http://localhost:5000/api/auth/me', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              credentials: 'include'
+            })
+            if (response.ok) {
+              const data = await response.json()
+              userId = data.user?.id || data.id
+              userEmail = data.user?.email || data.email
+              console.log('✅ Fetched from backend:', { userId, userEmail })
+              // Save to localStorage for future use
+              localStorage.setItem('careersync_user', JSON.stringify(data.user || data))
+            }
+          }
+        } catch (err) {
+          console.log('Could not fetch from backend:', err)
+        }
+      }
+
+      console.log('\n📤 SAVING COURSE WITH:')
+      console.log('   userId:', userId)
+      console.log('   userEmail:', userEmail)
+      console.log('   title:', course.title)
+
+      // Send to backend courses/save endpoint (NOT enrollment!)
+      const saveResponse = await fetch('http://localhost:5000/api/courses/save', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(course),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          userId: userId || 'guest',
+          userEmail: userEmail || null,
+          title: course.title,
+          description: course.description,
+          level: course.difficulty || 'Intermediate',
+          duration: course.duration || '4 weeks',
+          modules: course.modules || [],
+          objectives: course.objectives || [],
+          resources: course.resources || [],
+          course: course
+        })
       })
 
-      const data = await response.json()
+      const saveData = await saveResponse.json()
+      console.log('Backend response:', saveData)
 
-      if (data.success) {
-        setSaved(true)
-        alert('Course saved successfully! You can now access it from "My Courses".')
-      } else {
-        throw new Error(data.error || 'Failed to save course')
+      if (!saveResponse.ok) {
+        throw new Error(saveData.error || 'Failed to save course')
       }
+
+      console.log('✅ Course saved successfully!')
+      setSaved(true)
+      alert('✅ Course saved successfully! You can now access it from your profile.')
+      
+      // Redirect to profile after delay
+      setTimeout(() => {
+        window.location.href = 'http://localhost:4173/profile.html'
+      }, 2000)
     } catch (error) {
-      console.error('Error saving course:', error)
+      console.error('❌ Error saving course:', error)
       alert(error instanceof Error ? error.message : 'Failed to save course. Please try again.')
     } finally {
       setSaving(false)
