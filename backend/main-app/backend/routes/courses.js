@@ -6,6 +6,76 @@ import Course from '../models/Course.js';
 
 const router = express.Router();
 
+function normalizeReadingMaterials(materials) {
+  if (!Array.isArray(materials)) return [];
+  return materials.map((item) => {
+    if (typeof item === 'string') {
+      return { title: item, url: '' };
+    }
+    return {
+      title: item.title || item.name || 'Reading Material',
+      source: item.source || item.publisher || '',
+      url: item.url || item.link || '',
+      difficulty: item.difficulty || '',
+      estimatedReadTime: item.estimatedReadTime || item.readTime || ''
+    };
+  });
+}
+
+function normalizeYoutubeLinks(links) {
+  if (!Array.isArray(links)) return [];
+  return links.map((item) => {
+    if (typeof item === 'string') {
+      return { title: 'Video Resource', url: item };
+    }
+    return {
+      title: item.title || item.name || 'Video Resource',
+      url: item.url || item.link || '',
+      duration: item.duration || '',
+      description: item.description || '',
+      channel: item.channel || '',
+      thumbnail: item.thumbnail || ''
+    };
+  });
+}
+
+function normalizeModules(modules) {
+  if (!Array.isArray(modules)) return [];
+  return modules.map((module) => {
+    const topics = Array.isArray(module.topics)
+      ? module.topics
+      : Array.isArray(module.topic)
+        ? module.topic
+        : Array.isArray(module.lessons)
+          ? module.lessons
+          : [];
+
+    const activities = Array.isArray(module.activities)
+      ? module.activities
+      : Array.isArray(module.exercises)
+        ? module.exercises
+        : [];
+
+    const readingMaterials = normalizeReadingMaterials(
+      module.readingMaterials || module.readings || module.resources || []
+    );
+
+    const youtubeLinks = normalizeYoutubeLinks(
+      module.youtubeLinks || module.videoLinks || module.videos || module.youtube || []
+    );
+
+    return {
+      ...module,
+      topics,
+      activities,
+      project: module.project || module.projects || null,
+      assessment: module.assessment || module.quiz || module.evaluation || null,
+      readingMaterials,
+      youtubeLinks
+    };
+  });
+}
+
 // Generate course curriculum and persist
 router.post('/generate', async (req, res) => {
   const { courseName, duration, level, userId } = req.body;
@@ -64,6 +134,7 @@ router.post('/', async (req, res) => {
       userObjectId = user;
     }
 
+    const normalizedModules = normalizeModules(modules || []);
     const course = await Course.create({
       user: userObjectId,
       userId: userId || (user === 'guest' ? 'guest' : user),
@@ -73,8 +144,8 @@ router.post('/', async (req, res) => {
       level: level || difficulty || 'beginner',
       difficulty: difficulty || level || 'beginner',
       duration: duration || '8 weeks',
-      totalModules: totalModules || (modules ? modules.length : 0),
-      modules: modules || [],
+      totalModules: totalModules || (normalizedModules ? normalizedModules.length : 0),
+      modules: normalizedModules,
       objectives: objectives || [],
       resources: resources || [],
       finalProject: finalProject || null,
@@ -118,6 +189,7 @@ router.post('/save', async (req, res) => {
     console.log('   userId:', userId || 'guest');
     console.log('   userEmail:', userEmail || null);
 
+    const normalizedModules = normalizeModules(courseData.modules || []);
     const newCourse = await Course.create({
       user: userObjectId,
       userId: userId || 'guest',
@@ -128,8 +200,8 @@ router.post('/save', async (req, res) => {
       level: courseData.level || courseData.difficulty || 'beginner',
       difficulty: courseData.difficulty || courseData.level || 'beginner',
       duration: courseData.duration || '8 weeks',
-      totalModules: courseData.totalModules || (courseData.modules ? courseData.modules.length : 0),
-      modules: courseData.modules || [],
+      totalModules: courseData.totalModules || (normalizedModules ? normalizedModules.length : 0),
+      modules: normalizedModules,
       objectives: courseData.objectives || [],
       resources: courseData.resources || [],
       finalProject: courseData.finalProject || null,

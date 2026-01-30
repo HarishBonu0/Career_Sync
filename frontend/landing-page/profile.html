@@ -600,6 +600,9 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Debug button -->
+        <button id="debug-modal-btn" onclick="testModalDisplay()" style="position: fixed; bottom: 20px; right: 20px; padding: 10px 15px; background: #FF6B6B; color: white; border: none; border-radius: 5px; cursor: pointer; z-index: 999;">Test Modal</button>
     </main>
 
     <style>
@@ -630,9 +633,9 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            max-width: 600px;
+            max-width: 700px;
             width: 90%;
-            max-height: 80vh;
+            max-height: 90vh;
             display: flex;
             flex-direction: column;
             animation: slideUp 0.3s ease-out;
@@ -655,6 +658,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.02) 0%, rgba(124, 58, 237, 0.02) 100%);
         }
 
         .modules-modal-header h2 {
@@ -670,10 +674,18 @@
             cursor: pointer;
             color: var(--text-tertiary);
             transition: color 0.2s;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .modules-close-btn:hover {
             color: var(--text-primary);
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 6px;
         }
 
         .modules-modal-body {
@@ -682,36 +694,47 @@
             flex: 1;
         }
 
+        .modules-modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+            background: #FAFBFC;
+        }
+
         .module-item {
-            padding: 16px;
+            padding: 20px;
             border: 1px solid var(--border-light);
             border-radius: 8px;
-            margin-bottom: 12px;
-            background: #FAFAFA;
+            margin-bottom: 16px;
+            background: white;
             transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
 
         .module-item:hover {
             border-color: var(--brand-primary);
-            background: #F8F8FF;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
         }
 
         .module-item.completed {
             border-color: #10B981;
             background: #F0FDF4;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
         }
 
         .module-item-header {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            gap: 12px;
         }
 
         .module-item-title {
             font-weight: 600;
             color: var(--text-primary);
-            margin: 0;
+            margin: 0 0 4px 0;
+            font-size: 15px;
         }
 
         .module-completion-checkbox {
@@ -719,16 +742,18 @@
             height: 24px;
             cursor: pointer;
             accent-color: var(--brand-primary);
+            flex-shrink: 0;
+            margin-top: 2px;
         }
 
         .module-item-meta {
-            font-size: 0.875rem;
+            font-size: 0.8125rem;
             color: var(--text-tertiary);
             margin: 0;
         }
 
         .module-item-description {
-            font-size: 0.875rem;
+            font-size: 0.8125rem;
             color: var(--text-secondary);
             margin: 8px 0 0 0;
             line-height: 1.4;
@@ -759,6 +784,12 @@
     </style>
 
     <script>
+        // Initialize global course data storage at the very beginning
+        if (!window.courseData) {
+            window.courseData = {};
+            console.log('✅ Initialized window.courseData');
+        }
+        
         // Debug logging
         console.log('Profile page loaded');
         console.log('LocalStorage keys:', Object.keys(localStorage));
@@ -838,9 +869,64 @@
         }
 
         /**
-         * Open modules modal and display course modules
+         * Navigate to course viewer and pass full course data
+         */
+        function navigateToCourseViewer(courseId) {
+            console.log('🚀 Navigating to course viewer for:', courseId);
+            
+            if (window.courseData && window.courseData[courseId]) {
+                const courseInfo = window.courseData[courseId];
+                console.log('📚 Passing course data:', courseInfo);
+                
+                // Store the full course object in localStorage for the viewer
+                localStorage.setItem('careersync_current_course_id', courseId);
+                localStorage.setItem('careersync_current_course_data', JSON.stringify(courseInfo));
+                
+                // Navigate to course viewer
+                window.location.href = `course-viewer.html?courseId=${courseId}`;
+            } else {
+                console.error('❌ Course data not found for:', courseId);
+                alert('Course data not available');
+            }
+        }
+
+        /**
+         * Open modules modal using stored course data
+         */
+        function openModulesFromStorage(courseId) {
+            console.log('🔍 openModulesFromStorage called');
+            console.log('  courseId:', courseId);
+            console.log('  window.courseData:', window.courseData);
+            console.log('  Available courseIds:', Object.keys(window.courseData || {}));
+            
+            if (!window.courseData) {
+                window.courseData = {};
+            }
+            
+            if (window.courseData && window.courseData[courseId]) {
+                const courseInfo = window.courseData[courseId];
+                console.log('✅ Found course info:', courseInfo);
+                console.log('📚 Modules count:', courseInfo.modules ? courseInfo.modules.length : 0);
+                if (courseInfo.modules && courseInfo.modules.length > 0) {
+                    console.log('First module:', courseInfo.modules[0]);
+                }
+                openModulesModal(courseId, courseInfo.title, courseInfo.modules);
+            } else {
+                console.error('❌ Course data not found for:', courseId);
+                console.error('Available keys:', Object.keys(window.courseData || {}));
+                alert('Course data not available. Please refresh the page.');
+            }
+        }
+
+        /**
+         * Open modules modal and display course modules with detailed content
          */
         function openModulesModal(courseId, courseTitle, modulesData) {
+            console.log('🎯 openModulesModal called');
+            console.log('  courseId:', courseId);
+            console.log('  courseTitle:', courseTitle);
+            console.log('  modulesData:', modulesData);
+            
             const modal = document.getElementById('modules-modal');
             const titleElement = document.getElementById('modules-title');
             const listElement = document.getElementById('modules-list');
@@ -850,6 +936,9 @@
             // Ensure modulesData is an array
             const modules = Array.isArray(modulesData) ? modulesData : [];
             const completedModules = getCompletedModules(courseId);
+            
+            console.log('📊 Module count:', modules.length);
+            console.log('✅ Completed modules:', completedModules);
 
             if (modules.length === 0) {
                 listElement.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-tertiary);">No modules available for this course</div>';
@@ -858,12 +947,24 @@
                     const moduleId = module.id || module._id || `module_${index}`;
                     const isCompleted = completedModules.includes(moduleId);
                     
+                    // Extract content details
+                    const topics = module.topics || [];
+                    const activities = module.activities || [];
+                    const readingMaterials = module.readingMaterials || [];
+                    const youtubeLinks = module.youtubeLinks || [];
+                    const project = module.project;
+                    const assessment = module.assessment;
+                    
+                    // Count total items to complete
+                    const totalItems = topics.length + activities.length + readingMaterials.length + youtubeLinks.length + (project ? 1 : 0) + (assessment ? 1 : 0);
+                    
                     return `
-                        <div class="module-item ${isCompleted ? 'completed' : ''}">
+                        <div class="module-item ${isCompleted ? 'completed' : ''}" style="border-left: 4px solid ${isCompleted ? '#10B981' : '#4F46E5'};">
                             <div class="module-item-header">
-                                <div>
+                                <div style="flex: 1;">
                                     <p class="module-item-title">${module.title || `Module ${index + 1}`}</p>
-                                    <p class="module-item-meta">${module.duration || 'Duration not specified'}</p>
+                                    <p class="module-item-meta">${module.duration || 'Duration not specified'} • ${totalItems} items</p>
+                                    ${module.description ? `<p class="module-item-description">${module.description}</p>` : ''}
                                 </div>
                                 <input 
                                     type="checkbox" 
@@ -873,16 +974,129 @@
                                     title="Mark as completed"
                                 >
                             </div>
-                            ${module.description ? `<p class="module-item-description">${module.description}</p>` : ''}
-                            ${module.topics && module.topics.length > 0 ? `
-                                <p class="module-item-meta" style="margin-top: 8px;">📝 ${module.topics.length} topics</p>
-                            ` : ''}
+                            
+                            <!-- Module Content Details -->
+                            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E2E8F0;">
+                                ${topics.length > 0 ? `
+                                    <div style="margin-bottom: 12px;">
+                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">📝 Topics (${topics.length})</p>
+                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px;">
+                                            ${topics.map((topic, topicIdx) => `
+                                                <div style="padding: 8px 0; border-bottom: ${topicIdx < topics.length - 1 ? '1px solid #E2E8F0' : 'none'}; font-size: 13px; color: #475569;">
+                                                    ${typeof topic === 'object' ? `
+                                                        <strong>${topic.name || topic.title || 'Topic ' + (topicIdx + 1)}</strong>
+                                                        ${topic.description ? `<div style="color: #94A3B8; margin-top: 4px;">${topic.description}</div>` : ''}
+                                                    ` : `
+                                                        ✓ ${topic}
+                                                    `}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${activities.length > 0 ? `
+                                    <div style="margin-bottom: 12px;">
+                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">🎯 Activities (${activities.length})</p>
+                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px;">
+                                            ${activities.map((activity, actIdx) => `
+                                                <div style="padding: 8px 0; border-bottom: ${actIdx < activities.length - 1 ? '1px solid #E2E8F0' : 'none'}; font-size: 13px; color: #475569;">
+                                                    ${typeof activity === 'object' ? `
+                                                        <strong>${activity.name || activity.title || 'Activity ' + (actIdx + 1)}</strong>
+                                                        ${activity.description ? `<div style="color: #94A3B8; margin-top: 4px;">${activity.description}</div>` : ''}
+                                                        ${activity.type ? `<div style="color: #94A3B8; margin-top: 4px; font-size: 12px;">Type: ${activity.type}</div>` : ''}
+                                                    ` : `
+                                                        ✓ ${activity}
+                                                    `}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${readingMaterials.length > 0 ? `
+                                    <div style="margin-bottom: 12px;">
+                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">📖 Reading Materials (${readingMaterials.length})</p>
+                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px;">
+                                            ${readingMaterials.map((material, matIdx) => `
+                                                <div style="padding: 8px 0; border-bottom: ${matIdx < readingMaterials.length - 1 ? '1px solid #E2E8F0' : 'none'}; font-size: 13px;">
+                                                    ${material.url ? `
+                                                        <a href="${material.url}" target="_blank" style="color: #4F46E5; text-decoration: none; font-weight: 500;">
+                                                            ${material.title || 'Reading Material'}
+                                                        </a>
+                                                    ` : `
+                                                        <strong style="color: #0F172A;">${material.title || 'Reading Material'}</strong>
+                                                    `}
+                                                    ${material.source ? `<div style="color: #94A3B8; margin-top: 4px; font-size: 12px;">Source: ${material.source}</div>` : ''}
+                                                    ${material.estimatedReadTime ? `<div style="color: #94A3B8; margin-top: 2px; font-size: 12px;">⏱️ ${material.estimatedReadTime}</div>` : ''}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${youtubeLinks.length > 0 ? `
+                                    <div style="margin-bottom: 12px;">
+                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">🎥 Video Resources (${youtubeLinks.length})</p>
+                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px;">
+                                            ${youtubeLinks.map((link, vidIdx) => `
+                                                <div style="padding: 8px 0; border-bottom: ${vidIdx < youtubeLinks.length - 1 ? '1px solid #E2E8F0' : 'none'}; font-size: 13px;">
+                                                    ${link.url ? `
+                                                        <a href="${link.url}" target="_blank" style="color: #DC2626; text-decoration: none; font-weight: 500;">
+                                                            🎬 ${link.title || 'Watch Video'}
+                                                        </a>
+                                                    ` : `
+                                                        <strong style="color: #0F172A;">${link.title || 'Video'}</strong>
+                                                    `}
+                                                    ${link.duration ? `<div style="color: #94A3B8; margin-top: 4px; font-size: 12px;">Duration: ${link.duration}</div>` : ''}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${project ? `
+                                    <div style="margin-bottom: 12px;">
+                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">🚀 Project</p>
+                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 3px solid #F59E0B;">
+                                            <strong style="color: #0F172A;">${project.title || project.name || 'Project'}</strong>
+                                            ${project.description ? `<div style="color: #475569; margin-top: 6px; font-size: 13px;">${project.description}</div>` : ''}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${assessment ? `
+                                    <div style="margin-bottom: 0;">
+                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">✅ Assessment</p>
+                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 3px solid #10B981;">
+                                            <strong style="color: #0F172A;">${assessment.title || assessment.name || 'Assessment'}</strong>
+                                            ${assessment.description ? `<div style="color: #475569; margin-top: 6px; font-size: 13px;">${assessment.description}</div>` : ''}
+                                            ${assessment.type ? `<div style="color: #94A3B8; margin-top: 6px; font-size: 12px;">Type: ${assessment.type}</div>` : ''}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
                         </div>
                     `;
                 }).join('');
             }
 
+            console.log('📋 Modal HTML content length:', listElement.innerHTML.length);
+            console.log('🎨 Setting modal display to flex');
+            
+            // Make absolutely sure the modal is visible
             modal.style.display = 'flex';
+            modal.style.visibility = 'visible';
+            modal.style.opacity = '1';
+            modal.classList.remove('hidden');
+            
+            // Force reflow to ensure rendering
+            modal.offsetHeight;
+            
+            console.log('✅ Modal should now be visible!');
+            console.log('Modal element:', modal);
+            console.log('Modal display style:', window.getComputedStyle(modal).display);
+            console.log('Modal visibility:', window.getComputedStyle(modal).visibility);
         }
 
         /**
@@ -902,6 +1116,19 @@
         function closeModulesModal() {
             const modal = document.getElementById('modules-modal');
             modal.style.display = 'none';
+        }
+
+        /**
+         * Test modal display
+         */
+        function testModalDisplay() {
+            console.log('🧪 Testing modal display...');
+            const modal = document.getElementById('modules-modal');
+            console.log('Modal element:', modal);
+            console.log('Current display:', modal.style.display);
+            modal.style.display = 'flex';
+            console.log('Display changed to:', modal.style.display);
+            console.log('Computed display:', window.getComputedStyle(modal).display);
         }
 
         /**
@@ -1052,6 +1279,7 @@
                             if (data.success && data.profile) {
                                 // Update with backend data if available
                                 displayProfile(data.profile);
+                                fetchSupplementalProfileData(userId, userData.email || data.profile.email, token);
                             }
                         } else {
                             console.log('Backend response not OK:', response.status);
@@ -1129,7 +1357,14 @@
 
             // Save courses to localStorage for course-viewer access
             if (courses.length > 0) {
+                console.log('📚 SAVING COURSES TO LOCALSTORAGE:');
+                console.log('Number of courses:', courses.length);
+                console.log('First course:', JSON.stringify(courses[0], null, 2));
+                if (courses[0] && courses[0].modules && courses[0].modules.length > 0) {
+                    console.log('First module of first course:', JSON.stringify(courses[0].modules[0], null, 2));
+                }
                 localStorage.setItem('careersync_enrolled_courses', JSON.stringify(courses));
+                console.log('✅ Courses saved to localStorage');
             }
 
             // Update stats
@@ -1140,11 +1375,38 @@
             // Display Courses
             const courseContainer = document.getElementById('courses-container');
             if (courses && courses.length > 0) {
+                // Store courses in window for modal access
+                window.courseData = {};
+                console.log('🔄 Storing courses in window.courseData...');
+                
                 courseContainer.innerHTML = courses.map(course => {
                     const totalModules = (course.modules && course.modules.length) || course.totalModules || 8;
                     const courseId = course._id || course.id || `course_${course.title}`;
-                    const completedModules = getCompletedModulesCount(courseId);
-                    const progressPercentage = Math.round((completedModules / totalModules) * 100);
+                    
+                    // Calculate total topics from modules
+                    let totalTopics = course.totalTopics || 0;
+                    if (!totalTopics && course.modules && course.modules.length > 0) {
+                        totalTopics = course.modules.reduce((sum, module) => {
+                            return sum + ((module.topics && module.topics.length) || 0);
+                        }, 0);
+                    }
+                    
+                    // Use saved progress from course-viewer, fallback to module-based calculation
+                    const progressPercentage = course.progress !== undefined ? course.progress : Math.round((getCompletedModulesCount(courseId) / totalModules) * 100);
+                    
+                    // Store course data globally for modal access
+                    window.courseData[courseId] = {
+                        courseId: courseId,
+                        id: courseId,
+                        _id: courseId,
+                        title: course.title,
+                        duration: course.duration,
+                        level: course.level,
+                        modules: course.modules || []
+                    };
+                    
+                    console.log(`✅ Stored course: ${courseId}`);
+                    console.log(`   Modules: ${course.modules ? course.modules.length : 0}`);
                     
                     return `
                     <div class="item-card">
@@ -1161,7 +1423,7 @@
                         </div>
                         <div class="progress-container">
                             <div class="progress-header">
-                                <span class="progress-label">${completedModules} of ${totalModules} modules completed</span>
+                                <span class="progress-label">${course.completedTopics || 0} of ${totalTopics} topics completed</span>
                                 <span class="progress-percent">${progressPercentage}%</span>
                             </div>
                             <div class="progress-bar">
@@ -1169,16 +1431,24 @@
                             </div>
                         </div>
                         <div class="item-actions">
-                            <a href="course-viewer.html?courseId=${courseId}" class="btn-continue">${progressPercentage > 0 ? '▶️ Continue' : '🚀 Start'}</a>
-                            <button class="btn-view" onclick="openModulesModal('${courseId}', '${course.title}', ${JSON.stringify(course.modules || []).replace(/'/g, "&#39;")})">View Modules</button>
+                            <button class="btn-continue" onclick="openModulesFromStorage('${courseId}')">${progressPercentage > 0 ? '▶️ Continue' : '🚀 Start'}</button>
+                            <button class="btn-view" onclick="navigateToCourseViewer('${courseId}')">Open Course</button>
                         </div>
                     </div>
                 `}).join('');
+                
+                // Final debug log
+                console.log('🎯 Final window.courseData:', window.courseData);
+                console.log('📊 Stored course IDs:', Object.keys(window.courseData));
             } else {
                 courseContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No courses yet</div><a href="http://localhost:3002" class="action-btn primary">Create Course</a></div>';
             }
 
-            // Display Roadmaps
+            renderRoadmaps(roadmaps);
+            renderEvaluations(evaluations);
+        }
+
+        function renderRoadmaps(roadmaps) {
             const roadmapContainer = document.getElementById('roadmaps-container');
             if (roadmaps && roadmaps.length > 0) {
                 roadmapContainer.innerHTML = roadmaps.map(roadmap => `
@@ -1188,15 +1458,15 @@
                                 <p class="item-title">${roadmap.title || 'Roadmap'}</p>
                                 <div class="item-meta">
                                     <span class="meta-tag">🎯 ${roadmap.targetRole || 'Career Path'}</span>
-                                    <span class="meta-tag">📍 ${(roadmap.stages && roadmap.stages.length) || 5} stages</span>
-                                    <span class="meta-tag">⏱️ ${roadmap.duration || '6 months'}</span>
+                                    <span class="meta-tag">📍 ${(roadmap.stages && roadmap.stages.length) || roadmap.stages || 5} stages</span>
+                                    <span class="meta-tag">⏱️ ${roadmap.duration || roadmap.timeline || '6 months'}</span>
                                 </div>
                             </div>
                             ${(roadmap.progress || 0) >= 100 ? '<span class="item-badge">Completed</span>' : ''}
                         </div>
                         <div class="progress-container">
                             <div class="progress-header">
-                                <span class="progress-label">${Math.floor(((roadmap.progress || 0) / 100) * ((roadmap.stages && roadmap.stages.length) || 5))} of ${(roadmap.stages && roadmap.stages.length) || 5} completed</span>
+                                <span class="progress-label">${Math.floor(((roadmap.progress || 0) / 100) * ((roadmap.stages && roadmap.stages.length) || roadmap.stages || 5))} of ${(roadmap.stages && roadmap.stages.length) || roadmap.stages || 5} completed</span>
                                 <span class="progress-percent">${roadmap.progress || 0}%</span>
                             </div>
                             <div class="progress-bar">
@@ -1212,8 +1482,9 @@
             } else {
                 roadmapContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No roadmaps yet</div><a href="http://localhost:5173" class="action-btn primary">Create Roadmap</a></div>';
             }
+        }
 
-            // Display Evaluations
+        function renderEvaluations(evaluations) {
             const evalContainer = document.getElementById('evaluations-container');
             if (evaluations && evaluations.length > 0) {
                 evalContainer.innerHTML = evaluations.map(evaluation => {
@@ -1223,7 +1494,7 @@
                         <div class="item-card">
                             <div class="item-header">
                                 <div>
-                                    <p class="item-title">${evaluation.title || evaluation.topic || 'Evaluation'}</p>
+                                    <p class="item-title">${evaluation.title || evaluation.skillName || evaluation.topic || 'Evaluation'}</p>
                                     <div class="item-meta">
                                         <span class="meta-tag">📝 ${evaluation.totalQuestions || 10} questions</span>
                                         <span class="meta-tag">✅ ${evaluation.correctAnswers || 0} correct</span>
@@ -1253,6 +1524,88 @@
             }
         }
 
+        async function fetchSupplementalProfileData(userId, email, token) {
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers.Authorization = `Bearer ${token}`;
+
+                const query = userId ? `userId=${encodeURIComponent(userId)}` : `userEmail=${encodeURIComponent(email)}`;
+
+                const [roadmapResp, evalResp] = await Promise.all([
+                    fetch(`http://localhost:5000/api/roadmaps?${query}`, { credentials: 'include', headers }),
+                    fetch(`http://localhost:5000/api/skillEval?${query}`, { credentials: 'include', headers })
+                ]);
+
+                if (roadmapResp.ok) {
+                    const roadmapData = await roadmapResp.json();
+                    const roadmaps = roadmapData.roadmaps || roadmapData.data || [];
+                    if (roadmaps.length > 0) {
+                        localStorage.setItem('careersync_saved_roadmaps', JSON.stringify(roadmaps));
+                        renderRoadmaps(roadmaps);
+                    }
+                }
+
+                if (evalResp.ok) {
+                    const evalData = await evalResp.json();
+                    const evaluations = evalData.evaluations || evalData.data || [];
+                    if (evaluations.length > 0) {
+                        localStorage.setItem('careersync_evaluations', JSON.stringify(evaluations));
+                        renderEvaluations(evaluations);
+                    }
+                }
+            } catch (error) {
+                console.log('Supplemental profile fetch failed:', error);
+            }
+        }
+
+        // Refresh profile when page becomes visible (returns from course-viewer)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                console.log('📱 Page returned to focus, refreshing profile...');
+                refreshProfileData();
+            }
+        });
+
+        // Also refresh when navigating back to the page
+        window.addEventListener('pageshow', (event) => {
+            // Fires when navigating back via browser back button
+            if (event.persisted) {
+                console.log('📱 Page loaded from cache, refreshing profile...');
+                refreshProfileData();
+            }
+        });
+
+        // Refresh when window gains focus
+        window.addEventListener('focus', () => {
+            console.log('📱 Window focused, refreshing profile...');
+            refreshProfileData();
+        });
+
+        function refreshProfileData() {
+            const userData = JSON.parse(localStorage.getItem('careersync_user') || '{}');
+            const token = localStorage.getItem('careersync_token');
+            
+            if (userData && userData.id) {
+                // Reload courses from localStorage (which may have been updated by course-viewer)
+                const courses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
+                const roadmaps = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
+                const evaluations = JSON.parse(localStorage.getItem('careersync_evaluations') || '[]');
+                
+                console.log('🔄 Refreshing with courses:', courses.map(c => ({
+                    title: c.title,
+                    progress: c.progress,
+                    completedTopics: c.completedTopics,
+                    totalTopics: c.totalTopics
+                })));
+                
+                displayProfile({
+                    courses: courses,
+                    roadmaps: roadmaps,
+                    evaluations: evaluations
+                });
+            }
+        }
+
         // Logout handler
         window.addEventListener('DOMContentLoaded', () => {
             const logoutBtn = document.getElementById('logout-btn');
@@ -1279,13 +1632,77 @@
                         courseName: 'Full Stack Web Development',
                         level: 'Intermediate',
                         duration: '12 weeks',
-                        modules: 10,
-                        totalModules: 10,
-                        completedModules: 3,
-                        progress: 30,
+                        totalModules: 3,
+                        completedModules: 1,
+                        progress: 33,
                         enrolledAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
                         lastAccessedAt: new Date().toISOString(),
-                        status: 'in-progress'
+                        status: 'in-progress',
+                        modules: [
+                            {
+                                id: 'mod1-1',
+                                title: 'HTML & CSS Fundamentals',
+                                duration: '2 weeks',
+                                description: 'Learn the basics of HTML5 and CSS3 for modern web development',
+                                topics: [
+                                    { name: 'HTML5 Semantic Elements', description: 'Understanding semantic HTML structure' },
+                                    { name: 'CSS Grid & Flexbox', description: 'Modern CSS layout techniques' },
+                                    { name: 'Responsive Design', description: 'Mobile-first design approach' }
+                                ],
+                                activities: [
+                                    { name: 'Build a Personal Portfolio', type: 'Project', description: 'Create a responsive portfolio website' }
+                                ],
+                                readingMaterials: [
+                                    { title: 'MDN Web Docs - HTML', url: 'https://developer.mozilla.org/en-US/docs/Web/HTML', source: 'MDN', estimatedReadTime: '2 hours' }
+                                ],
+                                youtubeLinks: [
+                                    { title: 'HTML Crash Course', url: 'https://youtube.com', duration: '2:30:00' }
+                                ]
+                            },
+                            {
+                                id: 'mod1-2',
+                                title: 'JavaScript Essentials',
+                                duration: '3 weeks',
+                                description: 'Master core JavaScript concepts and ES6+ features',
+                                topics: [
+                                    { name: 'Variables & Data Types', description: 'Understanding JavaScript fundamentals' },
+                                    { name: 'Functions & Arrow Functions', description: 'Function declarations and modern syntax' },
+                                    { name: 'Async/Await & Promises', description: 'Asynchronous programming patterns' }
+                                ],
+                                activities: [
+                                    { name: 'Build a Weather App', type: 'Project', description: 'Create an interactive weather application' }
+                                ],
+                                readingMaterials: [
+                                    { title: 'Eloquent JavaScript', url: 'https://eloquentjavascript.net', source: 'External', estimatedReadTime: '3 hours' }
+                                ],
+                                youtubeLinks: [
+                                    { title: 'JavaScript Complete Tutorial', url: 'https://youtube.com', duration: '3:30:00' }
+                                ],
+                                assessment: { name: 'JavaScript Quiz', title: 'Test Your Knowledge', type: 'Quiz', description: 'Test your understanding of JavaScript concepts' }
+                            },
+                            {
+                                id: 'mod1-3',
+                                title: 'React & Frontend Frameworks',
+                                duration: '4 weeks',
+                                description: 'Build modern web applications with React',
+                                topics: [
+                                    { name: 'React Components & JSX', description: 'Component-based architecture' },
+                                    { name: 'State Management & Hooks', description: 'Using useState, useEffect, and custom hooks' },
+                                    { name: 'React Router & Navigation', description: 'Building single-page applications' }
+                                ],
+                                activities: [
+                                    { name: 'Build an E-commerce App', type: 'Project', description: 'Create a full e-commerce platform with React' }
+                                ],
+                                readingMaterials: [
+                                    { title: 'React Official Documentation', url: 'https://react.dev', source: 'React', estimatedReadTime: '2.5 hours' }
+                                ],
+                                youtubeLinks: [
+                                    { title: 'React Comprehensive Course', url: 'https://youtube.com', duration: '4:00:00' }
+                                ],
+                                project: { name: 'React E-commerce App', title: 'Build E-commerce Platform', description: 'Create a full-stack e-commerce application' },
+                                assessment: { name: 'React Assessment', title: 'React Skills Test', type: 'Exam', description: 'Comprehensive React knowledge test' }
+                            }
+                        ]
                     },
                     {
                         id: 'course-2',
@@ -1293,14 +1710,54 @@
                         courseName: 'Python for Data Science',
                         level: 'Beginner',
                         duration: '8 weeks',
-                        modules: 8,
-                        totalModules: 8,
-                        completedModules: 8,
+                        totalModules: 2,
+                        completedModules: 2,
                         progress: 100,
                         enrolledAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
                         lastAccessedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
                         status: 'completed',
-                        completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+                        completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                        modules: [
+                            {
+                                id: 'mod2-1',
+                                title: 'Python Basics & NumPy',
+                                duration: '2 weeks',
+                                description: 'Get started with Python and numerical computing',
+                                topics: [
+                                    { name: 'Python Syntax & Control Flow', description: 'Fundamentals of Python programming' },
+                                    { name: 'NumPy Arrays & Operations', description: 'Numerical computing with NumPy' }
+                                ],
+                                activities: [
+                                    { name: 'Data Analysis Exercise', type: 'Exercise', description: 'Practice data manipulation' }
+                                ],
+                                readingMaterials: [
+                                    { title: 'NumPy Tutorial', url: 'https://numpy.org', source: 'NumPy', estimatedReadTime: '1.5 hours' }
+                                ],
+                                youtubeLinks: [
+                                    { title: 'Python for Beginners', url: 'https://youtube.com', duration: '2:00:00' }
+                                ]
+                            },
+                            {
+                                id: 'mod2-2',
+                                title: 'Pandas & Data Visualization',
+                                duration: '2 weeks',
+                                description: 'Explore and visualize data with Pandas and Matplotlib',
+                                topics: [
+                                    { name: 'Pandas DataFrames', description: 'Working with tabular data' },
+                                    { name: 'Data Visualization with Matplotlib', description: 'Creating meaningful visualizations' }
+                                ],
+                                activities: [
+                                    { name: 'Create Data Dashboards', type: 'Project', description: 'Build interactive dashboards' }
+                                ],
+                                readingMaterials: [
+                                    { title: 'Pandas Documentation', url: 'https://pandas.pydata.org', source: 'Pandas', estimatedReadTime: '2 hours' }
+                                ],
+                                youtubeLinks: [
+                                    { title: 'Data Visualization Guide', url: 'https://youtube.com', duration: '1:30:00' }
+                                ],
+                                project: { name: 'Data Analysis Project', title: 'Real-World Data Analysis', description: 'Analyze real datasets and create visualizations' }
+                            }
+                        ]
                     }
                 ];
                 localStorage.setItem('careersync_enrolled_courses', JSON.stringify(sampleCourses));
@@ -1380,6 +1837,7 @@
                             if (data.success && data.profile) {
                                 // Display the backend data directly
                                 displayProfile(data.profile);
+                                fetchSupplementalProfileData(userId, data.profile.email, token);
                             }
                         }
                     }
