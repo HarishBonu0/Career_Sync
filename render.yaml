@@ -42,9 +42,9 @@ services:
         value: production
       - key: NEXT_PUBLIC_API_URL
         value: https://careersync-backend.onrender.com
-      - key: OPENROUTER_API_KEY
+      - key: NEXT_PUBLIC_YOUTUBE_API_KEY
         sync: false
-      - key: YOUTUBE_API_KEY
+      - key: OPENROUTER_API_KEY
         sync: false
       - key: GEMINI_API_KEY
         sync: false

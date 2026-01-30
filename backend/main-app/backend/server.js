@@ -32,7 +32,10 @@ app.use(cors({
     'http://localhost:3001',
     'https://careersync-landing.onrender.com',
     'https://careersync-course-gen.onrender.com',
-    'https://careersync-roadmap.onrender.com'
+    'https://careersync-roadmap.onrender.com',
+    'https://careersync-landing-oldo.onrender.com',
+    'https://careersync-course-gen-oldo.onrender.com',
+    'https://careersync-roadmap-oldo.onrender.com'
   ],
   credentials: true,
   optionsSuccessStatus: 200
