@@ -12,6 +12,15 @@ export default defineConfig({
       port: 4173
     }
   },
+  preview: {
+    port: 4173,
+    host: '0.0.0.0',
+    strictPort: false,
+    allowedHosts: [
+      'careersync-landing-oldo.onrender.com',
+      '.onrender.com'
+    ]
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true
