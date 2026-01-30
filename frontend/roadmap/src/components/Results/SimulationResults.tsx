@@ -27,7 +27,7 @@ export default function SimulationResults({ result }: SimulationResultsProps) {
         
         const roadmapRecord = {
           id: `roadmap_${Date.now()}`,
-          title: result.careerGoal || 'Career Roadmap',
+          title: result.input?.targetRole ? `${result.input.targetRole} Roadmap` : 'Career Roadmap',
           createdAt: new Date().toISOString(),
           stages: result.pathways?.length || 0,
           userId: userData.id || userData.email,

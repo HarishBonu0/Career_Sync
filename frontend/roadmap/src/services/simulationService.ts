@@ -20,12 +20,6 @@ const ROLES = [
   'Solutions Architect', 'Product Designer', 'Data Engineer', 'DevOps Engineer'
 ];
 
-const SKILLS_TO_ADD = [
-  'System Design', 'AI & ML', 'Kubernetes', 'React Advanced Patterns',
-  'Microservices', 'Cloud Architecture', 'Data Structures', 'Leadership',
-  'Strategic Planning', 'User Research', 'A/B Testing', 'Analytics'
-];
-
 const ALERTS = [
   'LIVE: 1,240 new Product Manager jobs added in last 24h',
   'TRENDING: React + AI skills seeing +45% salary hike',
@@ -150,7 +144,7 @@ function generateFallbackRoadmap(role: string, jobDescription?: string): Roadmap
   const isDataScience = jobContext.includes('data science') || jobContext.includes('ml') || jobContext.includes('machine learning') || roleLower.includes('data scientist');
   const isDevOps = jobContext.includes('devops') || jobContext.includes('kubernetes') || jobContext.includes('docker') || jobContext.includes('infrastructure');
   const isProductManager = roleLower.includes('product manager') || roleLower.includes('pm');
-  const isSenior = roleLower.includes('senior') || roleLower.includes('lead') || roleLower.includes('principal');
+  // const isSenior = roleLower.includes('senior') || roleLower.includes('lead') || roleLower.includes('principal');
   
   // FRONTEND SPECIALIST ROADMAP
   if (isFrontend) {
@@ -548,16 +542,6 @@ async function fetchRealJobData(input: SimulationInput): Promise<{ pathways: Pat
               salary = `₹${baseAmount}-${adjustedMax} LPA`;
             }
           }
-        }
-
-        // Clean up description - extract first sentence or first 120 characters
-        let description = 'Exciting career opportunity';
-        if (job.job_description) {
-          const cleaned = job.job_description.replace(/<[^>]*>/g, '').trim();
-          const firstSentence = cleaned.split('.')[0];
-          description = firstSentence.length > 120 
-            ? firstSentence.substring(0, 120) + '...' 
-            : firstSentence + '.';
         }
 
         // Extract actual job source (Indeed, LinkedIn, Glassdoor, etc.)

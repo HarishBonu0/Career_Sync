@@ -3,7 +3,7 @@ import styles from './StatsCard.module.css';
 interface StatsCardProps {
   icon: React.ReactNode;
   number?: string;
-  value?: string;
+  value?: string | string[];
   label: string;
   subtext?: string;
   subLabel?: string;

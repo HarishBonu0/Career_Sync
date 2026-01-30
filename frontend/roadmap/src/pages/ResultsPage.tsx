@@ -7,10 +7,9 @@ import APIConfigurationModal from '../components/Modals/APIConfigurationModal';
 
 interface ResultsPageProps {
   result: SimulationResult;
-  onNewSimulation: () => void;
 }
 
-export default function ResultsPage({ result, onNewSimulation }: ResultsPageProps) {
+export default function ResultsPage({ result }: ResultsPageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (

@@ -7,7 +7,6 @@ interface AlertBannerProps {
 
 export default function AlertBanner({ alerts }: AlertBannerProps) {
   const [displayText, setDisplayText] = useState('');
-  const [alertIndex, setAlertIndex] = useState(0);
 
   const fullText = alerts.join(' | ');
 

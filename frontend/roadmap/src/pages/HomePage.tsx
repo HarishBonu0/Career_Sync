@@ -25,7 +25,7 @@ export default function HomePage({ onSimulationComplete }: HomePageProps) {
         current_role: input.currentRole,
         target_role: input.targetRole,
         known_skills: input.skills,
-        expected_salary: Number(input.targetSalary.replace(/\D/g, '')) || null,
+        expected_salary: Number(input.targetSalary.replace(/\D/g, '')) || undefined,
         stages: result.pathways[0]?.roadmap?.map((step, idx) => ({
           title: step.title,
           description: step.description,

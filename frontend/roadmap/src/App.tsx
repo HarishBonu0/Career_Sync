@@ -13,17 +13,12 @@ export default function App() {
     setCurrentPage('results');
   };
 
-  const handleNewSimulation = () => {
-    setCurrentPage('home');
-    setSimulationResult(null);
-  };
-
   return (
     <>
       {currentPage === 'home' ? (
         <HomePage onSimulationComplete={handleSimulationComplete} />
       ) : simulationResult ? (
-        <ResultsPage result={simulationResult} onNewSimulation={handleNewSimulation} />
+        <ResultsPage result={simulationResult} />
       ) : null}
     </>
   );
