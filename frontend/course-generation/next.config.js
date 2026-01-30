@@ -1,3 +1,5 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -6,6 +8,10 @@ const nextConfig = {
   experimental: {
     // Allow importing modules from ../db shared folder
     externalDir: true,
+  },
+  webpack: (config) => {
+    config.resolve.alias['@'] = path.resolve(__dirname);
+    return config;
   },
 }
 
