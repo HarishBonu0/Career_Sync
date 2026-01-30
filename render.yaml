@@ -35,8 +35,8 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: cd frontend/course-generation && npm install && npm run build
-    startCommand: cd frontend/course-generation && npm run start -- -p $PORT
+      buildCommand: cd frontend/course-generation && npm install --include=dev && npm run build
+      startCommand: cd frontend/course-generation && npm run start -- -p $PORT
     envVars:
       - key: NODE_ENV
         value: production
@@ -48,6 +48,8 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
 
   # Landing Page
   - type: web
