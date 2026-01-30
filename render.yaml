@@ -36,7 +36,7 @@ services:
     region: oregon
     plan: free
     buildCommand: cd frontend/course-generation && npm install && npm run build
-    startCommand: cd frontend/course-generation && npm start
+    startCommand: cd frontend/course-generation && npm run start -- -p $PORT
     envVars:
       - key: NODE_ENV
         value: production
@@ -56,7 +56,7 @@ services:
     region: oregon
     plan: free
     buildCommand: cd frontend/landing-page && npm install && npm run build
-    startCommand: cd frontend/landing-page && npx vite preview --host 0.0.0.0 --port $PORT
+    startCommand: cd frontend/landing-page && npm run preview -- --host 0.0.0.0 --port $PORT
     envVars:
       - key: NODE_ENV
         value: production
@@ -68,7 +68,7 @@ services:
     region: oregon
     plan: free
     buildCommand: cd frontend/roadmap && npm install && npm run build
-    startCommand: cd frontend/roadmap && npm run preview
+    startCommand: cd frontend/roadmap && npm run preview -- --host 0.0.0.0 --port $PORT
     envVars:
       - key: VITE_API_URL
         value: https://careersync-backend.onrender.com
