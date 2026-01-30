@@ -55,11 +55,13 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: cd frontend/landing-page && npm install && npm run build
+    buildCommand: cd frontend/landing-page && npm install --include=dev && npm run build
     startCommand: cd frontend/landing-page && npm run preview -- --host 0.0.0.0 --port $PORT
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
 
   # Roadmap Frontend
   - type: web
@@ -67,10 +69,12 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: cd frontend/roadmap && npm install && npm run build
+    buildCommand: cd frontend/roadmap && npm install --include=dev && npm run build
     startCommand: cd frontend/roadmap && npm run preview -- --host 0.0.0.0 --port $PORT
     envVars:
       - key: VITE_API_URL
         value: https://careersync-backend.onrender.com
       - key: VITE_GEMINI_API_KEY
         sync: false
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
