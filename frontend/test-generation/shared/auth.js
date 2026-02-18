@@ -64,14 +64,16 @@ export async function logout() {
     }
     
     currentUser = null;
-    window.location.href = 'http://localhost:4173/auth.html';
+    const landingUrl = window.getModuleUrls ? window.getModuleUrls().landing : (window.location.hostname.includes('onrender.com') ? 'https://careersync-landing-oldo.onrender.com' : 'http://localhost:4173');
+    window.location.href = landingUrl + '/auth.html';
 }
 
 // Redirect to login if not authenticated
 export async function requireAuth() {
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-        window.location.href = 'http://localhost:4173/auth.html';
+        const landingUrl = window.getModuleUrls ? window.getModuleUrls().landing : (window.location.hostname.includes('onrender.com') ? 'https://careersync-landing-oldo.onrender.com' : 'http://localhost:4173');
+        window.location.href = landingUrl + '/auth.html';
         return false;
     }
     return true;

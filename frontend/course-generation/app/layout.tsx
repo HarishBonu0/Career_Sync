@@ -18,8 +18,37 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Auto-detect environment and set module URLs */}
+        <script dangerouslySetInnerHTML={{__html: `
+          window.getModuleUrls = function() {
+            const isProduction = window.location.hostname.includes('onrender.com');
+            if (isProduction) {
+              return {
+                landing: 'https://careersync-landing-oldo.onrender.com',
+                course: 'https://careersync-course-gen-oldo.onrender.com',
+                roadmap: 'https://careersync-roadmap-oldo.onrender.com',
+                skillEval: 'https://career-sync-skill-evalutor.onrender.com',
+                backend: 'https://careersync-backend-oldo.onrender.com'
+              };
+            }
+            return {
+              landing: 'http://localhost:4173',
+              course: 'http://localhost:3002',
+              roadmap: 'http://localhost:5173',
+              skillEval: 'http://localhost:3001',
+              backend: 'http://localhost:5000'
+            };
+          };
+        `}} />
         {/* Load profile utilities for database integration */}
-        <script src="http://localhost:4173/profile-utils.js" defer></script>
+        <script dangerouslySetInnerHTML={{__html: `
+          (function() {
+            var script = document.createElement('script');
+            script.src = window.getModuleUrls().landing + '/profile-utils.js';
+            script.defer = true;
+            document.head.appendChild(script);
+          })();
+        `}} />
       </head>
       <body className={inter.className}>
         <ClientProviders>

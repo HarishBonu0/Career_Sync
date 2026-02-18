@@ -83,7 +83,8 @@ const ResultPage = () => {
 
   const handleRetake = () => {
     sessionStorage.clear();
-    window.location.href = 'http://localhost:4173';
+    const landingUrl = window.getModuleUrls ? window.getModuleUrls().landing : (window.location.hostname.includes('onrender.com') ? 'https://careersync-landing-oldo.onrender.com' : 'http://localhost:4173');
+    window.location.href = landingUrl;
   };
 
   return (

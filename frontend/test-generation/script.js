@@ -17,8 +17,12 @@ const loadingSection = document.getElementById('loadingSection');
 const testSection = document.getElementById('testSection');
 const resultsSection = document.getElementById('resultsSection');
 
-// Gemini API Key (load from environment variable)
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+// Backend API base (local vs production)
+const API_BASE_URL = (typeof window.getModuleUrls === 'function')
+    ? window.getModuleUrls().backend
+    : (window.location.hostname.includes('localhost')
+        ? 'http://localhost:5000'
+        : 'https://careersync-backend-oldo.onrender.com');
 
 // Initialize Event Listeners
 function init() {
@@ -86,10 +90,18 @@ async function startTest() {
     loadingSection.classList.remove('hidden');
     
     try {
-        console.log(`Starting test generation for ${courseName} at ${selectedDifficulty} level...`);
+        // Map frontend difficulty levels to backend levels
+        const difficultyMap = {
+            'easy': 'beginner',
+            'medium': 'intermediate',
+            'hard': 'advanced'
+        };
+        const backendDifficulty = difficultyMap[selectedDifficulty] || selectedDifficulty;
+        
+        console.log(`Starting test generation for ${courseName} at ${selectedDifficulty} level (backend: ${backendDifficulty})...`);
         
         // Call Gemini API to generate questions
-        const questions = await generateQuestions(courseName, selectedDifficulty);
+        const questions = await generateQuestions(courseName, backendDifficulty);
         
         console.log(`Generated ${questions.length} questions`);
         
@@ -111,137 +123,80 @@ async function startTest() {
     }
 }
 
-// Generate questions using Gemini API
+// Generate questions using backend (keeps API keys off the client)
 async function generateQuestions(courseName, difficulty) {
-    // Use models confirmed available to your key (from /models listing)
-    const endpoints = [
-        { label: 'v1beta gemini-flash-latest', url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}` },
-        { label: 'v1beta gemini-pro-latest',   url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=${GEMINI_API_KEY}` }
-    ];
-    
-    const prompt = `Generate exactly 20 multiple-choice questions for a ${difficulty} level ${courseName} course.
+    const response = await fetch(`${API_BASE_URL}/api/skills/evaluate`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            skillName: courseName,
+            difficulty,
+            questionCount: 20
+        })
+    });
 
-For each question, provide:
-1. The question text
-2. Exactly 4 options (labeled A, B, C, D)
-3. The correct answer (letter only: A, B, C, or D)
-4. A topic/subtopic category for the question
-
-Return the response ONLY as valid JSON (no markdown, no code blocks):
-{
-  "questions": [
-    {
-      "id": 1,
-      "question": "Question text here?",
-      "options": {
-        "A": "First option",
-        "B": "Second option",
-        "C": "Third option",
-        "D": "Fourth option"
-      },
-      "correctAnswer": "A",
-      "topic": "Topic name"
-    }
-  ]
-}
-
-IMPORTANT: 
-- Return ONLY valid JSON
-- Do not include any markdown formatting
-- Do not use code blocks
-- Ensure all questions are relevant to ${courseName} at ${difficulty} level
-- Make sure questions are clear and educational`;
-
-    const requestBody = {
-        contents: [{
-            parts: [{
-                text: prompt
-            }]
-        }],
-        generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 8192,
-        }
-    };
-
-    const errors = [];
-
-    for (const ep of endpoints) {
+    if (!response.ok) {
+        const raw = await response.text();
+        let msg = response.statusText;
         try {
-            console.log(`Calling Gemini API (${ep.label})...`);
-            const response = await fetch(ep.url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
+            const errJson = JSON.parse(raw);
+            msg = errJson.error?.message || msg;
+        } catch (_) {
+            msg = `${msg} | ${raw}`;
+        }
+        throw new Error(`Backend error: ${response.status} ${msg}`);
+    }
+
+    const data = await response.json();
+    if (!data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+        throw new Error('No questions received from backend');
+    }
+
+    const letters = ['A', 'B', 'C', 'D'];
+    const normalized = data.questions
+        .map((q, index) => {
+            if (!q || !q.question || !q.options) return null;
+
+            const optionsArray = Array.isArray(q.options)
+                ? q.options
+                : Object.values(q.options || {});
+
+            if (!optionsArray || optionsArray.length < 4) return null;
+
+            const options = {};
+            letters.forEach((letter, idx) => {
+                if (optionsArray[idx]) {
+                    options[letter] = optionsArray[idx];
+                }
             });
 
-            console.log(`${ep.label} status:`, response.status);
-
-            if (!response.ok) {
-                const raw = await response.text();
-                let msg = response.statusText;
-                try {
-                    const errJson = JSON.parse(raw);
-                    msg = errJson.error?.message || msg;
-                } catch (_) {
-                    msg = `${msg} | ${raw}`;
+            let correctAnswer = q.correctAnswer || q.answer || 'A';
+            if (correctAnswer && correctAnswer.length > 1) {
+                const matchIndex = optionsArray.findIndex((opt) => opt === correctAnswer);
+                if (matchIndex >= 0 && letters[matchIndex]) {
+                    correctAnswer = letters[matchIndex];
                 }
-                errors.push(`${ep.label}: ${response.status} ${msg}`);
-                continue; // try next endpoint
             }
 
-            const data = await response.json();
-            console.log(`${ep.label} response received`);
-            
-            if (!data.candidates || !data.candidates[0]) {
-                errors.push(`${ep.label}: No candidates in API response`);
-                continue;
-            }
+            if (!options.A || !options.B || !options.C || !options.D) return null;
 
-            const content = data.candidates[0].content;
-            if (!content || !content.parts || !content.parts[0]) {
-                errors.push(`${ep.label}: Invalid response structure`);
-                continue;
-            }
+            return {
+                id: q.id || index + 1,
+                question: q.question,
+                options,
+                correctAnswer,
+                topic: q.topic || courseName
+            };
+        })
+        .filter(Boolean);
 
-            const generatedText = content.parts[0].text;
-            console.log(`${ep.label} text length:`, generatedText?.length || 0);
-            
-            // Clean the response text - remove markdown code blocks if present
-            let cleanedText = (generatedText || '').trim();
-            cleanedText = cleanedText.replace(/```json\s*/g, '');
-            cleanedText = cleanedText.replace(/```\s*/g, '');
-            cleanedText = cleanedText.trim();
-            
-            console.log(`${ep.label}: parsing JSON`);
-            
-            let parsedData;
-            try {
-                parsedData = JSON.parse(cleanedText);
-            } catch (parseError) {
-                errors.push(`${ep.label}: JSON parse error - ${parseError.message} | snippet: ${cleanedText.substring(0, 200)}`);
-                continue;
-            }
-            
-            if (!parsedData.questions || !Array.isArray(parsedData.questions) || parsedData.questions.length === 0) {
-                errors.push(`${ep.label}: No questions field or empty array`);
-                continue;
-            }
-
-            console.log(`${ep.label}: Successfully parsed ${parsedData.questions.length} questions`);
-            return parsedData.questions;
-        } catch (err) {
-            errors.push(`${ep.label}: ${err.message}`);
-            continue;
-        }
+    if (normalized.length === 0) {
+        throw new Error('Backend returned invalid question format');
     }
 
-    // If all endpoints failed, throw combined error
-    throw new Error(`All Gemini endpoints failed. Details: ${errors.join(' | ')}`);
+    return normalized;
 }
 
 // Display questions in the UI

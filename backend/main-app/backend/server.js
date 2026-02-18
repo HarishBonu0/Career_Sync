@@ -35,7 +35,8 @@ app.use(cors({
     'https://careersync-roadmap.onrender.com',
     'https://careersync-landing-oldo.onrender.com',
     'https://careersync-course-gen-oldo.onrender.com',
-    'https://careersync-roadmap-oldo.onrender.com'
+    'https://careersync-roadmap-oldo.onrender.com',
+    'https://career-sync-skill-evalutor.onrender.com'
   ],
   credentials: true,
   optionsSuccessStatus: 200

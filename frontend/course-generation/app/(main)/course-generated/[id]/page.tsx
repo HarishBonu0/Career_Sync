@@ -261,7 +261,8 @@ export default function GeneratedCoursePage() {
       
       // Redirect to profile after delay
       setTimeout(() => {
-        window.location.href = 'http://localhost:4173/profile.html'
+        const landingUrl = (window as any).getModuleUrls ? (window as any).getModuleUrls().landing : (window.location.hostname.includes('onrender.com') ? 'https://careersync-landing-oldo.onrender.com' : 'http://localhost:4173');
+        window.location.href = landingUrl + '/profile.html'
       }, 2000)
     } catch (error) {
       console.error('❌ Error saving course:', error)

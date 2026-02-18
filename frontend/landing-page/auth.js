@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Redirect to profile page
             console.log('Redirecting to profile...');
-            window.location.href = 'http://localhost:4173/profile.html';
+            window.location.href = window.getModuleUrls().landing + '/profile.html';
         } else {
             setButtonLoading(submitBtn, false);
             showError(forms.login, result.error || 'Invalid email or password');
@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Redirect to profile page
             setTimeout(() => {
-                window.location.href = 'http://localhost:4173/profile.html';
+                window.location.href = window.getModuleUrls().landing + '/profile.html';
             }, 1500);
         } else {
             setButtonLoading(submitBtn, false);
@@ -318,7 +318,7 @@ async function handleGoogleSignIn(response) {
         // Backend sets the cookie, just redirect
         console.log('Google Sign-In successful, redirecting...');
         setTimeout(() => {
-            window.location.href = 'http://localhost:4173/';
+            window.location.href = window.getModuleUrls().landing + '/';
         }, 100);
     } catch (error) {
         console.error('Error handling Google Sign-In:', error);

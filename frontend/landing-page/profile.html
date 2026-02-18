@@ -12,21 +12,20 @@
         window.getModuleUrls = function() {
             const isProduction = window.location.hostname.includes('onrender.com');
             if (isProduction) {
-                const baseUrl = window.location.hostname.replace(/^[^.]+\./, '');
                 return {
-                    course: `https://careersync-course-gen.${baseUrl}`,
-                    roadmap: `https://careersync-roadmap.${baseUrl}`,
-                    skillEval: `https://careersync-evaluator.${baseUrl}`,
-                    backend: `https://careersync-backend.${baseUrl}`,
-                    landing: `https://careersync-landing.${baseUrl}`
+                    landing: 'https://careersync-landing-oldo.onrender.com',
+                    course: 'https://careersync-course-gen-oldo.onrender.com',
+                    roadmap: 'https://careersync-roadmap-oldo.onrender.com',
+                    skillEval: 'https://career-sync-skill-evalutor.onrender.com',
+                    backend: 'https://careersync-backend-oldo.onrender.com'
                 };
             }
             return {
+                landing: 'http://localhost:4173',
                 course: 'http://localhost:3002',
                 roadmap: 'http://localhost:5173',
                 skillEval: 'http://localhost:3001',
-                backend: 'http://localhost:5000',
-                landing: 'http://localhost:4173'
+                backend: 'http://localhost:5000'
             };
         };
     </script>
@@ -1323,7 +1322,7 @@
                         <p style="margin-bottom: 24px; color: var(--text-secondary);">
                             ${error.message}
                         </p>
-                        <a href="http://localhost:4173/auth.html" 
+                        <a href="${getModuleUrls().landing}/auth.html" 
                            style="display: inline-block; padding: 12px 24px; background: var(--brand-primary); 
                                   color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
                             Go to Login
@@ -1499,8 +1498,8 @@
                             </div>
                         </div>
                         <div class="item-actions">
-                            <a href="http://localhost:5173" class="btn-continue">${(roadmap.progress || 0) > 0 ? '▶️ Continue' : '🚀 Start'}</a>
-                            <a href="http://localhost:5173" class="btn-view">View</a>
+                            <a href="${getModuleUrls().roadmap}" class="btn-continue">${(roadmap.progress || 0) > 0 ? '▶️ Continue' : '🚀 Start'}</a>
+                            <a href="${getModuleUrls().roadmap}" class="btn-view">View</a>
                         </div>
                     </div>
                 `).join('');
@@ -1538,8 +1537,8 @@
                                 </div>
                             </div>
                             <div class="item-actions">
-                                <a href="http://localhost:3001" class="btn-continue">${passed ? '✅ View' : '🔄 Retake'}</a>
-                                <a href="http://localhost:3001" class="btn-view">New Test</a>
+                                <a href="${getModuleUrls().skillEval}" class="btn-continue">${passed ? '✅ View' : '🔄 Retake'}</a>
+                                <a href="${getModuleUrls().skillEval}" class="btn-view">New Test</a>
                             </div>
                         </div>
                     `;
@@ -1640,7 +1639,7 @@
                     localStorage.removeItem('careersync_user');
                     localStorage.removeItem('careersync_token');
                     localStorage.removeItem('careersync_auth');
-                    window.location.href = 'http://localhost:4173/auth.html';
+                    window.location.href = window.getModuleUrls().landing + '/auth.html';
                 });
             }
         });

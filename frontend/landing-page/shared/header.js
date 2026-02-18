@@ -212,11 +212,29 @@ body {
 // HEADER HTML TEMPLATE
 // ═══════════════════════════════════════════════════════════════════
 
+const isLocalhost = window.location.hostname.includes('localhost')
+  || window.location.hostname === '127.0.0.1';
+const moduleUrls = (typeof window.getModuleUrls === 'function')
+  ? window.getModuleUrls()
+  : (isLocalhost
+      ? {
+          landing: 'http://localhost:4173',
+          course: 'http://localhost:3002',
+          roadmap: 'http://localhost:5173',
+          skillEval: 'http://localhost:3001'
+        }
+      : {
+          landing: 'https://careersync-landing-oldo.onrender.com',
+          course: 'https://careersync-course-gen-oldo.onrender.com',
+          roadmap: 'https://careersync-roadmap-oldo.onrender.com',
+          skillEval: 'https://career-sync-skill-evalutor.onrender.com'
+        });
+
 const HEADER_HTML = `
 <header class="Career Sync-header">
   <div class="Career Sync-header-container">
     <!-- Brand -->
-    <a href="http://localhost:4173" class="Career Sync-brand">
+    <a href="${moduleUrls.landing}" class="Career Sync-brand">
       <div class="Career Sync-brand-icon">C</div>
       <span>Career Sync</span>
     </a>
@@ -224,21 +242,21 @@ const HEADER_HTML = `
     <!-- Navigation Links -->
     <nav class="Career Sync-nav-links" id="Career Sync-nav-links">
       <a 
-        href="http://localhost:3002" 
+        href="${moduleUrls.course}" 
         class="Career Sync-nav-link" 
         data-module="course"
       >
         📚 Course Gen
       </a>
       <a 
-        href="http://localhost:5173" 
+        href="${moduleUrls.roadmap}" 
         class="Career Sync-nav-link" 
         data-module="roadmap"
       >
         🗺️ Roadmaps
       </a>
       <a 
-        href="http://localhost:3001" 
+        href="${moduleUrls.skillEval}" 
         class="Career Sync-nav-link" 
         data-module="evaluator"
       >
