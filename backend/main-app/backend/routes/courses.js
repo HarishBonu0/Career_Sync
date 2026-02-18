@@ -90,7 +90,7 @@ router.post('/generate', async (req, res) => {
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const prompt = `Create a detailed course curriculum for "${courseName}" at ${level || 'intermediate'} level, lasting ${duration || '4 weeks'}. Include modules, topics, and learning outcomes.`;
     
     const result = await model.generateContent(prompt);
@@ -103,7 +103,7 @@ router.post('/generate', async (req, res) => {
       duration,
       level,
       prompt,
-      model: 'gemini-pro',
+      model: 'gemini-2.5-flash',
       curriculum
     });
 
