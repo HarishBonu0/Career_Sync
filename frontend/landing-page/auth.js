@@ -86,9 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('careersync_user', JSON.stringify(result.user));
             }
             
-            // Redirect to profile page
-            console.log('Redirecting to profile...');
-            window.location.href = window.getModuleUrls().landing + '/profile.html';
+            // Redirect to home page
+            console.log('Redirecting to home page...');
+            window.location.href = window.getModuleUrls().landing + '/index.html';
         } else {
             setButtonLoading(submitBtn, false);
             showError(forms.login, result.error || 'Invalid email or password');
@@ -135,9 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
             successDiv.textContent = 'Account created successfully! Redirecting to your profile...';
             forms.signup.insertBefore(successDiv, forms.signup.firstChild);
             
-            // Redirect to profile page
+            // Redirect to home page
             setTimeout(() => {
-                window.location.href = window.getModuleUrls().landing + '/profile.html';
+                window.location.href = window.getModuleUrls().landing + '/index.html';
             }, 1500);
         } else {
             setButtonLoading(submitBtn, false);
