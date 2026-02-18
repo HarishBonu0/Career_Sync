@@ -57,7 +57,7 @@ router.post('/evaluate', async (req, res) => {
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const qCount = questionCount || 20;
     const diff = difficulty || 'intermediate';
     
