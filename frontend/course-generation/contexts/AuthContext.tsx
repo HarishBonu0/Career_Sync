@@ -70,9 +70,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
+      // Get token from localStorage for cross-domain auth
+      const token = typeof window !== 'undefined' ? localStorage.getItem('careersync_token') : null
+      
+      const headers: HeadersInit = {}
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      
       // Try backend API first
       const response = await fetch(`${API_URL}/auth/me`, {
-        credentials: 'include' // Include cookies
+        credentials: 'include', // Include cookies
+        headers
       })
 
       if (response.ok) {
