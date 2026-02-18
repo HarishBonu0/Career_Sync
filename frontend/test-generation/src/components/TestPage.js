@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getTestQuestions, submitTest as submitTestApi } from '../utils/geminiApi';
+import { submitTest as submitTestApi } from '../utils/geminiApi';
 import './TestPage.css';
 
 const TestPage = () => {
@@ -24,16 +24,21 @@ const TestPage = () => {
       return;
     }
 
-    const fetchQuestions = async () => {
+    const initializeTest = async () => {
       try {
         setLoading(true);
         
-        // Import the new function
-        const { getTestQuestions } = await import('../utils/geminiApi');
-        const testData = await getTestQuestions(courseName, difficulty);
+        // Get the evaluation ID and questions from sessionStorage (set by SetupPage)
+        const evaluationId = sessionStorage.getItem('evaluationId');
+        const storedQuestions = sessionStorage.getItem('generatedQuestions');
         
-        setQuestions(testData.questions);
-        sessionStorage.setItem('attemptId', testData.attemptId);
+        if (!evaluationId || !storedQuestions) {
+          throw new Error('Test data not found. Please start from the setup page.');
+        }
+        
+        const questions = JSON.parse(storedQuestions);
+        setQuestions(questions);
+        sessionStorage.setItem('attemptId', evaluationId);
         setLoading(false);
       } catch (error) {
         alert('Error loading test questions: ' + error.message);
@@ -41,7 +46,7 @@ const TestPage = () => {
       }
     };
 
-    fetchQuestions();
+    initializeTest();
   }, [courseName, difficulty, navigate]);
 
   // ✅ Handle Submit (defined early to avoid hoisting issues)
@@ -56,20 +61,19 @@ const TestPage = () => {
     setSubmitted(true);
 
     try {
-      const attemptId = sessionStorage.getItem('attemptId');
+      const evaluationId = sessionStorage.getItem('attemptId');
       
-      // Convert answers to use question IDs
+      // Format answers as an array indexed by question position
       const formattedAnswers = {};
-      questions.forEach((q) => {
-        if (answers[q.id]) {
-          // Get the actual answer text from the option letter
-          const optionLetter = answers[q.id];
-          formattedAnswers[q.id] = q.options[optionLetter];
+      questions.forEach((q, index) => {
+        if (answers[index] !== undefined) {
+          // answers[index] contains the selected option text
+          formattedAnswers[index] = answers[index];
         }
       });
 
       // Submit to backend
-      const result = await submitTestApi(attemptId, formattedAnswers);
+      const result = await submitTestApi(evaluationId, formattedAnswers);
       
       // Store result data
       sessionStorage.setItem('testResult', JSON.stringify(result));
@@ -153,29 +157,35 @@ const TestPage = () => {
       </div>
 
       {/* 📋 Questions */}
-      {questions.map((q, idx) => (
-        <div key={q.id} className="question-card">
-          <p className="question-text">
-            <strong>{idx + 1}. {q.question}</strong>
-          </p>
-          {Object.entries(q.options).map(([key, value]) => (
-            <div className="form-check mb-2" key={key}>
-              <input
-                type="radio"
-                id={`${q.id}-${key}`}
-                name={q.id}
-                value={key}
-                checked={answers[q.id] === key}
-                onChange={() => handleSelect(q.id, key)}
-                className="form-check-input"
-              />
-              <label htmlFor={`${q.id}-${key}`} className="form-check-label">
-                <strong>{key}.</strong> {value}
-              </label>
-            </div>
-          ))}
-        </div>
-      ))}
+      {questions.map((q, idx) => {
+        const optionLetters = ['A', 'B', 'C', 'D'];
+        return (
+          <div key={idx} className="question-card">
+            <p className="question-text">
+              <strong>{idx + 1}. {q.question}</strong>
+            </p>
+            {(q.options || []).map((option, optIdx) => {
+              const letter = optionLetters[optIdx];
+              return (
+                <div className="form-check mb-2" key={optIdx}>
+                  <input
+                    type="radio"
+                    id={`q${idx}-${letter}`}
+                    name={`question-${idx}`}
+                    value={option}
+                    checked={answers[idx] === option}
+                    onChange={() => handleSelect(idx, option)}
+                    className="form-check-input"
+                  />
+                  <label htmlFor={`q${idx}-${letter}`} className="form-check-label">
+                    <strong>{letter}.</strong> {option}
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
 
       {/* ✅ Submit Button */}
       <button 

@@ -22,8 +22,14 @@ const SetupPage = () => {
       sessionStorage.setItem('courseName', courseName);
       sessionStorage.setItem('difficulty', difficulty);
 
-      // Generate questions first
-      await generateQuestions(courseName, difficulty);
+      // Generate questions and store the result
+      const result = await generateQuestions(courseName, difficulty);
+      
+      // Store the evaluation data for TestPage to use
+      if (result && result.evaluationId) {
+        sessionStorage.setItem('evaluationId', result.evaluationId);
+        sessionStorage.setItem('generatedQuestions', JSON.stringify(result.questions || []));
+      }
 
       const courseId = courseName.toLowerCase().replace(/\s+/g, '-');
       navigate(`/test/${courseId}`);

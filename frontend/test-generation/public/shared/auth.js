@@ -1,9 +1,13 @@
 // Shared Authentication Service
 // Cookie-based authentication using HttpOnly cookies
 
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5000/api'
-    : '/api';
+const API_BASE = (typeof window.getModuleUrls === 'function')
+    ? window.getModuleUrls().backend + '/api'
+    : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5000/api'
+        : (window.location.hostname.includes('onrender.com')
+            ? 'https://careersync-backend-oldo.onrender.com/api'
+            : '/api'));
 
 let currentUser = null;
 let authCheckPromise = null;
