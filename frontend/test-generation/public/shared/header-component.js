@@ -3,6 +3,23 @@
 
 import { getCurrentUser, logout, isAuthenticated } from './auth.js';
 
+// Helper to get auth token for cross-domain navigation
+function getAuthToken() {
+  return localStorage.getItem('careersync_token') || '';
+}
+
+// Helper to append auth token to URLs for cross-domain navigation
+function addAuthToUrl(url) {
+  const token = getAuthToken();
+  const user = localStorage.getItem('careersync_user');
+  
+  if (token && user) {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}auth_token=${encodeURIComponent(token)}&auth_user=${encodeURIComponent(user)}`;
+  }
+  return url;
+}
+
 const isLocalhost = window.location.hostname.includes('localhost')
   || window.location.hostname === '127.0.0.1';
 const moduleUrls = (typeof window.getModuleUrls === 'function')
@@ -75,7 +92,7 @@ const createHeaderHTML = (user, authenticated) => {
 
         <!-- Navigation -->
         <nav style="display: flex; align-items: center; gap: 32px;">
-          <a href="${moduleUrls.course}" style="
+          <a href="${addAuthToUrl(moduleUrls.course)}" style="
             text-decoration: none;
             color: #374151;
             font-weight: 500;
@@ -87,7 +104,7 @@ const createHeaderHTML = (user, authenticated) => {
              onmouseout="this.style.color='#374151'; this.style.borderBottomColor='transparent'">
             📚 Course Gen
           </a>
-          <a href="${moduleUrls.roadmap}" style="
+          <a href="${addAuthToUrl(moduleUrls.roadmap)}" style="
             text-decoration: none;
             color: #374151;
             font-weight: 500;
@@ -99,7 +116,7 @@ const createHeaderHTML = (user, authenticated) => {
              onmouseout="this.style.color='#374151'; this.style.borderBottomColor='transparent'">
             🗺️ Roadmaps
           </a>
-          <a href="${moduleUrls.skillEval}" style="
+          <a href="${addAuthToUrl(moduleUrls.skillEval)}" style="
             text-decoration: none;
             color: #374151;
             font-weight: 500;

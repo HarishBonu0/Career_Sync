@@ -26,6 +26,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
+    // Extract auth from URL parameters on mount (for cross-domain navigation)
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const authToken = urlParams.get('auth_token')
+      const authUser = urlParams.get('auth_user')
+      
+      if (authToken && authUser) {
+        console.log('✅ Auth found in URL, storing in localStorage')
+        localStorage.setItem('careersync_token', authToken)
+        localStorage.setItem('careersync_user', authUser)
+        
+        // Parse and set user
+        try {
+          const userData = JSON.parse(authUser)
+          setUser(userData)
+          setIsAuthenticated(true)
+        } catch (e) {
+          console.error('Error parsing auth_user from URL:', e)
+        }
+        
+        // Clean URL by removing auth parameters
+        const cleanUrl = window.location.pathname + 
+          (urlParams.toString() === '' ? '' : '?' + 
+           Array.from(urlParams.entries())
+                .filter(([key]) => !key.startsWith('auth_'))
+                .map(([key, val]) => `${key}=${val}`)
+                .join('&'))
+        window.history.replaceState({}, document.title, cleanUrl)
+      }
+    }
+
     // Check authentication on mount
     checkAuth()
 

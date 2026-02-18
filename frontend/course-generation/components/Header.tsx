@@ -3,6 +3,20 @@
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 
+// Helper to add auth to URLs for cross-domain navigation
+function addAuthToUrl(url: string): string {
+  if (typeof window === 'undefined') return url
+  
+  const token = localStorage.getItem('careersync_token')
+  const user = localStorage.getItem('careersync_user')
+  
+  if (token && user) {
+    const separator = url.includes('?') ? '&' : '?'
+    return `${url}${separator}auth_token=${encodeURIComponent(token)}&auth_user=${encodeURIComponent(user)}`
+  }
+  return url
+}
+
 export default function Header() {
   const { user, logout, isAuthenticated } = useAuth()
 
@@ -42,19 +56,19 @@ export default function Header() {
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center gap-8">
           <a 
-            href={moduleUrls.course}
+            href={addAuthToUrl(moduleUrls.course)}
             className="text-gray-700 font-medium text-sm hover:text-indigo-600 transition-colors pb-1 border-b-2 border-transparent hover:border-indigo-600 no-underline"
           >
             📚 Course Gen
           </a>
           <a 
-            href={moduleUrls.roadmap}
+            href={addAuthToUrl(moduleUrls.roadmap)}
             className="text-gray-700 font-medium text-sm hover:text-indigo-600 transition-colors pb-1 border-b-2 border-transparent hover:border-indigo-600 no-underline"
           >
             🗺️ Roadmaps
           </a>
           <a 
-            href={moduleUrls.skillEval}
+            href={addAuthToUrl(moduleUrls.skillEval)}
             className="text-gray-700 font-medium text-sm hover:text-indigo-600 transition-colors pb-1 border-b-2 border-transparent hover:border-indigo-600 no-underline"
           >
             ✅ Evaluator

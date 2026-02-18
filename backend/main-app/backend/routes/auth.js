@@ -17,7 +17,7 @@ const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY;
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-domain in production
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   path: '/'
 };

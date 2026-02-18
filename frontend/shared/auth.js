@@ -1,5 +1,35 @@
 // Shared Authentication Service
-// Cookie-based authentication using HttpOnly cookies
+// Cookie-based authentication using HttpOnly cookies + localStorage fallback
+
+// Extract auth from URL parameters (for cross-domain navigation)
+function extractAuthFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const authToken = urlParams.get('auth_token');
+    const authUser = urlParams.get('auth_user');
+    
+    if (authToken && authUser) {
+        console.log('✅ Auth found in URL, storing in localStorage');
+        localStorage.setItem('careersync_token', authToken);
+        localStorage.setItem('careersync_user', authUser);
+        
+        // Clean URL by removing auth parameters
+        const cleanUrl = window.location.pathname + 
+            (urlParams.toString() === '' ? '' : '?' + 
+             Array.from(urlParams.entries())
+                  .filter(([key]) => !key.startsWith('auth_'))
+                  .map(([key, val]) => `${key}=${val}`)
+                  .join('&'));
+        window.history.replaceState({}, document.title, cleanUrl);
+        
+        return true;
+    }
+    return false;
+}
+
+// Run on page load
+if (typeof window !== 'undefined') {
+    extractAuthFromUrl();
+}
 
 const API_BASE = (typeof window.getModuleUrls === 'function')
     ? window.getModuleUrls().backend + '/api'
