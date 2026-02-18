@@ -22,12 +22,41 @@ export async function checkAuth() {
         if (resp.ok) {
             const data = await resp.json();
             currentUser = data.user;
+            // Store in localStorage for cross-module access
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('careersync_user', JSON.stringify(currentUser));
+            }
             return data.user;
         }
+        
+        // Backend check failed, try localStorage fallback
+        const storedUser = localStorage.getItem('careersync_user');
+        if (storedUser) {
+            try {
+                currentUser = JSON.parse(storedUser);
+                console.log('✅ Using localStorage auth:', currentUser);
+                return currentUser;
+            } catch (e) {
+                console.error('Error parsing stored user:', e);
+            }
+        }
+        
         currentUser = null;
         return null;
     })
     .catch(() => {
+        // On network error, try localStorage fallback
+        const storedUser = localStorage.getItem('careersync_user');
+        if (storedUser) {
+            try {
+                currentUser = JSON.parse(storedUser);
+                console.log('✅ Using localStorage auth (network error):', currentUser);
+                return currentUser;
+            } catch (e) {
+                console.error('Error parsing stored user:', e);
+            }
+        }
+        
         currentUser = null;
         return null;
     })
@@ -61,6 +90,13 @@ export async function logout() {
         });
     } catch (error) {
         console.error('Logout error:', error);
+    }
+    
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('careersync_user');
+        localStorage.removeItem('careersync_token');
+        localStorage.removeItem('careersync_auth');
     }
     
     currentUser = null;

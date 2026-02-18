@@ -39,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
+      // Try backend API first
       const response = await fetch(`${API_URL}/auth/me`, {
         credentials: 'include' // Include cookies
       })
@@ -52,14 +53,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('careersync_user', JSON.stringify(userData))
         }
-      } else {
-        setUser(null)
-        setIsAuthenticated(false)
+        return
       }
     } catch (error) {
-      setUser(null)
-      setIsAuthenticated(false)
+      console.log('Backend auth check failed, trying localStorage fallback:', error)
     }
+
+    // Fallback to localStorage if backend fails
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('careersync_user')
+      const storedToken = localStorage.getItem('careersync_token')
+      
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser)
+          console.log('✅ Using localStorage auth:', userData)
+          setUser(userData)
+          setIsAuthenticated(true)
+          return
+        } catch (e) {
+          console.error('Error parsing stored user:', e)
+        }
+      }
+    }
+
+    // No auth found
+    setUser(null)
+    setIsAuthenticated(false)
   }
 
   const login = async (email: string, password: string): Promise<boolean> => {
