@@ -51,14 +51,24 @@ export async function checkAuth() {
 
     authCheckPromise = (async () => {
         try {
-            // First, check backend for authenticated user (via cookies)
+            // Get token from localStorage for Authorization header
+            const token = localStorage.getItem('careersync_token');
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            // First, check backend for authenticated user (via cookies + token)
             const resp = await fetch(`${API_BASE}/auth/me`, {
-                credentials: 'include' // Include cookies
+                credentials: 'include', // Include cookies
+                headers
             });
             
             if (resp.ok) {
                 const data = await resp.json();
                 currentUser = data.user;
+                // Store in localStorage for other modules
+                localStorage.setItem('careersync_user', JSON.stringify(currentUser));
                 return data.user;
             }
         } catch (error) {
@@ -70,7 +80,7 @@ export async function checkAuth() {
             const userFromStorage = localStorage.getItem('careersync_user');
             if (userFromStorage) {
                 currentUser = JSON.parse(userFromStorage);
-                console.log('Using localStorage user:', currentUser.email);
+                console.log('✅ Using localStorage auth:', currentUser.email);
                 return currentUser;
             }
         } catch (error) {

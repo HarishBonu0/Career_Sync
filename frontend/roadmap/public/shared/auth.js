@@ -47,8 +47,16 @@ export async function checkAuth() {
         return authCheckPromise;
     }
 
+    // Get token from localStorage for Authorization header
+    const token = typeof window !== 'undefined' ? localStorage.getItem('careersync_token') : null;
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     authCheckPromise = fetch(`${API_BASE}/auth/me`, {
-        credentials: 'include' // Include cookies
+        credentials: 'include', // Include cookies
+        headers
     })
     .then(async (resp) => {
         if (resp.ok) {
