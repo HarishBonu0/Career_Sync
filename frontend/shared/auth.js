@@ -19,22 +19,37 @@ export async function checkAuth() {
         return authCheckPromise;
     }
 
-    authCheckPromise = fetch(`${API_BASE}/auth/me`, {
-        credentials: 'include' // Include cookies
-    })
-    .then(async (resp) => {
-        if (resp.ok) {
-            const data = await resp.json();
-            currentUser = data.user;
-            return data.user;
+    authCheckPromise = (async () => {
+        try {
+            // First, check backend for authenticated user (via cookies)
+            const resp = await fetch(`${API_BASE}/auth/me`, {
+                credentials: 'include' // Include cookies
+            });
+            
+            if (resp.ok) {
+                const data = await resp.json();
+                currentUser = data.user;
+                return data.user;
+            }
+        } catch (error) {
+            console.warn('Backend auth check failed:', error);
         }
+
+        // Fallback: Check localStorage for user data (demo/offline mode)
+        try {
+            const userFromStorage = localStorage.getItem('careersync_user');
+            if (userFromStorage) {
+                currentUser = JSON.parse(userFromStorage);
+                console.log('Using localStorage user:', currentUser.email);
+                return currentUser;
+            }
+        } catch (error) {
+            console.error('Error parsing localStorage user:', error);
+        }
+
         currentUser = null;
         return null;
-    })
-    .catch(() => {
-        currentUser = null;
-        return null;
-    })
+    })()
     .finally(() => {
         authCheckPromise = null;
     });
@@ -67,8 +82,17 @@ export async function logout() {
         console.error('Logout error:', error);
     }
     
+    // Clear all auth data
     currentUser = null;
-    window.location.href = '/auth.html';
+    localStorage.removeItem('careersync_user');
+    localStorage.removeItem('careersync_token');
+    localStorage.removeItem('careersync_auth');
+    
+    // Redirect to login
+    const landingUrl = (typeof window.getModuleUrls === 'function')
+        ? window.getModuleUrls().landing + '/auth.html'
+        : '/auth.html';
+    window.location.href = landingUrl;
 }
 
 // Redirect to login if not authenticated
