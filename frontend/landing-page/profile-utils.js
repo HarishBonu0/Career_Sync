@@ -2,7 +2,11 @@
 // Helper functions to track courses, roadmaps, and evaluations progress
 // All operations sync with backend database
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = (typeof window.getModuleUrls === 'function')
+    ? window.getModuleUrls().backend + '/api'
+    : (window.location.hostname.includes('onrender.com')
+        ? 'https://careersync-backend-oldo.onrender.com/api'
+        : 'http://localhost:5000/api');
 
 // Helper to get user ID from localStorage
 function getUserId() {

@@ -1167,8 +1167,21 @@
 
         async function loadProfile() {
             try {
-                // Check multiple auth storage methods
+                // Check if user is logged in
                 let user = localStorage.getItem('careersync_user');
+                
+                if (!user) {
+                    // No user found, redirect to auth page
+                    console.log('No user session found, redirecting to auth...');
+                    window.location.href = window.getModuleUrls().landing + '/auth.html';
+                    return;
+                }
+                
+                // Parse and display user data
+                let userData = JSON.parse(user);
+                console.log('User logged in as:', userData.email);
+                
+                // Check multiple auth storage methods for token
                 let token = localStorage.getItem('careersync_token');
                 
                 // Also check cookies (backend sets cookies)
@@ -1177,10 +1190,6 @@
                 console.log('Initial auth check - user:', !!user, 'token:', !!token, 'cookieToken:', !!cookieToken);
                 
                 // Fallback to other possible storage keys
-                if (!user) {
-                    user = localStorage.getItem('user');
-                    console.log('Fallback user check:', !!user);
-                }
                 if (!token) {
                     token = localStorage.getItem('token') || localStorage.getItem('careersync_auth') || cookieToken;
                     console.log('Fallback token check:', !!token);
@@ -1190,7 +1199,13 @@
                 if (!user && cookieToken) {
                     console.log('Found cookie token, fetching user from backend...');
                     try {
-                        const response = await fetch('http://localhost:5000/api/auth/me', {
+                        const apiBase = (typeof window.getModuleUrls === 'function')
+                            ? window.getModuleUrls().backend + '/api'
+                            : (window.location.hostname.includes('onrender.com')
+                                ? 'https://careersync-backend-oldo.onrender.com/api'
+                                : 'http://localhost:5000/api');
+                        
+                        const response = await fetch(`${apiBase}/auth/me`, {
                             credentials: 'include', // Important: include cookies in request
                             headers: {
                                 'Content-Type': 'application/json'
