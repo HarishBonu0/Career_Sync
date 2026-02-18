@@ -81,9 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.success) {
             console.log('Login successful, storing user data...');
             
-            // Store user data in localStorage
+            // Store user data and token in localStorage
             if (result.user) {
                 localStorage.setItem('careersync_user', JSON.stringify(result.user));
+            }
+            if (result.token) {
+                localStorage.setItem('careersync_token', result.token);
+                console.log('✅ Token stored in localStorage');
             }
             
             // Redirect to home page
@@ -122,9 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.success) {
             console.log('Registration successful:', result);
             
-            // Store user data in localStorage
+            // Store user data and token in localStorage
             if (result.user) {
                 localStorage.setItem('careersync_user', JSON.stringify(result.user));
+            }
+            if (result.token) {
+                localStorage.setItem('careersync_token', result.token);
+                console.log('✅ Token stored in localStorage');
             }
             
             setButtonLoading(submitBtn, false);

@@ -43,7 +43,14 @@ export async function register(email, password, name = '') {
     }
     
     const data = await resp.json();
-    return { success: true, user: data.user };
+    
+    // Store token in localStorage for cross-domain navigation
+    if (data.token) {
+      localStorage.setItem('careersync_token', data.token);
+      console.log('✅ Token stored for cross-domain auth');
+    }
+    
+    return { success: true, user: data.user, token: data.token };
   } catch (error) {
     console.error('Registration network error:', error);
     // Fallback to localStorage for demo purposes
@@ -68,7 +75,14 @@ export async function login(email, password) {
     }
 
     const data = await resp.json();
-    return { success: true, user: data.user };
+    
+    // Store token in localStorage for cross-domain navigation
+    if (data.token) {
+      localStorage.setItem('careersync_token', data.token);
+      console.log('✅ Token stored for cross-domain auth');
+    }
+    
+    return { success: true, user: data.user, token: data.token };
   } catch (error) {
     console.error('Login network error:', error);
     // Fallback to localStorage for demo purposes
