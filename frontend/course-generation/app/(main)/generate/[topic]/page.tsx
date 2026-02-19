@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowRight, Sparkles } from 'lucide-react'
 
@@ -11,6 +11,8 @@ interface Question {
   placeholder?: string
   options?: string[]
 }
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
 // Categorize topics to provide relevant questions
 const getTopicCategory = (topic: string): 'technical' | 'academic' | 'language' | 'creative' | 'business' => {
@@ -333,9 +335,59 @@ export default function GenerateCoursePage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
   const [showReview, setShowReview] = useState(false)
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true)
+  const [questionError, setQuestionError] = useState<string | null>(null)
 
-  // Generate questions dynamically based on topic
-  const questions = generateQuestions(topic)
+  // Fetch dynamic questions from API when topic changes
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      setIsLoadingQuestions(true)
+      setQuestionError(null)
+      
+      try {
+        console.log('Fetching questions for topic:', topic)
+        const response = await fetch(`${API_BASE_URL}/courses/generate-questions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ topic }),
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to generate questions')
+        }
+        
+        const data = await response.json()
+        console.log('Received questions:', data.questions)
+        
+        // Add the name question at the beginning
+        const questionsWithName = [
+          {
+            id: 1,
+            type: 'text' as const,
+            question: `Nice, you want to learn ${topic}. First, can you tell me your name so I can personalize things for you?`,
+            placeholder: 'Type your answer...',
+          },
+          ...data.questions.map((q: Question, index: number) => ({
+            ...q,
+            id: index + 2, // Adjust IDs since we added the name question
+          }))
+        ]
+        
+        setQuestions(questionsWithName)
+      } catch (error) {
+        console.error('Error fetching questions:', error)
+        setQuestionError('Failed to load questions. Please try refreshing the page.')
+      } finally {
+        setIsLoadingQuestions(false)
+      }
+    }
+    
+    fetchQuestions()
+  }, [topic])
+
   const totalSteps = questions.length
   const currentQuestion = questions[currentStep - 1]
   const userName = answers[1] as string || 'there'
@@ -345,6 +397,8 @@ export default function GenerateCoursePage() {
   }
 
   const handleNext = () => {
+    const isLastQuestion = currentStep === totalSteps
+    
     if (currentQuestion.type === 'text' && textInput.trim()) {
       setAnswers({ ...answers, [currentStep]: textInput.trim() })
       setTextInput('')
@@ -353,7 +407,7 @@ export default function GenerateCoursePage() {
       } else {
         setShowReview(true)
       }
-    } else if (currentQuestion.type === 'text' && currentStep === 10) {
+    } else if (currentQuestion.type === 'text' && isLastQuestion) {
       // Last question is optional
       setAnswers({ ...answers, [currentStep]: textInput.trim() })
       setShowReview(true)
@@ -752,6 +806,55 @@ export default function GenerateCoursePage() {
     )
   }
 
+  // Loading questions
+  if (isLoadingQuestions) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-900 rounded-full mb-4 animate-pulse">
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Preparing Questions</h2>
+          <p className="text-gray-600">
+            Generating personalized questions for {topic}...
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error loading questions
+  if (questionError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white px-4">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 mx-auto">
+            <span className="text-3xl">⚠️</span>
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Oops!</h2>
+          <p className="text-gray-600 mb-6">{questionError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-full font-medium transition-colors"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Check if questions are loaded
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-white">
       {/* Progress Bar */}
@@ -826,9 +929,9 @@ export default function GenerateCoursePage() {
                 />
                 <button
                   onClick={handleNext}
-                  disabled={!textInput.trim() && currentStep !== 10}
+                  disabled={!textInput.trim() && currentStep !== totalSteps}
                   className={`absolute right-3 top-1/2 -translate-y-1/2 p-3 rounded-full transition-all ${
-                    textInput.trim() || currentStep === 10
+                    textInput.trim() || currentStep === totalSteps
                       ? 'bg-blue-600 hover:bg-blue-700 text-white'
                       : 'bg-gray-200 text-gray-400'
                   }`}
@@ -836,7 +939,7 @@ export default function GenerateCoursePage() {
                   <ArrowRight className="w-6 h-6" />
                 </button>
               </div>
-              {currentStep === 10 && (
+              {currentStep === totalSteps && (
                 <p className="text-sm text-gray-500 text-center">
                   This question is optional. Click the arrow to continue.
                 </p>
