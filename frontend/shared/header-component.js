@@ -3,6 +3,41 @@
 
 import { getCurrentUser, logout, isAuthenticated } from './auth.js';
 
+// Helper to get auth token for cross-domain navigation
+function getAuthToken() {
+  return localStorage.getItem('careersync_token') || '';
+}
+
+// Helper to append auth token to URLs for cross-domain navigation
+function addAuthToUrl(url) {
+  const token = getAuthToken();
+  const user = localStorage.getItem('careersync_user');
+  
+  if (token && user) {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}auth_token=${encodeURIComponent(token)}&auth_user=${encodeURIComponent(user)}`;
+  }
+  return url;
+}
+
+const isLocalhost = window.location.hostname.includes('localhost')
+  || window.location.hostname === '127.0.0.1';
+const moduleUrls = (typeof window.getModuleUrls === 'function')
+  ? window.getModuleUrls()
+  : (isLocalhost
+      ? {
+          landing: 'http://localhost:4173',
+          course: 'http://localhost:3002',
+          roadmap: 'http://localhost:5173',
+          skillEval: 'http://localhost:3001'
+        }
+      : {
+          landing: 'https://careersync-landing-oldo.onrender.com',
+          course: 'https://careersync-course-gen-oldo.onrender.com',
+          roadmap: 'https://careersync-roadmap-oldo.onrender.com',
+          skillEval: 'https://career-sync-skill-evalutor.onrender.com'
+        });
+
 // Header HTML Template
 const createHeaderHTML = (user, authenticated) => {
   const displayName = user?.name || user?.email?.split('@')[0] || 'User';
@@ -28,7 +63,7 @@ const createHeaderHTML = (user, authenticated) => {
         justify-content: space-between;
       ">
         <!-- Brand -->
-        <a href="http://localhost:4173" style="
+        <a href="${moduleUrls.landing}" style="
           display: flex;
           align-items: center;
           gap: 12px;
@@ -57,7 +92,7 @@ const createHeaderHTML = (user, authenticated) => {
 
         <!-- Navigation -->
         <nav style="display: flex; align-items: center; gap: 32px;">
-          <a href="http://localhost:3002" style="
+          <a href="${addAuthToUrl(moduleUrls.course)}" style="
             text-decoration: none;
             color: #374151;
             font-weight: 500;
@@ -69,7 +104,7 @@ const createHeaderHTML = (user, authenticated) => {
              onmouseout="this.style.color='#374151'; this.style.borderBottomColor='transparent'">
             📚 Course Gen
           </a>
-          <a href="http://localhost:5173" style="
+          <a href="${addAuthToUrl(moduleUrls.roadmap)}" style="
             text-decoration: none;
             color: #374151;
             font-weight: 500;
@@ -81,7 +116,7 @@ const createHeaderHTML = (user, authenticated) => {
              onmouseout="this.style.color='#374151'; this.style.borderBottomColor='transparent'">
             🗺️ Roadmaps
           </a>
-          <a href="http://localhost:3001" style="
+          <a href="${addAuthToUrl(moduleUrls.skillEval)}" style="
             text-decoration: none;
             color: #374151;
             font-weight: 500;
@@ -98,7 +133,7 @@ const createHeaderHTML = (user, authenticated) => {
         <!-- Auth Section -->
         <div style="display: flex; align-items: center; gap: 16px;">
           ${authenticated ? `
-            <a href="http://localhost:4173/profile.html" style="
+            <a href="${moduleUrls.landing}/profile.html" style="
               display: flex;
               align-items: center;
               gap: 8px;
@@ -143,7 +178,7 @@ const createHeaderHTML = (user, authenticated) => {
               Sign Out
             </button>
           ` : `
-            <a href="http://localhost:4173/auth.html" style="
+            <a href="${moduleUrls.landing}/auth.html" style="
               padding: 10px 20px;
               background: #4F46E5;
               color: white;

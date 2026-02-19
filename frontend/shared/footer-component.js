@@ -1,5 +1,23 @@
 // Shared Footer Component for Vanilla JS Apps
 
+const isLocalhost = window.location.hostname.includes('localhost')
+  || window.location.hostname === '127.0.0.1';
+const moduleUrls = (typeof window.getModuleUrls === 'function')
+  ? window.getModuleUrls()
+  : (isLocalhost
+      ? {
+          landing: 'http://localhost:4173',
+          course: 'http://localhost:3002',
+          roadmap: 'http://localhost:5173',
+          skillEval: 'http://localhost:3001'
+        }
+      : {
+          landing: 'https://careersync-landing-oldo.onrender.com',
+          course: 'https://careersync-course-gen-oldo.onrender.com',
+          roadmap: 'https://careersync-roadmap-oldo.onrender.com',
+          skillEval: 'https://career-sync-skill-evalutor.onrender.com'
+        });
+
 // Footer HTML Template
 const createFooterHTML = () => {
   return `
@@ -115,7 +133,7 @@ const createFooterHTML = () => {
               margin: 0;
             ">
               <li style="margin-bottom: 12px;">
-                <a href="http://localhost:3002" style="
+                <a href="${moduleUrls.course}" style="
                   color: #94a3b8;
                   text-decoration: none;
                   transition: color 0.2s;
@@ -123,7 +141,7 @@ const createFooterHTML = () => {
                    onmouseout="this.style.color='#94a3b8'">Course Generator</a>
               </li>
               <li style="margin-bottom: 12px;">
-                <a href="http://localhost:5173" style="
+                <a href="${moduleUrls.roadmap}" style="
                   color: #94a3b8;
                   text-decoration: none;
                   transition: color 0.2s;
@@ -131,7 +149,7 @@ const createFooterHTML = () => {
                    onmouseout="this.style.color='#94a3b8'">Roadmap Planner</a>
               </li>
               <li style="margin-bottom: 12px;">
-                <a href="http://localhost:3001" style="
+                <a href="${moduleUrls.skillEval}" style="
                   color: #94a3b8;
                   text-decoration: none;
                   transition: color 0.2s;

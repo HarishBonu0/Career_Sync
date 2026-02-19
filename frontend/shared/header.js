@@ -212,11 +212,29 @@ body {
 // HEADER HTML TEMPLATE
 // ═══════════════════════════════════════════════════════════════════
 
+const isLocalhost = window.location.hostname.includes('localhost')
+  || window.location.hostname === '127.0.0.1';
+const moduleUrls = (typeof window.getModuleUrls === 'function')
+  ? window.getModuleUrls()
+  : (isLocalhost
+      ? {
+          landing: 'http://localhost:4173',
+          course: 'http://localhost:3002',
+          roadmap: 'http://localhost:5173',
+          skillEval: 'http://localhost:3001'
+        }
+      : {
+          landing: 'https://careersync-landing-oldo.onrender.com',
+          course: 'https://careersync-course-gen-oldo.onrender.com',
+          roadmap: 'https://careersync-roadmap-oldo.onrender.com',
+          skillEval: 'https://career-sync-skill-evalutor.onrender.com'
+        });
+
 const HEADER_HTML = `
 <header class="careersync-header">
   <div class="careersync-header-container">
     <!-- Brand -->
-    <a href="http://localhost:4173" class="careersync-brand">
+    <a href="${moduleUrls.landing}" class="careersync-brand">
       <div class="careersync-brand-icon">C</div>
       <span>Career Sync</span>
     </a>
@@ -224,21 +242,21 @@ const HEADER_HTML = `
     <!-- Navigation Links -->
     <nav class="careersync-nav-links" id="careersync-nav-links">
       <a 
-        href="http://localhost:3002" 
+        href="${moduleUrls.course}" 
         class="careersync-nav-link" 
         data-module="course"
       >
         📚 Course Gen
       </a>
       <a 
-        href="http://localhost:5173" 
+        href="${moduleUrls.roadmap}" 
         class="careersync-nav-link" 
         data-module="roadmap"
       >
         🗺️ Roadmaps
       </a>
       <a 
-        href="http://localhost:3001" 
+        href="${moduleUrls.skillEval}" 
         class="careersync-nav-link" 
         data-module="evaluator"
       >
@@ -366,7 +384,8 @@ class careersyncHeader {
   async checkAuthStatus() {
     // Check authentication via API
     try {
-      const response = await fetch('http://localhost:5000/api/auth/me', {
+      const backendUrl = window.getModuleUrls ? window.getModuleUrls().backend : (window.location.hostname.includes('onrender.com') ? 'https://careersync-backend-oldo.onrender.com' : 'http://localhost:5000');
+      const response = await fetch(backendUrl + '/api/auth/me', {
         credentials: 'include' // Include cookies
       });
 
@@ -399,9 +418,8 @@ class careersyncHeader {
 
     if (this.isAuthenticated && this.currentUser) {
       const displayName = this.currentUser.name || this.currentUser.full_name || this.currentUser.email?.split('@')[0] || 'User';
-      const profileUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:4173/profile.html' 
-        : '/profile.html';
+      const landingUrl = window.getModuleUrls ? window.getModuleUrls().landing : (window.location.hostname.includes('onrender.com') ? 'https://careersync-landing-oldo.onrender.com' : 'http://localhost:4173');
+      const profileUrl = landingUrl + '/profile.html';
       
       authContainer.innerHTML = `
         <div style="display: flex; align-items: center; gap: 12px;">
@@ -426,9 +444,8 @@ class careersyncHeader {
         });
       }
     } else {
-      const authUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:4173/auth.html'
-        : '/auth.html';
+      const landingUrl = window.getModuleUrls ? window.getModuleUrls().landing : (window.location.hostname.includes('onrender.com') ? 'https://careersync-landing-oldo.onrender.com' : 'http://localhost:4173');
+      const authUrl = landingUrl + '/auth.html';
       
       authContainer.innerHTML = `
         <a href="${authUrl}" class="careersync-btn careersync-btn-primary">
@@ -440,7 +457,8 @@ class careersyncHeader {
 
   async logout() {
     try {
-      await fetch('http://localhost:5000/api/auth/logout', {
+      const backendUrl = window.getModuleUrls ? window.getModuleUrls().backend : (window.location.hostname.includes('onrender.com') ? 'https://careersync-backend-oldo.onrender.com' : 'http://localhost:5000');
+      await fetch(backendUrl + '/api/auth/logout', {
         method: 'POST',
         credentials: 'include'
       });
@@ -454,9 +472,8 @@ class careersyncHeader {
     this.log('User logged out');
     
     // Redirect to auth page
-    const authUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://localhost:4173/auth.html'
-      : '/auth.html';
+    const landingUrl = window.getModuleUrls ? window.getModuleUrls().landing : (window.location.hostname.includes('onrender.com') ? 'https://careersync-landing-oldo.onrender.com' : 'http://localhost:4173');
+    const authUrl = landingUrl + '/auth.html';
     window.location.href = authUrl;
   }
 

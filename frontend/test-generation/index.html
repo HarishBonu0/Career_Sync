@@ -10,28 +10,42 @@
         window.getModuleUrls = function() {
             const isProduction = window.location.hostname.includes('onrender.com');
             if (isProduction) {
-                const hostname = window.location.hostname;
-                const baseUrl = hostname.replace(/^[^.]+\./, '');
                 return {
-                    course: `https://careersync-course-gen.${baseUrl}`,
-                    roadmap: `https://careersync-roadmap.${baseUrl}`,
-                    skillEval: `https://careersync-evaluator.${baseUrl}`,
-                    backend: `https://careersync-backend.${baseUrl}`
+                    landing: 'https://careersync-landing-oldo.onrender.com',
+                    course: 'https://careersync-course-gen-oldo.onrender.com',
+                    roadmap: 'https://careersync-roadmap-oldo.onrender.com',
+                    skillEval: 'https://career-sync-skill-evalutor.onrender.com',
+                    backend: 'https://careersync-backend-oldo.onrender.com'
                 };
             }
             return {
+                landing: 'http://localhost:4173',
                 course: 'http://localhost:3002',
                 roadmap: 'http://localhost:5173',
                 skillEval: 'http://localhost:3001',
                 backend: 'http://localhost:5000'
             };
         };
+        
+        // Restore auth from URL if coming from another app
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('auth_token');
+            const userStr = params.get('auth_user');
+            
+            if (token && userStr) {
+                localStorage.setItem('careersync_token', token);
+                localStorage.setItem('careersync_user', userStr);
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+            }
+        })();
     </script>
 </head>
 <body>
     <!-- Shared Header Component - Injected at body start -->
     <div id="app-header"></div>
-    <script type="module" src="/shared/header-component.js"></script>
+    <script type="module" src="./shared/header-component.js"></script>
 
     <main class="main-content">
     <div class="container">
@@ -217,7 +231,7 @@
                             localStorage.removeItem('careersync_user');
                             localStorage.removeItem('careersync_token');
                             localStorage.removeItem('careersync_auth');
-                            window.location.href = 'http://localhost:4173/auth.html';
+                            window.location.href = window.getModuleUrls().landing + '/auth.html';
                         });
                     }
                 } catch (e) {
@@ -244,7 +258,6 @@
         });
     </script>
     <script src="script.js"></script>
-    <script src="../shared-header.js"></script>
     <script>
         // Initialize auth check for test page
         document.addEventListener('DOMContentLoaded', function() {
@@ -283,7 +296,7 @@
                 
                 authContainer.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <a href="http://localhost:4173/profile.html" onclick="saveUserData()" style="color: var(--text-secondary); font-size: 0.875rem; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
+                        <a href="${window.getModuleUrls().landing}/profile.html" onclick="saveUserData()" style="color: var(--text-secondary); font-size: 0.875rem; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='transparent'">
                             <span style="display: inline-block; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);">
                                 ${initials}
                             </span>
@@ -323,7 +336,7 @@
             localStorage.removeItem('careersync_token');
             localStorage.removeItem('careersync_auth');
             localStorage.removeItem('careersync_profile_data');
-            window.location.href = 'http://localhost:4173/auth.html';
+            window.location.href = window.getModuleUrls().landing + '/auth.html';
         }
     </script>
 </body>

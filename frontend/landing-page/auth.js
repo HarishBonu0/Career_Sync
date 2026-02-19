@@ -81,14 +81,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.success) {
             console.log('Login successful, storing user data...');
             
-            // Store user data in localStorage
+            // Store user data and token in localStorage
             if (result.user) {
                 localStorage.setItem('careersync_user', JSON.stringify(result.user));
             }
+            if (result.token) {
+                localStorage.setItem('careersync_token', result.token);
+                console.log('✅ Token stored in localStorage');
+            }
             
-            // Redirect to profile page
-            console.log('Redirecting to profile...');
-            window.location.href = 'http://localhost:4173/profile.html';
+            // Redirect to home page
+            console.log('Redirecting to home page...');
+            window.location.href = window.getModuleUrls().landing + '/index.html';
         } else {
             setButtonLoading(submitBtn, false);
             showError(forms.login, result.error || 'Invalid email or password');
@@ -122,9 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.success) {
             console.log('Registration successful:', result);
             
-            // Store user data in localStorage
+            // Store user data and token in localStorage
             if (result.user) {
                 localStorage.setItem('careersync_user', JSON.stringify(result.user));
+            }
+            if (result.token) {
+                localStorage.setItem('careersync_token', result.token);
+                console.log('✅ Token stored in localStorage');
             }
             
             setButtonLoading(submitBtn, false);
@@ -135,9 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
             successDiv.textContent = 'Account created successfully! Redirecting to your profile...';
             forms.signup.insertBefore(successDiv, forms.signup.firstChild);
             
-            // Redirect to profile page
+            // Redirect to home page
             setTimeout(() => {
-                window.location.href = 'http://localhost:4173/profile.html';
+                window.location.href = window.getModuleUrls().landing + '/index.html';
             }, 1500);
         } else {
             setButtonLoading(submitBtn, false);
@@ -318,7 +326,7 @@ async function handleGoogleSignIn(response) {
         // Backend sets the cookie, just redirect
         console.log('Google Sign-In successful, redirecting...');
         setTimeout(() => {
-            window.location.href = 'http://localhost:4173/';
+            window.location.href = window.getModuleUrls().landing + '/';
         }, 100);
     } catch (error) {
         console.error('Error handling Google Sign-In:', error);

@@ -8,19 +8,18 @@ export function getModuleUrls() {
   const isProduction = window.location.hostname.includes('onrender.com');
   
   if (isProduction) {
-    // Get the service name from the hostname
-    const hostname = window.location.hostname;
-    const baseUrl = hostname.replace(/^[^.]+/, '').substring(1); // Get 'onrender.com' part
-    
+    // Explicit Render URLs for the deployed services
     return {
-      course: `https://careersync-course-gen.${baseUrl}`,
-      roadmap: `https://careersync-roadmap.${baseUrl}`,
-      skillEval: `https://careersync-evaluator.${baseUrl}`,
-      backend: `https://careersync-backend.${baseUrl}`
+      landing: 'https://careersync-landing-oldo.onrender.com',
+      course: 'https://careersync-course-gen-oldo.onrender.com',
+      roadmap: 'https://careersync-roadmap-oldo.onrender.com',
+      skillEval: 'https://career-sync-skill-evalutor.onrender.com',
+      backend: 'https://careersync-backend-oldo.onrender.com'
     };
   } else {
     // Development/localhost
     return {
+      landing: 'http://localhost:4173',
       course: 'http://localhost:3002',
       roadmap: 'http://localhost:5173',
       skillEval: 'http://localhost:3001',
@@ -47,6 +46,11 @@ export function getRoadmapUrl() {
 export function getEvaluatorUrl() {
   const urls = getModuleUrls();
   return urls.skillEval;
+}
+
+export function getLandingUrl() {
+  const urls = getModuleUrls();
+  return urls.landing;
 }
 
 // Log current environment for debugging

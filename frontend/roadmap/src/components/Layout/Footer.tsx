@@ -1,4 +1,17 @@
 export default function Footer() {
+  const isProduction = import.meta.env.MODE === 'production'
+  const moduleUrls = isProduction
+    ? {
+        course: 'https://careersync-course-gen-oldo.onrender.com',
+        roadmap: 'https://careersync-roadmap-oldo.onrender.com',
+        skillEval: 'https://career-sync-skill-evalutor.onrender.com'
+      }
+    : {
+        course: 'http://localhost:3002',
+        roadmap: 'http://localhost:5173',
+        skillEval: 'http://localhost:3001'
+      }
+
   return (
     <footer className="footer-premium">
       <div className="footer-container">
@@ -21,9 +34,9 @@ export default function Footer() {
           <div>
             <h4 className="footer-heading">Product</h4>
             <ul className="footer-links">
-              <li><a href="http://localhost:3000">Course Generator</a></li>
-              <li><a href="http://localhost:5173">Roadmap Engine</a></li>
-              <li><a href="http://localhost:3001">Skill Evaluator</a></li>
+              <li><a href={moduleUrls.course}>Course Generator</a></li>
+              <li><a href={moduleUrls.roadmap}>Roadmap Engine</a></li>
+              <li><a href={moduleUrls.skillEval}>Skill Evaluator</a></li>
               <li><a href="#">Enterprise</a></li>
             </ul>
           </div>

@@ -26,6 +26,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
+    // Extract auth from URL parameters on mount (for cross-domain navigation)
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const authToken = urlParams.get('auth_token')
+      const authUser = urlParams.get('auth_user')
+      
+      if (authToken && authUser) {
+        console.log('✅ Auth found in URL, storing in localStorage')
+        localStorage.setItem('careersync_token', authToken)
+        localStorage.setItem('careersync_user', authUser)
+        
+        // Parse and set user
+        try {
+          const userData = JSON.parse(authUser)
+          setUser(userData)
+          setIsAuthenticated(true)
+        } catch (e) {
+          console.error('Error parsing auth_user from URL:', e)
+        }
+        
+        // Clean URL by removing auth parameters
+        const cleanUrl = window.location.pathname + 
+          (urlParams.toString() === '' ? '' : '?' + 
+           Array.from(urlParams.entries())
+                .filter(([key]) => !key.startsWith('auth_'))
+                .map(([key, val]) => `${key}=${val}`)
+                .join('&'))
+        window.history.replaceState({}, document.title, cleanUrl)
+      }
+    }
+
     // Check authentication on mount
     checkAuth()
 
@@ -39,8 +70,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
+      // Get token from localStorage for cross-domain auth
+      const token = typeof window !== 'undefined' ? localStorage.getItem('careersync_token') : null
+      
+      const headers: HeadersInit = {}
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      
+      // Try backend API first
       const response = await fetch(`${API_URL}/auth/me`, {
-        credentials: 'include' // Include cookies
+        credentials: 'include', // Include cookies
+        headers
       })
 
       if (response.ok) {
@@ -52,14 +93,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('careersync_user', JSON.stringify(userData))
         }
-      } else {
-        setUser(null)
-        setIsAuthenticated(false)
+        return
       }
     } catch (error) {
-      setUser(null)
-      setIsAuthenticated(false)
+      console.log('Backend auth check failed, trying localStorage fallback:', error)
     }
+
+    // Fallback to localStorage if backend fails
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('careersync_user')
+      const storedToken = localStorage.getItem('careersync_token')
+      
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser)
+          console.log('✅ Using localStorage auth:', userData)
+          setUser(userData)
+          setIsAuthenticated(true)
+          return
+        } catch (e) {
+          console.error('Error parsing stored user:', e)
+        }
+      }
+    }
+
+    // No auth found
+    setUser(null)
+    setIsAuthenticated(false)
   }
 
   const login = async (email: string, password: string): Promise<boolean> => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowRight, Sparkles } from 'lucide-react'
 
@@ -12,113 +12,317 @@ interface Question {
   options?: string[]
 }
 
-const questions: Question[] = [
-  {
-    id: 1,
-    type: 'text',
-    question: 'Nice, you want to learn {topic}. First, can you tell me your name so I can personalize things for you?',
-    placeholder: 'Type your answer...',
-  },
-  {
-    id: 2,
-    type: 'single-choice',
-    question: 'Nice to meet you, {name}. What is your main goal with learning {topic} right now? For example, coding interviews, college exams, competitive programming, building strong fundamentals, or something else?',
-    options: [
-      'Coding interviews',
-      'College exams',
-      'Competitive programming',
-      'I want strong fundamentals',
-      'I am very tired, I need in short',
-    ],
-  },
-  {
-    id: 3,
-    type: 'single-choice',
-    question: 'What is your current experience level with {topic}?',
-    options: [
-      'Complete beginner - Never studied this before',
-      'Beginner - I know the basics',
-      'Intermediate - I have some experience',
-      'Advanced - I\'m quite experienced',
-      'Expert - I know this very well',
-    ],
-  },
-  {
-    id: 4,
-    type: 'single-choice',
-    question: 'How much time can you dedicate to learning {topic} per day?',
-    options: [
-      'Less than 30 minutes',
-      '30 minutes to 1 hour',
-      '1-2 hours',
-      '2-3 hours',
-      'More than 3 hours',
-    ],
-  },
-  {
-    id: 5,
-    type: 'single-choice',
-    question: 'What\'s your preferred learning style?',
-    options: [
-      'Visual - I learn best with diagrams and videos',
-      'Practical - I prefer hands-on coding exercises',
-      'Reading - I like detailed written explanations',
-      'Mixed - I like a combination of all',
-    ],
-  },
-  {
-    id: 6,
-    type: 'single-choice',
-    question: 'When do you want to complete learning {topic}?',
-    options: [
-      'Within 1 week',
-      'Within 2 weeks',
-      'Within 1 month',
-      '1-3 months',
-      'More than 3 months - I\'m not in a hurry',
-    ],
-  },
-  {
-    id: 7,
-    type: 'multiple-choice',
-    question: 'Which specific areas of {topic} are you most interested in? (Select all that apply)',
-    options: [
-      'Core concepts and theory',
-      'Practical applications',
-      'Interview questions',
-      'Project-based learning',
-      'Best practices and patterns',
-      'Advanced topics',
-    ],
-  },
-  {
-    id: 8,
-    type: 'single-choice',
-    question: 'Do you prefer to learn with real-world projects or theoretical exercises?',
-    options: [
-      'Real-world projects',
-      'Theoretical exercises',
-      'A mix of both',
-    ],
-  },
-  {
-    id: 9,
-    type: 'single-choice',
-    question: 'How do you want to track your progress?',
-    options: [
-      'Quizzes and assessments',
-      'Building projects',
-      'Coding challenges',
-      'All of the above',
-    ],
-  },
-  {
-    id: 10,
-    type: 'text',
-    question: 'Is there anything specific about {topic} you want to focus on or any challenges you\'ve faced before?',
-    placeholder: 'Type your answer... (optional)',
-  },
-]
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+
+// Categorize topics to provide relevant questions
+const getTopicCategory = (topic: string): 'technical' | 'academic' | 'language' | 'creative' | 'business' => {
+  const topicLower = topic.toLowerCase()
+  
+  // Technical/Programming
+  if (topicLower.match(/programming|code|coding|javascript|python|java|c\+\+|react|angular|vue|web dev|software|data structure|algorithm|api|database|sql|nosql|machine learning|ai|artificial intelligence|devops|cloud|aws|azure|cybersecurity|blockchain/)) {
+    return 'technical'
+  }
+  
+  // Languages
+  if (topicLower.match(/english|spanish|french|german|chinese|japanese|korean|hindi|language|grammar|vocabulary|pronunciation/)) {
+    return 'language'
+  }
+  
+  // Creative
+  if (topicLower.match(/art|drawing|painting|music|guitar|piano|photography|design|ui|ux|graphic|video editing|animation|creative writing/)) {
+    return 'creative'
+  }
+  
+  // Business
+  if (topicLower.match(/business|marketing|finance|management|economics|accounting|entrepreneurship|sales|stock market|investing/)) {
+    return 'business'
+  }
+  
+  // Academic (default for school subjects)
+  return 'academic'
+}
+
+const generateQuestions = (topic: string): Question[] => {
+  const category = getTopicCategory(topic)
+  
+  const baseQuestions: Question[] = [
+    {
+      id: 1,
+      type: 'text',
+      question: 'Nice, you want to learn {topic}. First, can you tell me your name so I can personalize things for you?',
+      placeholder: 'Type your answer...',
+    },
+  ]
+  
+  // Question 2: Main Goal (varies by category)
+  if (category === 'technical') {
+    baseQuestions.push({
+      id: 2,
+      type: 'single-choice',
+      question: 'Nice to meet you, {name}. What is your main goal with learning {topic}?',
+      options: [
+        'Job interviews preparation',
+        'Build personal projects',
+        'Career advancement',
+        'Learn for fun/hobby',
+        'Quick overview - I need basics fast',
+      ],
+    })
+  } else if (category === 'academic') {
+    baseQuestions.push({
+      id: 2,
+      type: 'single-choice',
+      question: 'Nice to meet you, {name}. What is your main goal with learning {topic}?',
+      options: [
+        'School/College exams',
+        'Competitive exams preparation',
+        'General knowledge',
+        'Career/Professional growth',
+        'Personal interest',
+      ],
+    })
+  } else if (category === 'language') {
+    baseQuestions.push({
+      id: 2,
+      type: 'single-choice',
+      question: 'Nice to meet you, {name}. What is your main goal with learning {topic}?',
+      options: [
+        'Travel and communication',
+        'Career opportunities',
+        'Academic requirements',
+        'Connect with native speakers',
+        'Personal enrichment',
+      ],
+    })
+  } else if (category === 'creative') {
+    baseQuestions.push({
+      id: 2,
+      type: 'single-choice',
+      question: 'Nice to meet you, {name}. What is your main goal with learning {topic}?',
+      options: [
+        'Start a creative career',
+        'Personal hobby/passion',
+        'Improve existing skills',
+        'Create content for social media',
+        'Express myself artistically',
+      ],
+    })
+  } else { // business
+    baseQuestions.push({
+      id: 2,
+      type: 'single-choice',
+      question: 'Nice to meet you, {name}. What is your main goal with learning {topic}?',
+      options: [
+        'Start my own business',
+        'Career advancement',
+        'Professional certification',
+        'Better job opportunities',
+        'General business knowledge',
+      ],
+    })
+  }
+  
+  // Common questions (3-6)
+  baseQuestions.push(
+    {
+      id: 3,
+      type: 'single-choice',
+      question: 'What is your current experience level with {topic}?',
+      options: [
+        'Complete beginner - Never studied this before',
+        'Beginner - I know the basics',
+        'Intermediate - I have some experience',
+        'Advanced - I\'m quite experienced',
+        'Expert - I know this very well',
+      ],
+    },
+    {
+      id: 4,
+      type: 'single-choice',
+      question: 'How much time can you dedicate to learning {topic} per day?',
+      options: [
+        'Less than 30 minutes',
+        '30 minutes to 1 hour',
+        '1-2 hours',
+        '2-3 hours',
+        'More than 3 hours',
+      ],
+    },
+    {
+      id: 5,
+      type: 'single-choice',
+      question: 'What\'s your preferred learning style?',
+      options: category === 'technical'
+        ? [
+            'Visual - Diagrams and videos',
+            'Hands-on - Coding exercises and practice',
+            'Reading - Documentation and tutorials',
+            'Mixed - Combination of all',
+          ]
+        : category === 'language'
+        ? [
+            'Conversational - Speaking and listening',
+            'Visual - Videos and images',
+            'Reading - Books and articles',
+            'Interactive - Games and exercises',
+          ]
+        : [
+            'Visual - Videos and demonstrations',
+            'Hands-on - Practice and exercises',
+            'Reading - Books and articles',
+            'Mixed - Combination of all',
+          ],
+    },
+    {
+      id: 6,
+      type: 'single-choice',
+      question: 'When do you want to complete learning {topic}?',
+      options: [
+        'Within 1 week',
+        'Within 2 weeks',
+        'Within 1 month',
+        '1-3 months',
+        'More than 3 months - I\'m not in a hurry',
+      ],
+    }
+  )
+  
+  // Question 7: Areas of Interest (varies by category)
+  if (category === 'technical') {
+    baseQuestions.push({
+      id: 7,
+      type: 'multiple-choice',
+      question: 'Which specific areas of {topic} are you most interested in? (Select all that apply)',
+      options: [
+        'Core concepts and fundamentals',
+        'Practical coding projects',
+        'Interview preparation',
+        'Best practices and patterns',
+        'Advanced topics',
+        'Real-world applications',
+      ],
+    })
+  } else if (category === 'academic') {
+    baseQuestions.push({
+      id: 7,
+      type: 'multiple-choice',
+      question: 'Which specific areas of {topic} are you most interested in? (Select all that apply)',
+      options: [
+        'Theory and concepts',
+        'Problem-solving techniques',
+        'Exam-focused preparation',
+        'Practical applications',
+        'Historical context',
+        'Current trends and developments',
+      ],
+    })
+  } else if (category === 'language') {
+    baseQuestions.push({
+      id: 7,
+      type: 'multiple-choice',
+      question: 'Which specific areas of {topic} are you most interested in? (Select all that apply)',
+      options: [
+        'Grammar and structure',
+        'Vocabulary building',
+        'Conversation skills',
+        'Reading comprehension',
+        'Writing skills',
+        'Pronunciation and accent',
+      ],
+    })
+  } else if (category === 'creative') {
+    baseQuestions.push({
+      id: 7,
+      type: 'multiple-choice',
+      question: 'Which specific areas of {topic} are you most interested in? (Select all that apply)',
+      options: [
+        'Basic techniques and skills',
+        'Creative expression',
+        'Project-based learning',
+        'Professional practices',
+        'Style and aesthetics',
+        'Advanced techniques',
+      ],
+    })
+  } else {
+    baseQuestions.push({
+      id: 7,
+      type: 'multiple-choice',
+      question: 'Which specific areas of {topic} are you most interested in? (Select all that apply)',
+      options: [
+        'Fundamental concepts',
+        'Practical strategies',
+        'Case studies and examples',
+        'Professional applications',
+        'Current trends',
+        'Advanced topics',
+      ],
+    })
+  }
+  
+  // Questions 8-9
+  baseQuestions.push(
+    {
+      id: 8,
+      type: 'single-choice',
+      question: category === 'technical' 
+        ? 'Do you prefer to learn with real-world projects or theoretical exercises?'
+        : category === 'language'
+        ? 'How do you prefer to practice {topic}?'
+        : 'How do you prefer to learn {topic}?',
+      options: category === 'technical'
+        ? [
+            'Real-world projects',
+            'Theoretical exercises',
+            'A mix of both',
+          ]
+        : category === 'language'
+        ? [
+            'Conversation practice',
+            'Written exercises',
+            'A mix of both',
+          ]
+        : [
+            'Practical examples',
+            'Theoretical concepts',
+            'A mix of both',
+          ],
+    },
+    {
+      id: 9,
+      type: 'single-choice',
+      question: 'How do you want to track your progress?',
+      options: category === 'technical'
+        ? [
+            'Quizzes and coding challenges',
+            'Building projects',
+            'Practice problems',
+            'All of the above',
+          ]
+        : category === 'language'
+        ? [
+            'Vocabulary tests',
+            'Conversation practice',
+            'Writing exercises',
+            'All of the above',
+          ]
+        : [
+            'Quizzes and assessments',
+            'Practical assignments',
+            'Self-evaluation',
+            'All of the above',
+          ],
+    },
+    {
+      id: 10,
+      type: 'text',
+      question: 'Is there anything specific about {topic} you want to focus on or any challenges you\'ve faced before?',
+      placeholder: 'Type your answer... (optional)',
+    }
+  )
+  
+  return baseQuestions
+}
 
 export default function GenerateCoursePage() {
   const params = useParams()
@@ -131,6 +335,58 @@ export default function GenerateCoursePage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
   const [showReview, setShowReview] = useState(false)
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true)
+  const [questionError, setQuestionError] = useState<string | null>(null)
+
+  // Fetch dynamic questions from API when topic changes
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      setIsLoadingQuestions(true)
+      setQuestionError(null)
+      
+      try {
+        console.log('Fetching questions for topic:', topic)
+        const response = await fetch(`${API_BASE_URL}/courses/generate-questions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ topic }),
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to generate questions')
+        }
+        
+        const data = await response.json()
+        console.log('Received questions:', data.questions)
+        
+        // Add the name question at the beginning
+        const questionsWithName = [
+          {
+            id: 1,
+            type: 'text' as const,
+            question: `Nice, you want to learn ${topic}. First, can you tell me your name so I can personalize things for you?`,
+            placeholder: 'Type your answer...',
+          },
+          ...data.questions.map((q: Question, index: number) => ({
+            ...q,
+            id: index + 2, // Adjust IDs since we added the name question
+          }))
+        ]
+        
+        setQuestions(questionsWithName)
+      } catch (error) {
+        console.error('Error fetching questions:', error)
+        setQuestionError('Failed to load questions. Please try refreshing the page.')
+      } finally {
+        setIsLoadingQuestions(false)
+      }
+    }
+    
+    fetchQuestions()
+  }, [topic])
 
   const totalSteps = questions.length
   const currentQuestion = questions[currentStep - 1]
@@ -141,6 +397,8 @@ export default function GenerateCoursePage() {
   }
 
   const handleNext = () => {
+    const isLastQuestion = currentStep === totalSteps
+    
     if (currentQuestion.type === 'text' && textInput.trim()) {
       setAnswers({ ...answers, [currentStep]: textInput.trim() })
       setTextInput('')
@@ -149,7 +407,7 @@ export default function GenerateCoursePage() {
       } else {
         setShowReview(true)
       }
-    } else if (currentQuestion.type === 'text' && currentStep === 10) {
+    } else if (currentQuestion.type === 'text' && isLastQuestion) {
       // Last question is optional
       setAnswers({ ...answers, [currentStep]: textInput.trim() })
       setShowReview(true)
@@ -548,6 +806,55 @@ export default function GenerateCoursePage() {
     )
   }
 
+  // Loading questions
+  if (isLoadingQuestions) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-900 rounded-full mb-4 animate-pulse">
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Preparing Questions</h2>
+          <p className="text-gray-600">
+            Generating personalized questions for {topic}...
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error loading questions
+  if (questionError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white px-4">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 mx-auto">
+            <span className="text-3xl">⚠️</span>
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Oops!</h2>
+          <p className="text-gray-600 mb-6">{questionError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-full font-medium transition-colors"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Check if questions are loaded
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-white">
       {/* Progress Bar */}
@@ -622,9 +929,9 @@ export default function GenerateCoursePage() {
                 />
                 <button
                   onClick={handleNext}
-                  disabled={!textInput.trim() && currentStep !== 10}
+                  disabled={!textInput.trim() && currentStep !== totalSteps}
                   className={`absolute right-3 top-1/2 -translate-y-1/2 p-3 rounded-full transition-all ${
-                    textInput.trim() || currentStep === 10
+                    textInput.trim() || currentStep === totalSteps
                       ? 'bg-blue-600 hover:bg-blue-700 text-white'
                       : 'bg-gray-200 text-gray-400'
                   }`}
@@ -632,7 +939,7 @@ export default function GenerateCoursePage() {
                   <ArrowRight className="w-6 h-6" />
                 </button>
               </div>
-              {currentStep === 10 && (
+              {currentStep === totalSteps && (
                 <p className="text-sm text-gray-500 text-center">
                   This question is optional. Click the arrow to continue.
                 </p>

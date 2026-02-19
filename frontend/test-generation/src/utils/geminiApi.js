@@ -1,64 +1,43 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = (typeof window.getModuleUrls === 'function')
+    ? window.getModuleUrls().backend + '/api'
+    : (typeof window !== 'undefined' && window.location?.hostname?.includes('onrender.com')
+        ? 'https://careersync-backend-oldo.onrender.com/api'
+        : (process.env.REACT_APP_API_URL || 'http://localhost:5000/api'));
 
 /**
- * Get or create a skill
- */
-export async function getOrCreateSkill(skillName) {
-  try {
-    // Try to find existing skill
-    const response = await fetch(`${API_BASE_URL}/skills/search/${encodeURIComponent(skillName)}`);
-    const skills = await response.json();
-    
-    if (skills && skills.length > 0) {
-      return skills[0];
-    }
-    
-    // Create new skill
-    const createResponse = await fetch(`${API_BASE_URL}/skills`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ skillName })
-    });
-    
-    if (!createResponse.ok) throw new Error('Failed to create skill');
-    return await createResponse.json();
-  } catch (error) {
-    console.error('Error getting/creating skill:', error);
-    throw error;
-  }
-}
-
-/**
- * Generate and store questions using backend API (generates 60 questions)
- * @param {string} courseName - Name of the course
+ * Generate and store questions using backend API
+ * @param {string} skillName - Name of the skill/course
  * @param {string} difficulty - Difficulty level (beginner/intermediate/advanced)
- * @returns {Promise<Object>} Generation result
+ * @returns {Promise<Object>} Generation result with questions
  */
-export async function generateQuestions(courseName, difficulty) {
+export async function generateQuestions(skillName, difficulty) {
   try {
-    // First, create or find the skill
-    let skill = await getOrCreateSkill(courseName);
+    console.log(`Generating questions for ${skillName} at ${difficulty} level...`);
+    console.log(`API URL: ${API_BASE_URL}`);
     
-    // Call backend API to generate 60 questions (API key is stored securely in backend)
-    const response = await fetch(`${API_BASE_URL}/questions/generate`, {
+    // Call backend API to generate questions
+    const response = await fetch(`${API_BASE_URL}/skills/evaluate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        skillId: skill.id,
-        level: difficulty
+        skillName,
+        difficulty: difficulty || 'intermediate',
+        questionCount: 20,
+        userId: sessionStorage.getItem('guestUserId') || 'guest-' + Date.now(),
+        userEmail: sessionStorage.getItem('userEmail') || null
       })
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to generate questions');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Backend error:', errorData);
+      throw new Error(errorData.error || errorData.message || `Failed to generate questions (${response.status})`);
     }
 
     const data = await response.json();
+    console.log(`Generated ${data.totalQuestions} questions`);
     return data;
 
   } catch (error) {
@@ -68,78 +47,26 @@ export async function generateQuestions(courseName, difficulty) {
 }
 
 /**
- * Get test questions (20 random questions for actual test)
- * @param {string} courseName - Name of the course
- * @param {string} difficulty - Difficulty level
- * @returns {Promise<Object>} Test questions and attempt ID
+ * Submit test answers and get score
  */
-export async function getTestQuestions(courseName, difficulty) {
+export async function submitTest(evaluationId, answers) {
   try {
-    // Find skill
-    let skill = await getOrCreateSkill(courseName);
-    
-    // Call backend to get random test questions
-    const response = await fetch(`${API_BASE_URL}/questions/test`, {
+    const response = await fetch(`${API_BASE_URL}/skills/submit`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        skillId: skill.id,
-        level: difficulty,
-        userId: sessionStorage.getItem('guestUserId') || 'guest-' + Date.now()
+      body: JSON.stringify({ 
+        evaluationId, 
+        answers,
+        userId: sessionStorage.getItem('guestUserId') || 'guest',
+        userEmail: sessionStorage.getItem('userEmail') || null
       })
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to get test questions');
-    }
-
-    const data = await response.json();
-    
-    // Transform to frontend format
-    const questions = data.questions.map((q) => ({
-      id: q.id,
-      question: q.question,
-      options: Array.isArray(q.options) 
-        ? q.options.reduce((acc, opt, idx) => {
-            acc[String.fromCharCode(65 + idx)] = opt;
-            return acc;
-          }, {})
-        : q.options,
-      topic: q.topic || q.main_topic || 'General',
-      mainTopic: q.main_topic,
-      subTopic: q.sub_topic
-    }));
-
-    return {
-      attemptId: data.attemptId,
-      questions
-    };
-
-  } catch (error) {
-    console.error('Error getting test questions:', error);
-    throw error;
-  }
-}
-
-/**
- * Submit test answers (includes scoring, badges, YouTube recommendations)
- */
-export async function submitTest(attemptId, answers) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/tests/submit`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ attemptId, answers })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to submit test');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || errorData.message || 'Failed to submit test');
     }
 
     return await response.json();
@@ -150,15 +77,15 @@ export async function submitTest(attemptId, answers) {
 }
 
 /**
- * Get attempt details by ID
+ * Get evaluation details by ID
  */
-export async function getAttemptById(attemptId) {
+export async function getAttemptById(evaluationId) {
   try {
-    const response = await fetch(`${API_BASE_URL}/tests/attempt/${attemptId}`);
-    if (!response.ok) throw new Error('Failed to fetch attempt');
+    const response = await fetch(`${API_BASE_URL}/skills/${evaluationId}`);
+    if (!response.ok) throw new Error('Failed to fetch evaluation');
     return await response.json();
   } catch (error) {
-    console.error('Error fetching attempt:', error);
+    console.error('Error fetching evaluation:', error);
     throw error;
   }
 }
@@ -182,7 +109,7 @@ export async function getSkills() {
  */
 export async function getUserTests(userId, skillId) {
   try {
-    const response = await fetch(`${API_BASE_URL}/tests/history/${skillId}?userId=${userId}`);
+    const response = await fetch(`${API_BASE_URL}/skills/${skillId}`);
     if (!response.ok) throw new Error('Failed to fetch test history');
     return await response.json();
   } catch (error) {

@@ -35,13 +35,13 @@ services:
     runtime: node
     region: oregon
     plan: free
-      buildCommand: cd frontend/course-generation && npm install --include=dev && npm run build
-      startCommand: cd frontend/course-generation && npm run start -- -p $PORT
+    buildCommand: cd frontend/course-generation && npm install --include=dev && npm run build
+    startCommand: cd frontend/course-generation && npm run start -- -p $PORT
     envVars:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_URL
-        value: https://careersync-backend.onrender.com
+        value: https://careersync-backend-oldo.onrender.com/api
       - key: NEXT_PUBLIC_YOUTUBE_API_KEY
         sync: false
       - key: OPENROUTER_API_KEY
@@ -75,7 +75,7 @@ services:
     startCommand: cd frontend/roadmap && npm run preview -- --host 0.0.0.0 --port $PORT
     envVars:
       - key: VITE_API_URL
-        value: https://careersync-backend.onrender.com
+        value: https://careersync-backend-oldo.onrender.com
       - key: VITE_GEMINI_API_KEY
         sync: false
       - key: NPM_CONFIG_PRODUCTION
@@ -90,7 +90,7 @@ services:
     startCommand: cd frontend/test-generation && npm run preview -- --host 0.0.0.0 --port $PORT
     envVars:
       - key: VITE_API_URL
-        value: https://careersync-backend.onrender.com
+        value: https://careersync-backend-oldo.onrender.com
       - key: VITE_GEMINI_API_KEY
         sync: false
       - key: NPM_CONFIG_PRODUCTION
