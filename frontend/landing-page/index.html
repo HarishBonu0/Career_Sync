@@ -33,6 +33,20 @@
                 backend: 'http://localhost:5000'
             };
         };
+        
+        // Restore auth from URL if coming from another app
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('auth_token');
+            const userStr = params.get('auth_user');
+            
+            if (token && userStr) {
+                localStorage.setItem('careersync_token', token);
+                localStorage.setItem('careersync_user', userStr);
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+            }
+        })();
     </script>
 
     <!-- Shared Header Component will be injected by main.js -->

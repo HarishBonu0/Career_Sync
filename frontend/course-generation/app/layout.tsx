@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Auto-detect environment and set module URLs */}
+        {/* Auto-detect environment and set module URLs + restore auth from URL */}
         <script dangerouslySetInnerHTML={{__html: `
           window.getModuleUrls = function() {
             const isProduction = window.location.hostname.includes('onrender.com');
@@ -39,6 +39,20 @@ export default function RootLayout({
               backend: 'http://localhost:5000'
             };
           };
+          
+          // Restore auth from URL if coming from another app
+          (function() {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('auth_token');
+            const userStr = params.get('auth_user');
+            
+            if (token && userStr) {
+              localStorage.setItem('careersync_token', token);
+              localStorage.setItem('careersync_user', userStr);
+              // Clean URL
+              window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+            }
+          })();
         `}} />
         {/* Load profile utilities for database integration */}
         <script dangerouslySetInnerHTML={{__html: `
