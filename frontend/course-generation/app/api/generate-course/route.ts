@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getBestVideo } from '@/services/videoIntelligence'
 
 export async function POST(request: NextRequest) {
   try {
@@ -134,11 +135,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Helper function to generate REAL reading materials for a module
-    const generateReadingMaterials = (moduleTopic: string, moduleNum: number, difficulty: string) => {
+    const generateReadingMaterials = (moduleTopic: string, moduleNum: number, difficulty: string, courseTopic: string = '') => {
       // Clean up module topic for better URL matching
       const cleanTopic = moduleTopic.replace(/^Module\s+\d+:\s*/i, '').trim()
       const topicLower = cleanTopic.toLowerCase()
+      const courseTopicLower = courseTopic.toLowerCase()
 
+      // CHECK 1: If this is a language course, return language learning resources
+      const languageTopics = ['italian', 'spanish', 'french', 'german', 'portuguese', 'japanese', 'chinese', 'korean', 'russian', 'arabic', 'hindi']
+      const isLanguageCourse = languageTopics.some(lang => courseTopicLower.includes(lang))
+      
+      if (isLanguageCourse) {
+        // Return language learning resources for ANY module in a language course
+        for (const [language, resources] of Object.entries(languageLearningResources)) {
+          if (courseTopicLower.includes(language)) {
+            console.log(`Returning language learning resources for ${language} course`)
+            return resources
+          }
+        }
+      }
+
+      // Otherwise, proceed with technical content matching
       // Extract all individual concepts from the module title
       const concepts = cleanTopic.split(/[,&]/).map(c => c.trim()).filter(c => c.length > 0)
 
@@ -255,7 +272,8 @@ export async function POST(request: NextRequest) {
         return materials
       }
       
-      // Fallback: try to match by broader topic
+      // FALLBACK STRATEGY: Use course topic as context
+      // First check if course topic itself matches known topics
       const topicMap: { [key: string]: string } = {
           // JavaScript
           'javascript': 'https://www.geeksforgeeks.org/javascript/',
@@ -309,7 +327,7 @@ export async function POST(request: NextRequest) {
           ]
         }
         
-        // Try partial matches
+        // Try partial matches on module title
         for (const [key, url] of Object.entries(topicMap)) {
           if (lower.includes(key) || key.includes(lower.split(' ')[0])) {
             return [
@@ -322,14 +340,46 @@ export async function POST(request: NextRequest) {
           }
         }
         
+        // TRY COURSE TOPIC: If module title didn't match, try matching the course topic itself
+        // This is important for language + programming courses where modules might not have exact keywords
+        const courseLower = courseTopicLower
+        
+        // Try exact match for course topic
+        if (topicMap[courseLower]) {
+          return [
+            {
+              type: 'documentation',
+              title: `${courseTopic} - ${cleanTopic} Resources`,
+              url: topicMap[courseLower],
+            }
+          ]
+        }
+        
+        // Try partial match for course topic
+        for (const [key, url] of Object.entries(topicMap)) {
+          if (courseLower.includes(key) || key.includes(courseLower.split(' ')[0])) {
+            return [
+              {
+                type: 'documentation',
+                title: `${courseTopic} - ${cleanTopic}`,
+                url: url,
+              }
+            ]
+          }
+        }
+        
         // Final fallback to REAL article URLs (not generic search pages)
         // These are specific, working articles for the topic
         const searchTerm = encodeURIComponent(cleanTopic)
+        
+        // Use course topic in fallback if available
+        const fallbackTopic = courseTopic || cleanTopic
+        
         return [
           {
             type: 'tutorial',
-            title: `${cleanTopic} - GeeksforGeeks Tutorial`,
-            url: `https://www.geeksforgeeks.org/${cleanTopic.toLowerCase().replace(/\s+/g, '-')}/`,
+            title: `${fallbackTopic} - GeeksforGeeks Tutorial`,
+            url: `https://www.geeksforgeeks.org/${fallbackTopic.toLowerCase().replace(/\s+/g, '-')}/`,
           },
           {
             type: 'documentation',
@@ -884,9 +934,9 @@ REMEMBER:
       }
       course = JSON.parse(courseContent.trim())
       
-      // Ensure all modules have reading materials AND unique youtube search queries
+      // Ensure all modules have reading materials AND intelligent video recommendations
       if (course.modules && Array.isArray(course.modules)) {
-        course.modules = course.modules.map((module: any, idx: number) => {
+        course.modules = await Promise.all(course.modules.map(async (module: any, idx: number) => {
           const moduleNum = idx + 1
           const moduleTopic = module.title || topic
           const updatedModule = {
@@ -894,15 +944,35 @@ REMEMBER:
           }
           
           // Always regenerate reading materials for consistency/accuracy
-          updatedModule.readingMaterials = generateReadingMaterials(moduleTopic, moduleNum, experience)
+          updatedModule.readingMaterials = generateReadingMaterials(moduleTopic, moduleNum, experience, topic)
           
-          // Ensure unique YouTube search query for each module with topic context
-          if (!module.youtubeSearch || module.youtubeSearch.includes('${')) {
+          // Get best video using VIDEO INTELLIGENCE SYSTEM
+          try {
+            const bestVideo = await getBestVideo(moduleTopic, topic, moduleNum, numModules)
+            if (bestVideo) {
+              updatedModule.youtubeSearch = bestVideo.title
+              updatedModule.youtubeVideoId = bestVideo.videoId
+              updatedModule.videoIntelligence = {
+                videoId: bestVideo.videoId,
+                title: bestVideo.title,
+                channel: bestVideo.channelTitle,
+                thumbnail: bestVideo.thumbnail,
+                relevanceScore: (bestVideo as any).relevanceScore,
+                engagementScore: (bestVideo as any).engagementScore,
+                educationalScore: (bestVideo as any).educationalScore,
+                finalScore: (bestVideo as any).finalScore
+              }
+            } else {
+              // Fallback to search query if video intelligence fails
+              updatedModule.youtubeSearch = generateModuleVideoSearch(moduleTopic, moduleTopic, moduleNum, numModules, topic)
+            }
+          } catch (error) {
+            console.log(`[VIDEO INTELLIGENCE] Failed for module ${moduleNum}, using fallback search`)
             updatedModule.youtubeSearch = generateModuleVideoSearch(moduleTopic, moduleTopic, moduleNum, numModules, topic)
           }
           
           return updatedModule
-        })
+        }))
       }
 
       // Ensure course has real, accurate resources
@@ -917,10 +987,31 @@ REMEMBER:
       const fallbackModules = []
       const moduleTopics = interests.split(',').map(i => i.trim())
       
-      // Create 4-12 modules based on timeline
+      // Create 4-12 modules based on timeline with VIDEO INTELLIGENCE
       for (let i = 0; i < numModules; i++) {
         const moduleNum = i + 1
         const currentModuleTopic = moduleTopics[i % moduleTopics.length] || topic
+        
+        let youtubeData: any = {}
+        try {
+          const bestVideo = await getBestVideo(currentModuleTopic, topic, moduleNum, numModules)
+          if (bestVideo) {
+            youtubeData = {
+              youtubeSearch: bestVideo.title,
+              youtubeVideoId: bestVideo.videoId,
+              videoIntelligence: {
+                videoId: bestVideo.videoId,
+                title: bestVideo.title,
+                channel: bestVideo.channelTitle,
+                thumbnail: bestVideo.thumbnail,
+                finalScore: (bestVideo as any).finalScore
+              }
+            }
+          }
+        } catch (error) {
+          console.log(`[VIDEO INTELLIGENCE] Fallback: using search query for module ${moduleNum}`)
+        }
+        
         fallbackModules.push({
           id: moduleNum,
           title: `Module ${moduleNum}: ${currentModuleTopic}`,
@@ -945,8 +1036,10 @@ REMEMBER:
           ],
           project: `Project ${moduleNum}: Build ${currentModuleTopic} application`,
           estimatedHours: 5 + i,
-          youtubeSearch: generateModuleVideoSearch(`Module ${moduleNum}: ${currentModuleTopic}`, currentModuleTopic, moduleNum, numModules, topic),
-          readingMaterials: generateReadingMaterials(currentModuleTopic, moduleNum, experience),
+          youtubeSearch: youtubeData.youtubeSearch || generateModuleVideoSearch(`Module ${moduleNum}: ${currentModuleTopic}`, currentModuleTopic, moduleNum, numModules, topic),
+          youtubeVideoId: youtubeData.youtubeVideoId,
+          videoIntelligence: youtubeData.videoIntelligence,
+          readingMaterials: generateReadingMaterials(currentModuleTopic, moduleNum, experience, topic),
         })
       }
       
