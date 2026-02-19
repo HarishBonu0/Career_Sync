@@ -811,15 +811,9 @@
         // Initialize global course data storage at the very beginning
         if (!window.courseData) {
             window.courseData = {};
-            console.log('✅ Initialized window.courseData');
         }
         
-        // Debug logging
         console.log('Profile page loaded');
-        console.log('LocalStorage keys:', Object.keys(localStorage));
-        console.log('careersync_user:', localStorage.getItem('careersync_user'));
-        console.log('careersync_token:', localStorage.getItem('careersync_token'));
-        console.log('Cookies:', document.cookie);
 
         // Helper function to get cookie value
         function getCookie(name) {
@@ -829,330 +823,31 @@
             return null;
         }
 
-        // ==================== MODULE COMPLETION TRACKING ====================
+        // ==================== COURSE NAVIGATION ====================
         
         /**
-         * Get the storage key for a course's completed modules
-         */
-        function getCompletedModulesKey(courseId) {
-            return `careersync_course_${courseId}_completed_modules`;
-        }
-
-        /**
-         * Get list of completed module IDs for a course
-         */
-        function getCompletedModules(courseId) {
-            const key = getCompletedModulesKey(courseId);
-            const data = localStorage.getItem(key);
-            return data ? JSON.parse(data) : [];
-        }
-
-        /**
-         * Get count of completed modules
-         */
-        function getCompletedModulesCount(courseId) {
-            return getCompletedModules(courseId).length;
-        }
-
-        /**
-         * Mark a module as completed
-         */
-        function markModuleCompleted(courseId, moduleId) {
-            const completed = getCompletedModules(courseId);
-            if (!completed.includes(moduleId)) {
-                completed.push(moduleId);
-                const key = getCompletedModulesKey(courseId);
-                localStorage.setItem(key, JSON.stringify(completed));
-                console.log(`✅ Module marked completed: ${moduleId}`);
-                // Refresh profile to update percentages
-                location.reload();
-            }
-        }
-
-        /**
-         * Unmark a module as completed
-         */
-        function unmarkModuleCompleted(courseId, moduleId) {
-            const completed = getCompletedModules(courseId);
-            const index = completed.indexOf(moduleId);
-            if (index > -1) {
-                completed.splice(index, 1);
-                const key = getCompletedModulesKey(courseId);
-                localStorage.setItem(key, JSON.stringify(completed));
-                console.log(`❌ Module unmarked: ${moduleId}`);
-                // Refresh profile to update percentages
-                location.reload();
-            }
-        }
-
-        /**
-         * Check if a module is completed
-         */
-        function isModuleCompleted(courseId, moduleId) {
-            return getCompletedModules(courseId).includes(moduleId);
-        }
-
-        /**
-         * Navigate to course viewer and pass full course data
+         * Navigate to course viewer
          */
         function navigateToCourseViewer(courseId) {
             console.log('🚀 Navigating to course viewer for:', courseId);
-            
-            if (window.courseData && window.courseData[courseId]) {
-                const courseInfo = window.courseData[courseId];
-                console.log('📚 Passing course data:', courseInfo);
-                
-                // Store the full course object in localStorage for the viewer
-                localStorage.setItem('careersync_current_course_id', courseId);
-                localStorage.setItem('careersync_current_course_data', JSON.stringify(courseInfo));
-                
-                // Navigate to course viewer
-                window.location.href = `course-viewer.html?courseId=${courseId}`;
-            } else {
-                console.error('❌ Course data not found for:', courseId);
-                alert('Course data not available');
-            }
+            window.location.href = `course-viewer.html?courseId=${courseId}`;
         }
 
         /**
-         * Open modules modal using stored course data
+         * Open course (alias for navigateToCourseViewer)
          */
-        function openModulesFromStorage(courseId) {
-            console.log('🔍 openModulesFromStorage called');
-            console.log('  courseId:', courseId);
-            console.log('  window.courseData:', window.courseData);
-            console.log('  Available courseIds:', Object.keys(window.courseData || {}));
-            
-            if (!window.courseData) {
-                window.courseData = {};
-            }
-            
-            if (window.courseData && window.courseData[courseId]) {
-                const courseInfo = window.courseData[courseId];
-                console.log('✅ Found course info:', courseInfo);
-                console.log('📚 Modules count:', courseInfo.modules ? courseInfo.modules.length : 0);
-                if (courseInfo.modules && courseInfo.modules.length > 0) {
-                    console.log('First module:', courseInfo.modules[0]);
-                }
-                openModulesModal(courseId, courseInfo.title, courseInfo.modules);
-            } else {
-                console.error('❌ Course data not found for:', courseId);
-                console.error('Available keys:', Object.keys(window.courseData || {}));
-                alert('Course data not available. Please refresh the page.');
-            }
+        function openCourse(courseId) {
+            navigateToCourseViewer(courseId);
         }
 
-        /**
-         * Open modules modal and display course modules with detailed content
-         */
-        function openModulesModal(courseId, courseTitle, modulesData) {
-            console.log('🎯 openModulesModal called');
-            console.log('  courseId:', courseId);
-            console.log('  courseTitle:', courseTitle);
-            console.log('  modulesData:', modulesData);
-            
-            const modal = document.getElementById('modules-modal');
-            const titleElement = document.getElementById('modules-title');
-            const listElement = document.getElementById('modules-list');
-
-            titleElement.textContent = `📚 ${courseTitle}`;
-
-            // Ensure modulesData is an array
-            const modules = Array.isArray(modulesData) ? modulesData : [];
-            const completedModules = getCompletedModules(courseId);
-            
-            console.log('📊 Module count:', modules.length);
-            console.log('✅ Completed modules:', completedModules);
-
-            if (modules.length === 0) {
-                listElement.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-tertiary);">No modules available for this course</div>';
-            } else {
-                listElement.innerHTML = modules.map((module, index) => {
-                    const moduleId = module.id || module._id || `module_${index}`;
-                    const isCompleted = completedModules.includes(moduleId);
-                    
-                    // Extract content details
-                    const topics = module.topics || [];
-                    const activities = module.activities || [];
-                    const readingMaterials = module.readingMaterials || [];
-                    const youtubeLinks = module.youtubeLinks || [];
-                    const project = module.project;
-                    const assessment = module.assessment;
-                    
-                    // Count total items to complete
-                    const totalItems = topics.length + activities.length + readingMaterials.length + youtubeLinks.length + (project ? 1 : 0) + (assessment ? 1 : 0);
-                    
-                    return `
-                        <div class="module-item ${isCompleted ? 'completed' : ''}" style="border-left: 4px solid ${isCompleted ? '#10B981' : '#4F46E5'};">
-                            <div class="module-item-header">
-                                <div style="flex: 1;">
-                                    <p class="module-item-title">${module.title || `Module ${index + 1}`}</p>
-                                    <p class="module-item-meta">${module.duration || 'Duration not specified'} • ${totalItems} items</p>
-                                    ${module.description ? `<p class="module-item-description">${module.description}</p>` : ''}
-                                </div>
-                                <input 
-                                    type="checkbox" 
-                                    class="module-completion-checkbox"
-                                    ${isCompleted ? 'checked' : ''}
-                                    onchange="handleModuleCheckbox(this, '${courseId}', '${moduleId}')"
-                                    title="Mark as completed"
-                                >
-                            </div>
-                            
-                            <!-- Module Content Details -->
-                            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E2E8F0;">
-                                ${topics.length > 0 ? `
-                                    <div style="margin-bottom: 12px;">
-                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">📝 Topics (${topics.length})</p>
-                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px;">
-                                            ${topics.map((topic, topicIdx) => `
-                                                <div style="padding: 8px 0; border-bottom: ${topicIdx < topics.length - 1 ? '1px solid #E2E8F0' : 'none'}; font-size: 13px; color: #475569;">
-                                                    ${typeof topic === 'object' ? `
-                                                        <strong>${topic.name || topic.title || 'Topic ' + (topicIdx + 1)}</strong>
-                                                        ${topic.description ? `<div style="color: #94A3B8; margin-top: 4px;">${topic.description}</div>` : ''}
-                                                    ` : `
-                                                        ✓ ${topic}
-                                                    `}
-                                                </div>
-                                            `).join('')}
-                                        </div>
-                                    </div>
-                                ` : ''}
-                                
-                                ${activities.length > 0 ? `
-                                    <div style="margin-bottom: 12px;">
-                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">🎯 Activities (${activities.length})</p>
-                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px;">
-                                            ${activities.map((activity, actIdx) => `
-                                                <div style="padding: 8px 0; border-bottom: ${actIdx < activities.length - 1 ? '1px solid #E2E8F0' : 'none'}; font-size: 13px; color: #475569;">
-                                                    ${typeof activity === 'object' ? `
-                                                        <strong>${activity.name || activity.title || 'Activity ' + (actIdx + 1)}</strong>
-                                                        ${activity.description ? `<div style="color: #94A3B8; margin-top: 4px;">${activity.description}</div>` : ''}
-                                                        ${activity.type ? `<div style="color: #94A3B8; margin-top: 4px; font-size: 12px;">Type: ${activity.type}</div>` : ''}
-                                                    ` : `
-                                                        ✓ ${activity}
-                                                    `}
-                                                </div>
-                                            `).join('')}
-                                        </div>
-                                    </div>
-                                ` : ''}
-                                
-                                ${readingMaterials.length > 0 ? `
-                                    <div style="margin-bottom: 12px;">
-                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">📖 Reading Materials (${readingMaterials.length})</p>
-                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px;">
-                                            ${readingMaterials.map((material, matIdx) => `
-                                                <div style="padding: 8px 0; border-bottom: ${matIdx < readingMaterials.length - 1 ? '1px solid #E2E8F0' : 'none'}; font-size: 13px;">
-                                                    ${material.url ? `
-                                                        <a href="${material.url}" target="_blank" style="color: #4F46E5; text-decoration: none; font-weight: 500;">
-                                                            ${material.title || 'Reading Material'}
-                                                        </a>
-                                                    ` : `
-                                                        <strong style="color: #0F172A;">${material.title || 'Reading Material'}</strong>
-                                                    `}
-                                                    ${material.source ? `<div style="color: #94A3B8; margin-top: 4px; font-size: 12px;">Source: ${material.source}</div>` : ''}
-                                                    ${material.estimatedReadTime ? `<div style="color: #94A3B8; margin-top: 2px; font-size: 12px;">⏱️ ${material.estimatedReadTime}</div>` : ''}
-                                                </div>
-                                            `).join('')}
-                                        </div>
-                                    </div>
-                                ` : ''}
-                                
-                                ${youtubeLinks.length > 0 ? `
-                                    <div style="margin-bottom: 12px;">
-                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">🎥 Video Resources (${youtubeLinks.length})</p>
-                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px;">
-                                            ${youtubeLinks.map((link, vidIdx) => `
-                                                <div style="padding: 8px 0; border-bottom: ${vidIdx < youtubeLinks.length - 1 ? '1px solid #E2E8F0' : 'none'}; font-size: 13px;">
-                                                    ${link.url ? `
-                                                        <a href="${link.url}" target="_blank" style="color: #DC2626; text-decoration: none; font-weight: 500;">
-                                                            🎬 ${link.title || 'Watch Video'}
-                                                        </a>
-                                                    ` : `
-                                                        <strong style="color: #0F172A;">${link.title || 'Video'}</strong>
-                                                    `}
-                                                    ${link.duration ? `<div style="color: #94A3B8; margin-top: 4px; font-size: 12px;">Duration: ${link.duration}</div>` : ''}
-                                                </div>
-                                            `).join('')}
-                                        </div>
-                                    </div>
-                                ` : ''}
-                                
-                                ${project ? `
-                                    <div style="margin-bottom: 12px;">
-                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">🚀 Project</p>
-                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 3px solid #F59E0B;">
-                                            <strong style="color: #0F172A;">${project.title || project.name || 'Project'}</strong>
-                                            ${project.description ? `<div style="color: #475569; margin-top: 6px; font-size: 13px;">${project.description}</div>` : ''}
-                                        </div>
-                                    </div>
-                                ` : ''}
-                                
-                                ${assessment ? `
-                                    <div style="margin-bottom: 0;">
-                                        <p style="font-weight: 600; color: #0F172A; margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">✅ Assessment</p>
-                                        <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; border-left: 3px solid #10B981;">
-                                            <strong style="color: #0F172A;">${assessment.title || assessment.name || 'Assessment'}</strong>
-                                            ${assessment.description ? `<div style="color: #475569; margin-top: 6px; font-size: 13px;">${assessment.description}</div>` : ''}
-                                            ${assessment.type ? `<div style="color: #94A3B8; margin-top: 6px; font-size: 12px;">Type: ${assessment.type}</div>` : ''}
-                                        </div>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            console.log('📋 Modal HTML content length:', listElement.innerHTML.length);
-            console.log('🎨 Setting modal display to flex');
-            
-            // Make absolutely sure the modal is visible
-            modal.style.display = 'flex';
-            modal.style.visibility = 'visible';
-            modal.style.opacity = '1';
-            modal.classList.remove('hidden');
-            
-            // Force reflow to ensure rendering
-            modal.offsetHeight;
-            
-            console.log('✅ Modal should now be visible!');
-            console.log('Modal element:', modal);
-            console.log('Modal display style:', window.getComputedStyle(modal).display);
-            console.log('Modal visibility:', window.getComputedStyle(modal).visibility);
-        }
-
-        /**
-         * Handle module checkbox change
-         */
-        function handleModuleCheckbox(checkbox, courseId, moduleId) {
-            if (checkbox.checked) {
-                markModuleCompleted(courseId, moduleId);
-            } else {
-                unmarkModuleCompleted(courseId, moduleId);
-            }
-        }
-
+        // ==================== MODULE MODAL ====================
+        
         /**
          * Close modules modal
          */
         function closeModulesModal() {
             const modal = document.getElementById('modules-modal');
             modal.style.display = 'none';
-        }
-
-        /**
-         * Test modal display
-         */
-        function testModalDisplay() {
-            console.log('🧪 Testing modal display...');
-            const modal = document.getElementById('modules-modal');
-            console.log('Modal element:', modal);
-            console.log('Current display:', modal.style.display);
-            modal.style.display = 'flex';
-            console.log('Display changed to:', modal.style.display);
-            console.log('Computed display:', window.getComputedStyle(modal).display);
         }
 
         /**
