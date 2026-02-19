@@ -1,18 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { generateCourse } from '../../../backend/services/generationOrchestrator'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { topic, answers } = body
 
-    console.log('=== COURSE GENERATION REQUEST ===')
+    console.log('🚀 COURSE GENERATION REQUEST ===')
     console.log('Topic:', topic)
     console.log('Answers received:', answers)
 
-    const apiKey = process.env.OPENROUTER_API_KEY
+    // Validate required params
+    if (!topic) {
+      return NextResponse.json(
+        { error: 'Topic is required' },
+        { status: 400 }
+      )
+    }
 
+    // Validate API key
+    const apiKey = process.env.OPENROUTER_API_KEY
     if (!apiKey) {
-      console.error('OpenRouter API key is not configured')
+      console.error('❌ OpenRouter API key is not configured')
       return NextResponse.json(
         { error: 'OpenRouter API key not configured' },
         { status: 500 }
@@ -21,7 +30,13 @@ export async function POST(request: NextRequest) {
 
     // Helper function to generate HIGHLY SPECIFIC YouTube search queries per module
     // This ensures each module gets unique, relevant videos from live YouTube data
-    const generateModuleVideoSearch = (moduleTitle: string, moduleTopic: string, moduleNum: number, totalModules: number) => {
+    const generateModuleVideoSearch = (
+      courseTopic: string,
+      moduleTitle: string,
+      moduleTopic: string,
+      moduleNum: number,
+      totalModules: number
+    ) => {
       // Clean up module topic - remove "Module X:" prefix
       const cleanTopic = moduleTopic.replace(/^Module\s*\d+[:\s]*/i, '').trim()
       
@@ -48,14 +63,33 @@ export async function POST(request: NextRequest) {
       // Use first TWO concepts if available for maximum specificity
       if (concepts.length >= 2) {
         // Use multiple concepts to ensure unique videos per module
-        return `${concepts[0]} ${concepts[1]} ${difficultyKeyword}`
+        return `${courseTopic} ${concepts[0]} ${concepts[1]} ${difficultyKeyword}`
       } else if (concepts.length === 1) {
         // Single concept - add module number context for uniqueness
-        return `${concepts[0]} ${difficultyKeyword} part ${moduleNum}`
+        return `${courseTopic} ${concepts[0]} ${difficultyKeyword} part ${moduleNum}`
       } else {
         // Fallback - use full clean topic
-        return `${cleanTopic} ${difficultyKeyword}`
+        return `${courseTopic} ${cleanTopic} ${difficultyKeyword} part ${moduleNum}`
       }
+    }
+
+    // Normalize and enforce unique module titles
+    const normalizeTitle = (value: string) =>
+      value
+        .replace(/^Module\s*\d+[:\s-]*/i, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase()
+
+    const ensureUniqueTitle = (
+      baseTitle: string,
+      moduleNum: number,
+      topics?: string[]
+    ) => {
+      const cleanBase = baseTitle.replace(/^Module\s*\d+[:\s-]*/i, '').trim()
+      const fallbackFromTopics = topics?.find(Boolean)?.trim()
+      const candidate = cleanBase || fallbackFromTopics || `${topic} Concepts`
+      return { candidate, normalized: normalizeTitle(candidate), cleanBase }
     }
 
     // Helper function to generate reading materials for a module
@@ -724,7 +758,7 @@ REMEMBER:
         model: 'mistralai/mixtral-8x7b-instruct',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens: 2600,
       }),
       signal: AbortSignal.timeout(180000),
     })
@@ -752,20 +786,33 @@ REMEMBER:
       
       // Ensure all modules have reading materials AND unique youtube search queries
       if (course.modules && Array.isArray(course.modules)) {
+        const usedTitles = new Set<string>()
         course.modules = course.modules.map((module: any, idx: number) => {
           const moduleNum = idx + 1
           const moduleTopic = module.title || topic
+          const topicList = Array.isArray(module.topics) ? module.topics : []
+          const { candidate, normalized } = ensureUniqueTitle(moduleTopic, moduleNum, topicList)
+          let uniqueTitle = candidate
+          if (usedTitles.has(normalized)) {
+            uniqueTitle = `${candidate} (Part ${moduleNum})`
+          }
+          usedTitles.add(normalizeTitle(uniqueTitle))
           const updatedModule = {
             ...module,
+            title: uniqueTitle,
           }
           
           // Always regenerate reading materials for consistency/accuracy
-          updatedModule.readingMaterials = generateReadingMaterials(moduleTopic, moduleNum, experience)
+          updatedModule.readingMaterials = generateReadingMaterials(uniqueTitle, moduleNum, experience)
           
-          // Ensure unique YouTube search query for each module
-          if (!module.youtubeSearch || module.youtubeSearch.includes('${')) {
-            updatedModule.youtubeSearch = generateModuleVideoSearch(moduleTopic, moduleTopic, moduleNum, numModules)
-          }
+          // Always regenerate YouTube search query for precision and uniqueness
+          updatedModule.youtubeSearch = generateModuleVideoSearch(
+            topic,
+            uniqueTitle,
+            uniqueTitle,
+            moduleNum,
+            numModules
+          )
           
           return updatedModule
         })
@@ -789,7 +836,7 @@ REMEMBER:
         const currentModuleTopic = moduleTopics[i % moduleTopics.length] || topic
         fallbackModules.push({
           id: moduleNum,
-          title: `Module ${moduleNum}: ${currentModuleTopic}`,
+          title: `${currentModuleTopic} (Part ${moduleNum})`,
           weekNumber: Math.ceil(moduleNum / 2),
           duration: '3-5 days',
           description: `Deep dive into ${currentModuleTopic} - Part ${moduleNum}`,
@@ -811,8 +858,14 @@ REMEMBER:
           ],
           project: `Project ${moduleNum}: Build ${currentModuleTopic} application`,
           estimatedHours: 5 + i,
-          youtubeSearch: generateModuleVideoSearch(`Module ${moduleNum}: ${currentModuleTopic}`, currentModuleTopic, moduleNum, numModules),
-          readingMaterials: generateReadingMaterials(currentModuleTopic, moduleNum, experience),
+          youtubeSearch: generateModuleVideoSearch(
+            topic,
+            `${currentModuleTopic} (Part ${moduleNum})`,
+            currentModuleTopic,
+            moduleNum,
+            numModules
+          ),
+          readingMaterials: generateReadingMaterials(`${currentModuleTopic} (Part ${moduleNum})`, moduleNum, experience),
         })
       }
       
