@@ -716,23 +716,23 @@ RESPONSE FORMAT - Return ONLY valid JSON:
   "totalModules": ${numModules},
   "objectives": [
     "Master ${topic} fundamentals and core concepts",
-    "${isLanguageTopic ? `Develop practical conversation skills in ${topic}` : `Build practical applications using ${topic}`}",
+    ${isLanguageTopic ? '"Develop practical conversation skills in ' + topic + '"' : '"Build practical applications using ' + topic + '"'},
     "Understand ${topic} best practices and patterns",
-    "${isLanguageTopic ? `Communicate confidently in real-world ${topic} scenarios` : `Complete real-world ${topic} projects`}"
+    ${isLanguageTopic ? '"Communicate confidently in real-world ' + topic + ' scenarios"' : '"Complete real-world ' + topic + ' projects"'}
   ],
   "modules": [
     {
       "id": 1,
-      "title": "${isLanguageTopic ? `${topic} Greetings and Basic Phrases` : isProgrammingTopic ? `${topic} Variables, Data Types, and Operators` : `Introduction to ${topic}`}",
+      "title": ${isLanguageTopic ? '"' + topic + ' Greetings and Basic Phrases"' : isProgrammingTopic ? '"' + topic + ' Variables, Data Types, and Operators"' : '"Introduction to ' + topic + '"'},
       "weekNumber": 1,
       "duration": "3-5 days",
-      "description": "${isLanguageTopic ? `Learn essential ${topic} greetings, introductions, and basic phrases for everyday communication` : isProgrammingTopic ? `Learn ${topic} variables, data types, and operators for fundamental programming` : `Explore the foundational concepts of ${topic}`}",
-      "objectives": [${isLanguageTopic ? `"Introduce yourself in ${topic}", "Use common greetings and polite expressions", "Understand basic ${topic} pronunciation"` : isProgrammingTopic ? `"Understand ${topic} variables and scope", "Master data types", "Learn operators"` : `"Understand core concepts of ${topic}"`}],
-      "topics": [${isLanguageTopic ? `"Common greetings (hello, goodbye)", "Introducing yourself", "Numbers 0-10", "Basic courtesy phrases"` : isProgrammingTopic ? `"Variables and constants", "Primitive data types", "Operators", "Type conversion"` : `"Overview of ${topic}", "Key concepts", "Applications"`}],
-      "activities": [${isLanguageTopic ? `"Listening and pronunciation", "Speaking practice", "Conversation drills", "Cultural context"` : `"Video tutorials", "Coding exercises", "Practice problems", "Mini project"`}],
-      "project": "${isLanguageTopic ? `Greetings and introductions practice` : `${topic} practice exercises`}",
+      "description": ${isLanguageTopic ? '"Learn essential ' + topic + ' greetings, introductions, and basic phrases for everyday communication"' : isProgrammingTopic ? '"Learn ' + topic + ' variables, data types, and operators for fundamental programming"' : '"Explore the foundational concepts of ' + topic + '"'},
+      "objectives": [${isLanguageTopic ? '"Introduce yourself in ' + topic + '", "Use common greetings and polite expressions", "Understand basic ' + topic + ' pronunciation"' : isProgrammingTopic ? '"Understand ' + topic + ' variables and scope", "Master data types", "Learn operators"' : '"Understand core concepts of ' + topic + '"'}],
+      "topics": [${isLanguageTopic ? '"Common greetings (hello, goodbye)", "Introducing yourself", "Numbers 0-10", "Basic courtesy phrases"' : isProgrammingTopic ? '"Variables and constants", "Primitive data types", "Operators", "Type conversion"' : '"Overview of ' + topic + '", "Key concepts", "Applications"'}],
+      "activities": [${isLanguageTopic ? '"Listening and pronunciation", "Speaking practice", "Conversation drills", "Cultural context"' : '"Video tutorials", "Coding exercises", "Practice problems", "Mini project"'}],
+      "project": ${isLanguageTopic ? '"Greetings and introductions practice"' : '"' + topic + ' practice exercises"'},
       "estimatedHours": 5,
-      "youtubeSearch": "${isLanguageTopic ? `${topic} greetings and phrases for beginners` : isProgrammingTopic ? `${topic} variables data types tutorial` : `${topic} fundamentals tutorial`}"
+      "youtubeSearch": ${isLanguageTopic ? '"' + topic + ' greetings and phrases for beginners"' : isProgrammingTopic ? '"' + topic + ' variables data types tutorial"' : '"' + topic + ' fundamentals tutorial"'}
     }
   ],
   "resources": [
@@ -741,9 +741,9 @@ RESPONSE FORMAT - Return ONLY valid JSON:
   ],
   "finalProject": {
     "title": "Complete ${topic} ${isLanguageTopic ? 'Conversation' : 'Application'}",
-    "description": "${isLanguageTopic ? `Engage in a complete conversation using learned ${topic} expressions and vocabulary` : `Build a real-world application using all learned ${topic} concepts`}",
+    "description": ${isLanguageTopic ? '"Engage in a complete conversation using learned ' + topic + ' expressions and vocabulary"' : '"Build a real-world application using all learned ' + topic + ' concepts"'},
     "duration": "1-2 weeks",
-    "requirements": [${isLanguageTopic ? `"Conduct a multi-topic conversation in ${topic}", "Demonstrate vocabulary from all modules", "Show understanding of cultural context"` : `"Implement core ${topic} features", "Follow best practices", "Complete documentation"`}]
+    "requirements": [${isLanguageTopic ? '"Conduct a multi-topic conversation in ' + topic + '", "Demonstrate vocabulary from all modules", "Show understanding of cultural context"' : '"Implement core ' + topic + ' features", "Follow best practices", "Complete documentation"'}]
   }
 }
 
