@@ -43,9 +43,70 @@
     </script>
 </head>
 <body>
-    <!-- Shared Header Component - Injected at body start -->
-    <div id="app-header"></div>
-    <script type="module" src="./shared/header-component.js"></script>
+    <!-- Navigation Header -->
+    <header style="position: sticky; top: 0; z-index: 50; height: 72px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+      <div style="max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 100%; display: flex; align-items: center; justify-content: space-between;">
+        <!-- Brand -->
+        <a href="http://localhost:4173" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;">
+          <div style="width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);">C</div>
+          <span style="font-size: 20px; font-weight: 600; color: #111827;">careersync</span>
+        </a>
+
+        <!-- Navigation -->
+        <nav style="display: flex; align-items: center; gap: 32px;">
+          <a href="http://localhost:3002" style="text-decoration: none; color: #374151; font-weight: 500; font-size: 14px; transition: color 0.2s;">
+            📚 Course Gen
+          </a>
+          <a href="http://localhost:5173" style="text-decoration: none; color: #374151; font-weight: 500; font-size: 14px; transition: color 0.2s;">
+            🗺️ Roadmaps
+          </a>
+          <a href="http://localhost:3001" style="text-decoration: none; color: #4F46E5; font-weight: 600; font-size: 14px; border-bottom: 2px solid #4F46E5; padding-bottom: 4px;">
+            ✅ Evaluator
+          </a>
+        </nav>
+
+        <!-- Auth Section -->
+        <div id="header-auth-section" style="display: flex; align-items: center; gap: 16px;">
+          <a href="http://localhost:4173/auth.html" style="padding: 10px 20px; background: #4F46E5; color: white; font-size: 14px; font-weight: 600; border-radius: 8px; text-decoration: none; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);">
+            Sign In
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <script>
+      // Check for user authentication and update header
+      (function() {
+        const user = localStorage.getItem('careersync_user');
+        const token = localStorage.getItem('careersync_token');
+        
+        if (user && token) {
+          try {
+            const userData = JSON.parse(user);
+            const displayName = userData.name || userData.email?.split('@')[0] || 'User';
+            const authSection = document.getElementById('header-auth-section');
+            
+            authSection.innerHTML = `
+              <a href="http://localhost:4173/profile.html" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; text-decoration: none; transition: background 0.2s;">
+                <span style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px;">${displayName.charAt(0).toUpperCase()}</span>
+                <span style="font-size: 14px; font-weight: 500; color: #374151;">${displayName}</span>
+              </a>
+              <button onclick="handleLogout()" style="padding: 10px 16px; background: #EF4444; color: white; font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                Sign Out
+              </button>
+            `;
+          } catch (e) {
+            console.error('Error parsing user data:', e);
+          }
+        }
+      })();
+      
+      function handleLogout() {
+        localStorage.removeItem('careersync_token');
+        localStorage.removeItem('careersync_user');
+        window.location.href = 'http://localhost:4173';
+      }
+    </script>
 
     <main class="main-content">
     <div class="container">
@@ -142,37 +203,39 @@
         <div class="container">
             <div class="footer-top grid grid-4">
                 <div class="footer-brand-col">
-                    <div class="brand" style="margin-bottom:1.5rem; color: white;">
-                        <div class="brand-icon"></div>
-                        Career Sync
-                    </div>
+                    <a href="http://localhost:4173" style="text-decoration: none;">
+                        <div class="brand" style="margin-bottom:1.5rem; color: white;">
+                            <div class="brand-icon"></div>
+                            Career Sync
+                        </div>
+                    </a>
                     <p class="text-sm text-tertiary">
                         Engineered for the ambitious. The world's first AI-powered career orchestration platform.
                     </p>
                     <div class="social-links">
-                        <a href="#" class="social-icon">𝕏</a>
-                        <a href="#" class="social-icon">In</a>
-                        <a href="#" class="social-icon">Gh</a>
+                        <a href="https://twitter.com" target="_blank" class="social-icon" title="Twitter">𝕏</a>
+                        <a href="https://linkedin.com" target="_blank" class="social-icon" title="LinkedIn">In</a>
+                        <a href="https://github.com/HarishBonu0/Career-Sync" target="_blank" class="social-icon" title="GitHub">Gh</a>
                     </div>
                 </div>
 
                 <div>
                     <h4 class="footer-heading">Product</h4>
                     <ul class="footer-links">
-                        <li><a href="#">Course Generator</a></li>
-                        <li><a href="#">Roadmap Engine</a></li>
-                        <li><a href="#">Skill Evaluator</a></li>
-                        <li><a href="#">Enterprise</a></li>
+                        <li><a href="http://localhost:3002">Course Generator</a></li>
+                        <li><a href="http://localhost:5173">Roadmap Engine</a></li>
+                        <li><a href="http://localhost:3001">Skill Evaluator</a></li>
+                        <li><a href="http://localhost:4173">Home</a></li>
                     </ul>
                 </div>
 
                 <div>
                     <h4 class="footer-heading">Resources</h4>
                     <ul class="footer-links">
-                        <li><a href="#">Documentation</a></li>
-                        <li><a href="#">API Reference</a></li>
-                        <li><a href="#">Blog</a></li>
-                        <li><a href="#">Community</a></li>
+                        <li><a href="https://github.com/HarishBonu0/Career-Sync">Documentation</a></li>
+                        <li><a href="http://localhost:5000/api/health">API Reference</a></li>
+                        <li><a href="http://localhost:4173">Blog</a></li>
+                        <li><a href="https://github.com/HarishBonu0/Career-Sync">Community</a></li>
                     </ul>
                 </div>
 
@@ -194,8 +257,8 @@
                     © 2026 Career Sync Inc. All rights reserved.
                 </div>
                 <div class="flex gap-4 text-xs text-tertiary">
-                    <a href="#">Privacy Policy</a>
-                    <a href="#">Terms of Service</a>
+                    <a href="http://localhost:4173">Privacy Policy</a>
+                    <a href="http://localhost:4173">Terms of Service</a>
                 </div>
             </div>
         </div>
