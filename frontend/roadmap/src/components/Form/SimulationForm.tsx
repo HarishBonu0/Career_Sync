@@ -115,7 +115,7 @@ export default function SimulationForm({ onSubmit, isLoading }: SimulationFormPr
             id="targetSalary"
             type="text"
             name="targetSalary"
-            placeholder="Annual salary"
+            placeholder="Salary in LPA"
             value={formData.targetSalary}
             onChange={handleInputChange}
             className={styles.input}

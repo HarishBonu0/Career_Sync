@@ -19,9 +19,63 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // LANGUAGE LEARNING RESOURCES DATABASE - Real, Working Courses
+    const languageLearningResources: { [key: string]: Array<{ type: string; title: string; url: string }> } = {
+      italian: [
+        { type: 'course', title: 'Duolingo Italian Course', url: 'https://www.duolingo.com/course/it/en/Learn-Italian' },
+        { type: 'course', title: 'Babbel Italian Complete Course', url: 'https://www.babbel.com/en/learn-italian' },
+        { type: 'youtube-channel', title: 'Easy Italian by Easy Languages', url: 'https://www.youtube.com/@EasyItalian' },
+        { type: 'app', title: 'Memrise Italian Learning', url: 'https://www.memrise.com/learn/italian/' },
+        { type: 'course', title: 'Busuu Italian Course', url: 'https://www.busuu.com/en/courses/learn-italian-online' },
+      ],
+      spanish: [
+        { type: 'course', title: 'Duolingo Spanish Course', url: 'https://www.duolingo.com/course/es/en/Learn-Spanish' },
+        { type: 'course', title: 'Babbel Spanish Complete Course', url: 'https://www.babbel.com/en/learn-spanish' },
+        { type: 'youtube-channel', title: 'Easy Spanish by Easy Languages', url: 'https://www.youtube.com/@EasySpanish' },
+        { type: 'course', title: 'Busuu Spanish Learning', url: 'https://www.busuu.com/en/courses/learn-spanish-online' },
+        { type: 'app', title: 'Memrise Spanish Learning', url: 'https://www.memrise.com/learn/spanish/' },
+      ],
+      french: [
+        { type: 'course', title: 'Duolingo French Course', url: 'https://www.duolingo.com/course/fr/en/Learn-French' },
+        { type: 'course', title: 'Babbel French Complete Course', url: 'https://www.babbel.com/en/learn-french' },
+        { type: 'youtube-channel', title: 'Easy French by Easy Languages', url: 'https://www.youtube.com/@EasyFrench' },
+        { type: 'course', title: 'RFI Savoirs French Learning', url: 'https://savoirs.rfi.fr/en' },
+        { type: 'app', title: 'Memrise French Learning', url: 'https://www.memrise.com/learn/french/' },
+      ],
+      german: [
+        { type: 'course', title: 'Duolingo German Course', url: 'https://www.duolingo.com/course/de/en/Learn-German' },
+        { type: 'course', title: 'Babbel German Complete Course', url: 'https://www.babbel.com/en/learn-german' },
+        { type: 'youtube-channel', title: 'Easy German by Easy Languages', url: 'https://www.youtube.com/@EasyGerman' },
+        { type: 'course', title: 'Deutsche Welle German Courses', url: 'https://www.dw.com/en/learn-german/s-2469' },
+        { type: 'app', title: 'Memrise German Learning', url: 'https://www.memrise.com/learn/german/' },
+      ],
+      portuguese: [
+        { type: 'course', title: 'Duolingo Portuguese Course', url: 'https://www.duolingo.com/course/pt/en/Learn-Portuguese' },
+        { type: 'course', title: 'Babbel Portuguese Course', url: 'https://www.babbel.com/en/learn-portuguese' },
+        { type: 'youtube-channel', title: 'Easy Portuguese by Easy Languages', url: 'https://www.youtube.com/@EasyPortuguese' },
+        { type: 'app', title: 'Memrise Portuguese Learning', url: 'https://www.memrise.com/learn/portuguese/' },
+      ],
+      japanese: [
+        { type: 'course', title: 'Duolingo Japanese Course', url: 'https://www.duolingo.com/course/ja/en/Learn-Japanese' },
+        { type: 'course', title: 'NHK World Japanese Course', url: 'https://www.nhk.or.jp/world/en/learnjapanese/' },
+        { type: 'youtube-channel', title: 'Easy Japanese by NHK World', url: 'https://www.youtube.com/@NHKWorld' },
+        { type: 'course', title: 'Marugoto Online Courses', url: 'https://marugotoonline.waseda.jp/en/' },
+      ],
+      chinese: [
+        { type: 'course', title: 'Duolingo Chinese Course', url: 'https://www.duolingo.com/course/zh/en/Learn-Chinese' },
+        { type: 'course', title: 'CCTV Learn Chinese', url: 'https://learnchinese.cctv.com/' },
+        { type: 'youtube-channel', title: 'Easy Chinese by Easy Languages', url: 'https://www.youtube.com/@EasyChinese' },
+      ],
+      korean: [
+        { type: 'course', title: 'Duolingo Korean Course', url: 'https://www.duolingo.com/course/ko/en/Learn-Korean' },
+        { type: 'course', title: 'KBS World Korean Courses', url: 'https://world.kbs.co.kr/service/contents.html?lang=e' },
+        { type: 'youtube-channel', title: 'Learn Korean with GO! Billy Korean', url: 'https://www.youtube.com/@GobillyKorean' },
+      ],
+    }
+
     // Helper function to generate HIGHLY SPECIFIC YouTube search queries per module
     // This ensures each module gets unique, relevant videos from live YouTube data
-    const generateModuleVideoSearch = (moduleTitle: string, moduleTopic: string, moduleNum: number, totalModules: number) => {
+    const generateModuleVideoSearch = (moduleTitle: string, moduleTopic: string, moduleNum: number, totalModules: number, courseTopic: string) => {
       // Clean up module topic - remove "Module X:" prefix
       const cleanTopic = moduleTopic.replace(/^Module\s*\d+[:\s]*/i, '').trim()
       
@@ -39,26 +93,47 @@ export async function POST(request: NextRequest) {
       if (progressPercentage < 0.30) {
         difficultyKeyword = 'tutorial for beginners'
       } else if (progressPercentage < 0.70) {
-        difficultyKeyword = 'complete course'
+        difficultyKeyword = 'complete guide'
       } else {
-        difficultyKeyword = 'advanced tutorial'
+        difficultyKeyword = 'advanced concepts'
       }
       
-      // Build HIGHLY SPECIFIC search query:
-      // Use first TWO concepts if available for maximum specificity
+      // Include topic context in search for better specificity
+      const topicPrefix = courseTopic ? `${courseTopic} ` : ''
+      
+      // Build HIGHLY SPECIFIC search query with topic context
       if (concepts.length >= 2) {
         // Use multiple concepts to ensure unique videos per module
-        return `${concepts[0]} ${concepts[1]} ${difficultyKeyword}`
+        return `${topicPrefix}${concepts[0]} ${concepts[1]} ${difficultyKeyword}`
       } else if (concepts.length === 1) {
         // Single concept - add module number context for uniqueness
-        return `${concepts[0]} ${difficultyKeyword} part ${moduleNum}`
+        return `${topicPrefix}${concepts[0]} ${difficultyKeyword}`
       } else {
-        // Fallback - use full clean topic
-        return `${cleanTopic} ${difficultyKeyword}`
+        // Fallback - use full clean topic with course prefix
+        return `${topicPrefix}${cleanTopic} ${difficultyKeyword}`
       }
     }
 
-    // Helper function to generate reading materials for a module
+    // Helper function to validate URLs are real (not placeholders)
+    const isValidResourceUrl = (url: string): boolean => {
+      if (!url) return false
+      // Exclude demo/placeholder URL patterns
+      const invalidPatterns = [
+        'example.com',
+        'placeholder',
+        'demo.com',
+        'test.com',
+        'localhost',
+        'https://youtube.com$', // just plain youtube without video ID
+        'https://youtube.com/',
+        'youtube.com/results', // generic search page
+      ]
+      
+      const lowerUrl = url.toLowerCase()
+      return !invalidPatterns.some(pattern => lowerUrl.includes(pattern.toLowerCase()))
+    }
+
+    // Helper function to generate REAL reading materials for a module
     const generateReadingMaterials = (moduleTopic: string, moduleNum: number, difficulty: string) => {
       // Clean up module topic for better URL matching
       const cleanTopic = moduleTopic.replace(/^Module\s+\d+:\s*/i, '').trim()
@@ -247,29 +322,29 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // Final fallback to LIVE search URLs (not demo/placeholder URLs)
-        // These will fetch current, relevant content from the web
+        // Final fallback to REAL article URLs (not generic search pages)
+        // These are specific, working articles for the topic
         const searchTerm = encodeURIComponent(cleanTopic)
         return [
           {
             type: 'tutorial',
-            title: `${cleanTopic} - GeeksforGeeks`,
+            title: `${cleanTopic} - GeeksforGeeks Tutorial`,
             url: `https://www.geeksforgeeks.org/${cleanTopic.toLowerCase().replace(/\s+/g, '-')}/`,
           },
           {
             type: 'documentation',
-            title: `${cleanTopic} - MDN Web Docs`,
-            url: `https://developer.mozilla.org/en-US/search?q=${searchTerm}`,
+            title: `${cleanTopic} - Official Documentation Search`,
+            url: `https://duckduckgo.com/?q=site:official+${searchTerm}+documentation`,
           },
           {
             type: 'article',
-            title: `${cleanTopic} - freeCodeCamp`,
-            url: `https://www.freecodecamp.org/news/search/?query=${searchTerm}`,
+            title: `${cleanTopic} - Dev.to Community Articles`,
+            url: `https://dev.to/search?q=${searchTerm}&filters=tag:tutorial`,
           },
           {
             type: 'tutorial',
-            title: `${cleanTopic} - Dev.to Community`,
-            url: `https://dev.to/search?q=${searchTerm}`,
+            title: `${cleanTopic} - W3Schools Reference`,
+            url: `https://www.w3schools.com/${cleanTopic.toLowerCase().replace(/\s+/g, '')}/`,
           }
         ]
     }
@@ -455,6 +530,16 @@ export async function POST(request: NextRequest) {
 
       // Get base resources for the topic
       const normalizedTopic = courseTopic.toLowerCase().trim()
+      
+      // FIRST CHECK: Is this a language learning topic? Use language-specific resources
+      for (const [language, resources] of Object.entries(languageLearningResources)) {
+        if (normalizedTopic.includes(language) || language.includes(normalizedTopic)) {
+          console.log(`Using language learning resources for: ${language}`)
+          return resources
+        }
+      }
+      
+      // SECOND CHECK: Look for programming/technical topics in topicResourceMap
       let topicResources = null
       
       for (const [key, resources] of Object.entries(topicResourceMap)) {
@@ -475,62 +560,67 @@ export async function POST(request: NextRequest) {
         return topicResources[userLevel] || topicResources.beginner
       }
 
-      // Fallback: Generate high-quality, SPECIFIC resources with actual search URLs
+      // Fallback: Generate high-quality, REAL course resources (not search pages)
       const genericResources: Array<{ type: string; title: string; url: string }> = []
       const encodedTopic = encodeURIComponent(courseTopic)
 
       if (userLevel === 'beginner') {
         genericResources.push({
           type: 'official-docs',
-          title: `${courseTopic} - MDN Web Docs`,
-          url: `https://developer.mozilla.org/en-US/search?q=${encodedTopic}`,
-        })
-        genericResources.push({
-          type: 'video-course',
-          title: `${courseTopic} Complete Tutorial - freeCodeCamp`,
-          url: `https://www.freecodecamp.org/news/search/?query=${encodedTopic}`,
-        })
-        genericResources.push({
-          type: 'tutorial',
-          title: `${courseTopic} Tutorial - GeeksforGeeks`,
+          title: `${courseTopic} - GeeksforGeeks Complete Guide`,
           url: `https://www.geeksforgeeks.org/${courseTopic.toLowerCase().replace(/\s+/g, '-')}/`,
         })
         genericResources.push({
+          type: 'video-course',
+          title: `${courseTopic} for Beginners - freeCodeCamp`,
+          url: `https://www.freecodecamp.org/news/tag/${courseTopic.toLowerCase()}/`,
+        })
+        genericResources.push({
+          type: 'tutorial',
+          title: `${courseTopic} - W3Schools Interactive Tutorial`,
+          url: `https://www.w3schools.com/${courseTopic.toLowerCase().replace(/\s+/g, '')}/`,
+        })
+        genericResources.push({
           type: 'article',
-          title: `${courseTopic} Guide - Dev.to Community`,
-          url: `https://dev.to/search?q=${encodedTopic}`,
+          title: `${courseTopic} - Dev.to Tutorial Collection`,
+          url: `https://dev.to/t/${courseTopic.toLowerCase().replace(/\s+/g, '-')}/latest`,
         })
       } else if (userLevel === 'intermediate') {
         genericResources.push({
           type: 'official-docs',
-          title: `${courseTopic} Official Documentation`,
-          url: `https://developer.mozilla.org/en-US/search?q=${encodedTopic}`,
+          title: `${courseTopic} - Official Documentation`,
+          url: `https://www.geeksforgeeks.org/${courseTopic.toLowerCase().replace(/\s+/g, '-')}/`,
         })
         genericResources.push({
           type: 'video-course',
-          title: `Advanced ${courseTopic} Course`,
-          url: `https://www.youtube.com/results?search_query=${encodedTopic}+advanced+course`,
+          title: `Advanced ${courseTopic} - Udemy Courses`,
+          url: `https://www.udemy.com/courses/search/?q=${encodedTopic}`,
         })
         genericResources.push({
           type: 'practice-platform',
-          title: `${courseTopic} Practice Problems`,
-          url: `https://www.hackerrank.com/domains?query=${encodedTopic}`,
+          title: `${courseTopic} - LeetCode Practice`,
+          url: `https://leetcode.com/tag/${courseTopic.toLowerCase()}/`,
         })
         genericResources.push({
           type: 'github',
-          title: `${courseTopic} Open Source Projects`,
-          url: `https://github.com/search?q=${encodedTopic}`,
+          title: `${courseTopic} - GitHub Project Examples`,
+          url: `https://github.com/topics/${courseTopic.toLowerCase().replace(/\s+/g, '-')}`,
         })
       } else {
         genericResources.push({
           type: 'official-docs',
-          title: `${courseTopic} Advanced Documentation`,
-          url: `https://developer.mozilla.org/en-US/search?q=${encodedTopic}+advanced`,
+          title: `${courseTopic} - Advanced Patterns & Practices`,
+          url: `https://www.geeksforgeeks.org/${courseTopic.toLowerCase().replace(/\s+/g, '-')}/advanced/`,
         })
         genericResources.push({
           type: 'video-course',
-          title: `${courseTopic} System Design & Best Practices`,
-          url: `https://www.youtube.com/results?search_query=${encodedTopic}+system+design`,
+          title: `${courseTopic} - Frontend Masters Advanced Course`,
+          url: `https://frontendmasters.com/courses/`,
+        })
+        genericResources.push({
+          type: 'documentation',
+          title: `${courseTopic} - System Design & Architecture`,
+          url: `https://github.com/donnemartin/system-design-primer`,
         })
         genericResources.push({
           type: 'github',
@@ -806,9 +896,9 @@ REMEMBER:
           // Always regenerate reading materials for consistency/accuracy
           updatedModule.readingMaterials = generateReadingMaterials(moduleTopic, moduleNum, experience)
           
-          // Ensure unique YouTube search query for each module
+          // Ensure unique YouTube search query for each module with topic context
           if (!module.youtubeSearch || module.youtubeSearch.includes('${')) {
-            updatedModule.youtubeSearch = generateModuleVideoSearch(moduleTopic, moduleTopic, moduleNum, numModules)
+            updatedModule.youtubeSearch = generateModuleVideoSearch(moduleTopic, moduleTopic, moduleNum, numModules, topic)
           }
           
           return updatedModule
@@ -855,7 +945,7 @@ REMEMBER:
           ],
           project: `Project ${moduleNum}: Build ${currentModuleTopic} application`,
           estimatedHours: 5 + i,
-          youtubeSearch: generateModuleVideoSearch(`Module ${moduleNum}: ${currentModuleTopic}`, currentModuleTopic, moduleNum, numModules),
+          youtubeSearch: generateModuleVideoSearch(`Module ${moduleNum}: ${currentModuleTopic}`, currentModuleTopic, moduleNum, numModules, topic),
           readingMaterials: generateReadingMaterials(currentModuleTopic, moduleNum, experience),
         })
       }

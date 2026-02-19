@@ -28,6 +28,9 @@ function useLocalStorageAuth(email, password, action = 'login') {
 
 export async function register(email, password, name = '') {
   try {
+    console.log('🔄 Attempting backend registration...');
+    console.log('API URL:', `${API_BASE}/auth/register`);
+    
     const resp = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -37,12 +40,17 @@ export async function register(email, password, name = '') {
     
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({ error: 'Registration failed' }));
+      console.error('❌ Backend registration failed!');
+      console.error('Status:', resp.status);
+      console.error('Error:', err);
+      console.warn('⚠️  Falling back to localStorage (NOT SAVED TO DATABASE!)');
       // Fallback to localStorage if backend fails
-      console.warn('Backend registration failed, using localStorage:', err);
       return useLocalStorageAuth(email, password, 'register');
     }
     
     const data = await resp.json();
+    console.log('✅ Backend registration SUCCESS!');
+    console.log('✅ User saved to DATABASE:', data.user);
     
     // Store token in localStorage for cross-domain navigation
     if (data.token) {
@@ -52,15 +60,18 @@ export async function register(email, password, name = '') {
     
     return { success: true, user: data.user, token: data.token };
   } catch (error) {
-    console.error('Registration network error:', error);
+    console.error('❌ Registration network error:', error);
+    console.warn('⚠️  Using localStorage auth as fallback (NOT SAVED TO DATABASE!)');
     // Fallback to localStorage for demo purposes
-    console.warn('Using localStorage auth as fallback');
     return useLocalStorageAuth(email, password, 'register');
   }
 }
 
 export async function login(email, password) {
   try {
+    console.log('🔄 Attempting backend login...');
+    console.log('API URL:', `${API_BASE}/auth/login`);
+    
     const resp = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -70,11 +81,16 @@ export async function login(email, password) {
 
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({ error: 'Login failed' }));
-      console.warn('Backend login failed, using localStorage:', err);
+      console.error('❌ Backend login failed!');
+      console.error('Status:', resp.status);
+      console.error('Error:', err);
+      console.warn('⚠️  Falling back to localStorage (NOT FROM DATABASE!)');
       return useLocalStorageAuth(email, password, 'login');
     }
 
     const data = await resp.json();
+    console.log('✅ Backend login SUCCESS!');
+    console.log('✅ User fetched from DATABASE:', data.user);
     
     // Store token in localStorage for cross-domain navigation
     if (data.token) {
@@ -84,9 +100,9 @@ export async function login(email, password) {
     
     return { success: true, user: data.user, token: data.token };
   } catch (error) {
-    console.error('Login network error:', error);
+    console.error('❌ Login network error:', error);
+    console.warn('⚠️  Using localStorage auth as fallback (NOT FROM DATABASE!)');
     // Fallback to localStorage for demo purposes
-    console.warn('Using localStorage auth as fallback');
     return useLocalStorageAuth(email, password, 'login');
   }
 }
