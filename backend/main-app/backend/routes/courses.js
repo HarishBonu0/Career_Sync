@@ -119,6 +119,78 @@ router.post('/generate', async (req, res) => {
   }
 });
 
+// Generate dynamic questions based on course topic
+router.post('/generate-questions', async (req, res) => {
+  const { topic } = req.body;
+
+  if (!topic) {
+    return res.status(400).json({ error: 'Topic is required' });
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY is not configured' });
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    
+    const prompt = `Generate 6 personalized questions to understand a learner's needs for the topic: "${topic}". 
+    
+Return ONLY a valid JSON array with NO additional text, explanations, or markdown formatting.
+
+The questions should help customize the course to their:
+1. Learning goal (specific to ${topic})
+2. Experience level
+3. Time commitment
+4. Learning style preference
+5. Timeline/deadline
+6. Specific focus areas within ${topic}
+
+Format each question as:
+{
+  "id": number,
+  "type": "text" | "single-choice" | "multiple-choice",
+  "question": "question text with {topic} placeholder",
+  "placeholder": "for text type only",
+  "options": ["option1", "option2", ...] // for choice types, 4-6 options relevant to ${topic}
+}
+
+Make options SPECIFIC to ${topic}, not generic. For example:
+- If topic is "Python", options should be "Build web apps with Django/Flask", "Data analysis with pandas", etc.
+- If topic is "Guitar", options should be "Play rock/blues", "Classical fingerstyle", "Songwriting", etc.
+
+Return ONLY the JSON array, nothing else.`;
+    
+    const result = await model.generateContent(prompt);
+    let responseText = result.response.text().trim();
+    
+    // Clean up response - remove markdown code blocks if present
+    responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    // Parse JSON
+    const questions = JSON.parse(responseText);
+    
+    // Validate structure
+    if (!Array.isArray(questions) || questions.length === 0) {
+      throw new Error('Invalid questions format received from AI');
+    }
+
+    res.json({ 
+      success: true,
+      topic,
+      questions,
+      generatedAt: new Date()
+    });
+  } catch (error) {
+    console.error('Question generation error:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate questions',
+      message: error.message 
+    });
+  }
+});
+
 // Save a generated course or create a new course
 router.post('/', async (req, res) => {
   try {
