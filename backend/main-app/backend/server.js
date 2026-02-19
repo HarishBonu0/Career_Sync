@@ -16,7 +16,6 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 // Import routes
 import authRoutes from './routes/auth.js';
 import courseRoutes from './routes/courses.js';
-import courseGenerationV2Routes from './routes/course-generation-v2.js';
 import roadmapRoutes from './routes/roadmaps.js';
 import skillEvalRoutes from './routes/skillEval.js';
 import profileRoutes from './routes/profile.js';
@@ -58,7 +57,6 @@ app.get('/api/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
-app.use('/api', courseGenerationV2Routes); // Production refactored course generation
 app.use('/api/roadmaps', roadmapRoutes);
 app.use('/api/skills', skillEvalRoutes);
 app.use('/api/profile', profileRoutes);
