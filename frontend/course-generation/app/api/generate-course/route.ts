@@ -753,7 +753,6 @@ REMEMBER:
 - NO vague or generic titles like "Basics", "Fundamentals", "Introduction"
 - Think: "Would this title match a real tutorial on ${isLanguageTopic ? 'language learning sites or YouTube?' : 'GeeksforGeeks or YouTube?'}"
 - For ${topic}: Create modules for actual ${isLanguageTopic ? 'conversations, vocabulary domains, and grammar concepts' : 'concepts and features'} users want to learn`
-`
 
     console.log('Sending to OpenRouter...')
 
