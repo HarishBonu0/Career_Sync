@@ -1167,58 +1167,34 @@
 
         async function loadProfile() {
             try {
+                console.log('📋 Loading profile...');
+                
                 // Check if user is logged in
                 let user = localStorage.getItem('careersync_user');
+                const loadingEl = document.getElementById('loading');
+                const profileContent = document.getElementById('profile-content');
                 
                 if (!user) {
-                    // No user found, redirect to auth page
-                    console.log('No user session found, redirecting to auth...');
-                    window.location.href = window.getModuleUrls().landing + '/auth.html';
-                    return;
+                    console.log('No user session, showing sample data...');
+                    // Show sample data for demo
+                    user = JSON.stringify({ email: 'demo@careersync.com', name: 'Demo User', full_name: 'Demo User' });
                 }
                 
-                // Parse user data immediately
-                let userData = JSON.parse(user);
-                console.log('User logged in as:', userData.email);
+                const userData = typeof user === 'string' ? JSON.parse(user) : user;
+                console.log('✅ User data:', userData);
                 
-                // Display cached profile IMMEDIATELY (fast load)
+                // Display profile immediately
                 displayCachedProfile(userData);
                 
-                // Hide loading indicator
-                const loadingEl = document.getElementById('loading');
                 if (loadingEl) loadingEl.style.display = 'none';
-                
-                // Increment visit count
-                let visitCount = parseInt(localStorage.getItem('careersync_profile_visits') || '0');
-                visitCount++;
-                localStorage.setItem('careersync_profile_visits', visitCount.toString());
-                
-                // Load backend data in background (non-blocking, optional)
-                loadBackendDataInBackground(userData);
+                if (profileContent) profileContent.style.display = 'block';
                 
             } catch (error) {
-                console.error('Error loading profile:', error);
-                // Still show cached data even if there's an error
-                try {
-                    const userData = { email: 'user@example.com', name: 'User' };
-                    displayCachedProfile(userData);
-                } catch (displayError) {
-                    document.getElementById('loading').innerHTML = `
-                        <div style="padding: 40px; text-align: center;">
-                            <h2 style="color: #EF4444; margin-bottom: 16px;">Error Loading Profile</h2>
-                            <p style="margin-bottom: 24px; color: var(--text-secondary);">
-                                Unable to load profile. Please try again.
-                            </p>
-                            <a href="${window.getModuleUrls().landing}/auth.html"
-                               style="display: inline-block; padding: 12px 24px; background: var(--brand-primary); 
-                                      color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
-                                Go to Login
-                            </a>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error in profile load:', error);
+                console.error('❌ Error loading profile:', error);
+                const loadingEl = document.getElementById('loading');
+                const profileContent = document.getElementById('profile-content');
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (profileContent) profileContent.style.display = 'block';
             }
         }
 
@@ -1253,17 +1229,16 @@
         }
 
         function displayCachedProfile(userData) {
+            console.log('📱 Displaying cached profile:', userData);
             const initials = (userData.name || userData.full_name || userData.email || 'U').charAt(0).toUpperCase();
             const loadingEl = document.getElementById('loading');
-            if (!loadingEl) return;
-            
-            loadingEl.style.display = 'none';
-            
             const profileContent = document.getElementById('profile-content');
-            if (profileContent) {
-                profileContent.style.display = 'block';
-            }
             
+            // Hide loading, show content
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (profileContent) profileContent.style.display = 'block';
+            
+            // Update user info
             if (document.getElementById('profile-avatar-large')) {
                 document.getElementById('profile-avatar-large').textContent = initials;
             }
@@ -1271,25 +1246,99 @@
                 document.getElementById('profile-full-name').textContent = userData.name || userData.full_name || 'User';
             }
             if (document.getElementById('profile-full-email')) {
-                document.getElementById('profile-full-email').textContent = userData.email || 'No email';
+                document.getElementById('profile-full-email').textContent = userData.email || 'user@careersync.com';
             }
+            
+            // Get cached data from localStorage
+            const courses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
+            const roadmaps = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
+            const evaluations = JSON.parse(localStorage.getItem('careersync_evaluations') || '[]');
+            
+            // Update stats
             if (document.getElementById('stat-courses')) {
-                const courses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
                 document.getElementById('stat-courses').textContent = courses.length;
             }
             if (document.getElementById('stat-roadmaps')) {
-                const roadmaps = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
                 document.getElementById('stat-roadmaps').textContent = roadmaps.length;
             }
             if (document.getElementById('stat-evaluations')) {
-                const evals = JSON.parse(localStorage.getItem('careersync_evaluations') || '[]');
-                document.getElementById('stat-evaluations').textContent = evals.length;
+                document.getElementById('stat-evaluations').textContent = evaluations.length;
             }
+            
+            // Display courses
+            const courseContainer = document.getElementById('courses-container');
+            if (courseContainer) {
+                if (courses && courses.length > 0) {
+                    courseContainer.innerHTML = courses.map(course => `
+                        <div class="item-card">
+                            <div class="item-header">
+                                <div>
+                                    <p class="item-title">${course.title || 'Course'}</p>
+                                </div>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${course.progress || 0}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    courseContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No courses yet</div></div>';
+                }
+            }
+            
+            // Display roadmaps
+            const roadmapContainer = document.getElementById('roadmaps-container');
+            if (roadmapContainer) {
+                if (roadmaps && roadmaps.length > 0) {
+                    roadmapContainer.innerHTML = roadmaps.map(roadmap => `
+                        <div class="item-card">
+                            <div class="item-header">
+                                <div>
+                                    <p class="item-title">${roadmap.title || 'Roadmap'}</p>
+                                </div>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${roadmap.progress || 0}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    roadmapContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No roadmaps yet</div></div>';
+                }
+            }
+            
+            // Display evaluations
+            const evalContainer = document.getElementById('evaluations-container');
+            if (evalContainer) {
+                if (evaluations && evaluations.length > 0) {
+                    evalContainer.innerHTML = evaluations.map(eval => `
+                        <div class="item-card">
+                            <div class="item-header">
+                                <div>
+                                    <p class="item-title">${eval.title || eval.skillName || 'Evaluation'}</p>
+                                </div>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${eval.score || 0}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    evalContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No evaluations yet</div></div>';
+                }
+            }
+            
+            console.log('✅ Profile display complete');
         }
 
         function displayProfile(profileData) {
             displayCachedProfile(profileData);
-            console.log('Profile data loaded:', profileData);
         }
             if (courses.length > 0) {
                 console.log('📚 SAVING COURSES TO LOCALSTORAGE:');
