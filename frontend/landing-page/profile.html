@@ -1207,184 +1207,90 @@
                         <div style="padding: 40px; text-align: center;">
                             <h2 style="color: #EF4444; margin-bottom: 16px;">Error Loading Profile</h2>
                             <p style="margin-bottom: 24px; color: var(--text-secondary);">
-                                ${error.message}
+                                Unable to load profile. Please try again.
                             </p>
-                            <a href="${getModuleUrls().landing}/auth.html"
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            console.log('Fetched user from backend:', data);
-                            if (data.user || data.data) {
-                                user = JSON.stringify(data.user || data.data);
-                                localStorage.setItem('careersync_user', user);
-                                token = cookieToken;
-                                console.log('User data stored in localStorage');
-                            }
-                        } else {
-                            console.log('Backend response not OK:', response.status);
-                        }
-                    } catch (err) {
-                        console.log('Could not fetch user from backend:', err);
-                    }
-                }
-
-                // Check if we have valid auth data
-                if (!user && !token && !cookieToken) {
-                    console.log('No authentication found, showing login message');
-                    document.getElementById('loading').innerHTML = `
-                        <div style="padding: 40px; text-align: center;">
-                            <h2 style="color: var(--brand-primary); margin-bottom: 16px;">Please Login</h2>
-                            <p style="margin-bottom: 24px; color: var(--text-secondary);">
-                                You need to be logged in to view your profile.
-                            </p>
-                            <a href="' + getModuleUrls().landing + '/auth.html" 
+                            <a href="${window.getModuleUrls().landing}/auth.html"
                                style="display: inline-block; padding: 12px 24px; background: var(--brand-primary); 
                                       color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
                                 Go to Login
                             </a>
                         </div>
                     `;
-                    return;
                 }
-
-                console.log('Auth found, proceeding to load profile');
-
-                // Parse user data
-                let userData;
-                try {
-                    userData = typeof user === 'string' ? JSON.parse(user) : user;
-                    console.log('Parsed user data:', userData);
-                } catch (e) {
-                    console.error('Error parsing user data:', e);
-                    // Create minimal user data from email if available
-                    userData = { 
-                        email: 'user@example.com',
-                        name: 'User'
-                    };
-                }
-
-                const userId = userData.id || userData._id || userData.user_id;
-                console.log('User ID:', userId);
-
-                // Increment visit count
-                let visitCount = parseInt(localStorage.getItem('careersync_profile_visits') || '0');
-                visitCount++;
-                localStorage.setItem('careersync_profile_visits', visitCount.toString());
-                console.log('Profile visit count:', visitCount);
-
-                // Load cached courses/roadmaps/evaluations from localStorage
-                const courses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
-                const roadmaps = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
-                const evaluations = JSON.parse(localStorage.getItem('careersync_evaluations') || '[]');
-                
-                // Display profile immediately with cached data
-                displayProfile({
-                    name: userData.name || userData.full_name,
-                    email: userData.email,
-                    bio: userData.bio,
-                    courses: courses,
-                    roadmaps: roadmaps,
-                    evaluations: evaluations
-                });
-
-                // Then fetch backend updates in background (non-blocking)
-                loadBackendDataInBackground(userId, userData, token);
             } catch (error) {
-                console.error('Error loading profile:', error);
-                document.getElementById('loading').innerHTML = `
-                    <div style="padding: 40px; text-align: center;">
-                        <h2 style="color: #EF4444; margin-bottom: 16px;">Error Loading Profile</h2>
-                        <p style="margin-bottom: 24px; color: var(--text-secondary);">
-                            ${error.message}
-                        </p>
-                        <a href="${getModuleUrls().landing}/auth.html" 
-                           style="display: inline-block; padding: 12px 24px; background: var(--brand-primary); 
-                                  color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
-                            Go to Login
-                        </a>
-                    </div>
-                `;
+                console.error('Error in profile load:', error);
             }
         }
 
-        function displayBasicProfile(userData) {
-            const initials = (userData.name || userData.full_name || userData.email || 'U').charAt(0).toUpperCase();
-            document.getElementById('profile-avatar-large').textContent = initials;
-            document.getElementById('profile-full-name').textContent = userData.name || userData.full_name || 'User';
-            document.getElementById('profile-full-email').textContent = userData.email || 'No email';
-        }
-
-        // Load backend data asynchronously without blocking the UI
-        async function loadBackendDataInBackground(userId, userData, token) {
-            console.log('🔄 Loading backend data in background...');
-            
-            if (!userId) {
-                console.log('No userId, skipping backend sync');
-                return;
-            }
-
-            const API_BASE = getModuleUrls().backend;
-
+        async function loadBackendDataInBackground(userData) {
             try {
-                // Fetch profile from backend
-                const response = await fetch(`${API_BASE}/profile/${userId}`, {
+                const token = localStorage.getItem('careersync_token');
+                if (!token) return;
+
+                const backendUrl = window.getModuleUrls().backend;
+                const response = await fetch(backendUrl + '/api/auth/me', {
                     credentials: 'include',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
-
+                
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('✅ Backend profile data:', data);
-                    
-                    if (data.success && data.profile) {
-                        // Update with backend data if available
-                        if (data.profile.courses || data.profile.roadmaps || data.profile.evaluations) {
-                            displayProfile(data.profile);
-                        }
+                    console.log('Fetched user from backend:', data);
+                    if (data.user || data.data) {
+                        const user = data.user || data.data;
+                        localStorage.setItem('careersync_user', JSON.stringify(user));
+                        console.log('User data updated from backend');
                     }
                 } else {
-                    console.log('Backend profile not available:', response.status);
+                    console.log('Backend response not OK:', response.status);
                 }
+            } catch (err) {
+                console.log('Could not fetch user from backend:', err);
+            }
+        }
 
-                // Fetch supplemental data (roadmaps and evaluations)
-                await fetchSupplementalProfileData(userId, userData.email, token);
-
-            } catch (error) {
-                console.log('Backend sync failed:', error);
+        function displayCachedProfile(userData) {
+            const initials = (userData.name || userData.full_name || userData.email || 'U').charAt(0).toUpperCase();
+            const loadingEl = document.getElementById('loading');
+            if (!loadingEl) return;
+            
+            loadingEl.style.display = 'none';
+            
+            const profileContent = document.getElementById('profile-content');
+            if (profileContent) {
+                profileContent.style.display = 'block';
+            }
+            
+            if (document.getElementById('profile-avatar-large')) {
+                document.getElementById('profile-avatar-large').textContent = initials;
+            }
+            if (document.getElementById('profile-full-name')) {
+                document.getElementById('profile-full-name').textContent = userData.name || userData.full_name || 'User';
+            }
+            if (document.getElementById('profile-full-email')) {
+                document.getElementById('profile-full-email').textContent = userData.email || 'No email';
+            }
+            if (document.getElementById('stat-courses')) {
+                const courses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
+                document.getElementById('stat-courses').textContent = courses.length;
+            }
+            if (document.getElementById('stat-roadmaps')) {
+                const roadmaps = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
+                document.getElementById('stat-roadmaps').textContent = roadmaps.length;
+            }
+            if (document.getElementById('stat-evaluations')) {
+                const evals = JSON.parse(localStorage.getItem('careersync_evaluations') || '[]');
+                document.getElementById('stat-evaluations').textContent = evals.length;
             }
         }
 
         function displayProfile(profileData) {
-            console.log('displayProfile:', profileData);
-            
-            // User Info
-            const name = profileData.name || 'User';
-            const email = profileData.email || 'user@example.com';
-            const initials = name.charAt(0).toUpperCase();
-            
-            document.getElementById('profile-avatar-large').textContent = initials;
-            document.getElementById('profile-full-name').textContent = name;
-            document.getElementById('profile-full-email').textContent = email;
-            document.getElementById('profile-full-bio').textContent = profileData.bio || 'Welcome to Career Sync';
-            document.getElementById('profile-joined').textContent = 'Recently';
-            document.getElementById('profile-role').textContent = 'Learner';
-            
-            // Visit count
-            const visits = localStorage.getItem('careersync_profile_visits') || 0;
-            document.getElementById('profile-active-days').textContent = `${visits} visits`;
-
-            // Get all data: Backend > localStorage > empty
-            const courses = profileData.courses || JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]') || [];
-            const roadmaps = profileData.roadmaps || JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]') || [];
-            const evaluations = profileData.evaluations || JSON.parse(localStorage.getItem('careersync_evaluations') || '[]') || [];
-
-            // Save courses to localStorage for course-viewer access
+            displayCachedProfile(profileData);
+            console.log('Profile data loaded:', profileData);
+        }
             if (courses.length > 0) {
                 console.log('📚 SAVING COURSES TO LOCALSTORAGE:');
                 console.log('Number of courses:', courses.length);
@@ -1847,39 +1753,6 @@
         // Load profile on page load
         initializeSampleData(); // Initialize sample data as fallback
         loadProfile();
-        
-        // Auto-refresh profile data every 5 seconds to sync with backend updates
-        setInterval(async () => {
-            try {
-                let user = localStorage.getItem('careersync_user');
-                let token = localStorage.getItem('careersync_token');
-                
-                if (user && token) {
-                    const userData = JSON.parse(user);
-                    const userId = userData.id || userData._id;
-                    if (userId) {
-                        const response = await fetch(`http://localhost:5000/api/profile/${userId}`, {
-                            credentials: 'include',
-                            headers: { 
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json' 
-                            }
-                        });
-                        if (response.ok) {
-                            const data = await response.json();
-                            console.log('Auto-refresh fetched:', data);
-                            if (data.success && data.profile) {
-                                // Display the backend data directly
-                                displayProfile(data.profile);
-                                fetchSupplementalProfileData(userId, data.profile.email, token);
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                console.log('Auto-refresh failed:', error);
-            }
-        }, 5000); // Refresh every 5 seconds
     </script>
     
     <!-- Footer will be injected automatically by footer-component.js -->
