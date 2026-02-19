@@ -620,8 +620,62 @@ export async function POST(request: NextRequest) {
 
     const numModules = getModuleCount(timeline, experience, goal, timeCommitment)
 
+    // Determine topic category to generate appropriate course structure
+    const topicLower = topic.toLowerCase()
+    const isLanguageTopic = ['italian', 'spanish', 'french', 'german', 'portuguese', 'japanese', 'chinese', 'korean', 'russian', 'arabic', 'hindi', 'mandarin', 'french', 'dutch', 'english', 'swedish', 'norwegian'].includes(topicLower)
+    const isProgrammingTopic = ['javascript', 'python', 'react', 'node', 'typescript', 'java', 'cpp', 'c++', 'go', 'rust', 'php', 'ruby', 'swift', 'kotlin', 'scala', 'groovy', 'perl', 'haskell', 'elixir', 'clojure', 'r', 'matlab', 'lua', 'sql', 'nosql', 'mongodb', 'postgresql', 'mysql', 'redis', 'elasticsearch'].includes(topicLower)
+    const isWebTopic = ['web development', 'html', 'css', 'responsive design', 'frontend', 'backend'].includes(topicLower)
+    
+    // Create topic-specific example modules
+    let exampleModulesText = ''
+    if (isLanguageTopic) {
+      exampleModulesText = `EXAMPLES OF GOOD MODULE TITLES FOR LANGUAGE LEARNING:
+- "Italian Greetings and Basic Phrases" ✓
+- "Italian Present Tense Verbs and Conjugation" ✓  
+- "Italian Food Vocabulary and Ordering at Restaurants" ✓
+- "Italian Grammar: Adjectives and Nouns" ✓
+- "Italian Conversation: Travel and Navigation" ✓
+
+EXAMPLES OF BAD MODULE TITLES:
+- "Introduction to Italian" ✗
+- "Italian Basics" ✗
+- "Italian Fundamentals" ✗
+
+MODULE FOCUS FOR LANGUAGE:
+- Each module focuses on practical conversation or grammar concepts
+- Use real-world scenarios (travel, business, casual conversation)
+- Include vocabulary themes with cultural context
+- Include pronunciation and listening comprehension`
+    } else if (isProgrammingTopic) {
+      exampleModulesText = `EXAMPLES OF GOOD MODULE TITLES FOR PROGRAMMING:
+- "${topic} Variables, Data Types, and Operators" ✓
+- "${topic} Functions and Modules" ✓  
+- "${topic} Object-Oriented Programming" ✓
+- "${topic} APIs and External Libraries" ✓
+
+EXAMPLES OF BAD MODULE TITLES:
+- "Introduction to ${topic}" ✗
+- "${topic} Basics" ✗
+- "${topic} Fundamentals" ✗
+
+MODULE FOCUS FOR PROGRAMMING:
+- Each module covers 2-4 specific technical concepts
+- Use official documentation terminology
+- Include hands-on coding exercises
+- Focus on applicable real-world patterns`
+    } else {
+      exampleModulesText = `EXAMPLES OF GOOD MODULE TITLES:
+- "Foundational Concepts in ${topic}" ✓
+- "${topic}: Core Principles and Applications" ✓  
+- "Advanced ${topic} Techniques" ✓
+
+EXAMPLES OF BAD MODULE TITLES:
+- "Introduction to ${topic}" ✗
+- "${topic} Basics" ✗`
+    }
+
     // Build AI prompt with detailed instructions for SPECIFIC, SEARCHABLE module topics
-    const prompt = `You are an expert course curriculum designer creating a professional learning path.
+    const prompt = `You are an expert course curriculum designer creating a professional learning path tailored to ${isLanguageTopic ? 'language learning' : isProgrammingTopic ? 'programming education' : 'technical education'}.
 
 USER PROFILE:
 - Name: ${userName}
@@ -633,34 +687,24 @@ USER PROFILE:
 
 CRITICAL REQUIREMENTS FOR MODULE TITLES:
 1. Create EXACTLY ${numModules} separate modules
-2. Module titles MUST be SPECIFIC and SEARCHABLE (e.g., "JavaScript Variables and Data Types" NOT "Foundations")
-3. Use CONCRETE technical terms that match real tutorials and documentation
-4. Each module must have DISTINCT, practical topics that can be found on GeeksforGeeks, MDN, or official docs
-5. Avoid vague titles like "Introduction", "Basics", "Fundamentals" - use specific concepts instead
+2. Module titles MUST be SPECIFIC and SEARCHABLE (NOT vague titles like "Foundations" or "Basics")
+3. Use CONCRETE terms appropriate for ${isLanguageTopic ? 'language learning' : 'technical concepts'}
+4. Each module must have DISTINCT, practical topics
+5. Avoid generic titles - be specific about what learners will actually study
 
-EXAMPLES OF GOOD MODULE TITLES:
-- "JavaScript Variables, Data Types, and Operators" ✓
-- "React Components and Props" ✓  
-- "Python Functions and Modules" ✓
-- "CSS Flexbox and Grid Layout" ✓
-- "SQL Joins and Subqueries" ✓
-
-EXAMPLES OF BAD MODULE TITLES:
-- "Foundations of Programming" ✗
-- "Introduction to Concepts" ✗
-- "Basic Principles" ✗
+${exampleModulesText}
 
 MODULE STRUCTURE:
-- Each module must focus on 2-4 specific, searchable concepts
+- Each module must focus on ${isLanguageTopic ? '2-3 specific vocabulary themes or grammar concepts' : '2-4 specific, searchable technical concepts'}
 - Build progressively from basic to advanced
-- Use terminology that matches official documentation
+- Use terminology that matches ${isLanguageTopic ? 'language learning resources and cultural context' : 'official documentation'}}
 - Ensure each module title contains keywords that will match real tutorials
 
 For each module include:
-- SPECIFIC title with technical keywords (this is critical for resource matching!)
+- SPECIFIC title with concrete keywords (this is critical for resource matching!)
 - Clear learning objectives using concrete terms
 - Specific topics to cover (actual concepts, not generic descriptions)
-- youtubeSearch: Use EXACT technical terms (e.g., "React useState Hook tutorial" not "React basics")
+- youtubeSearch: Use EXACT terms (e.g., ${isLanguageTopic ? '"Italian family vocabulary tutorial" not "Italian vocabulary"' : '"React useState Hook tutorial" not "React basics"'})
 - readingMaterials: Will be auto-generated based on title keywords
 
 RESPONSE FORMAT - Return ONLY valid JSON:
@@ -672,23 +716,23 @@ RESPONSE FORMAT - Return ONLY valid JSON:
   "totalModules": ${numModules},
   "objectives": [
     "Master ${topic} fundamentals and core concepts",
-    "Build practical applications using ${topic}",
+    "${isLanguageTopic ? `Develop practical conversation skills in ${topic}` : `Build practical applications using ${topic}`}",
     "Understand ${topic} best practices and patterns",
-    "Complete real-world ${topic} projects"
+    "${isLanguageTopic ? `Communicate confidently in real-world ${topic} scenarios` : `Complete real-world ${topic} projects`}"
   ],
   "modules": [
     {
       "id": 1,
-      "title": "JavaScript Variables and Data Types",
+      "title": "${isLanguageTopic ? `${topic} Greetings and Basic Phrases` : isProgrammingTopic ? `${topic} Variables, Data Types, and Operators` : `Introduction to ${topic}`}",
       "weekNumber": 1,
       "duration": "3-5 days",
-      "description": "Learn JavaScript variables (var, let, const), primitive data types (string, number, boolean), and type conversion",
-      "objectives": ["Understand JavaScript variables and scope", "Master primitive data types", "Learn type conversion and coercion"],
-      "topics": ["var, let, const keywords", "Primitive types: string, number, boolean", "Type conversion and checking", "Variable hoisting"],
-      "activities": ["Video tutorials", "Coding exercises", "Practice problems", "Mini project"],
-      "project": "Variable and data type practice exercises",
+      "description": "${isLanguageTopic ? `Learn essential ${topic} greetings, introductions, and basic phrases for everyday communication` : isProgrammingTopic ? `Learn ${topic} variables, data types, and operators for fundamental programming` : `Explore the foundational concepts of ${topic}`}",
+      "objectives": [${isLanguageTopic ? `"Introduce yourself in ${topic}", "Use common greetings and polite expressions", "Understand basic ${topic} pronunciation"` : isProgrammingTopic ? `"Understand ${topic} variables and scope", "Master data types", "Learn operators"` : `"Understand core concepts of ${topic}"`}],
+      "topics": [${isLanguageTopic ? `"Common greetings (hello, goodbye)", "Introducing yourself", "Numbers 0-10", "Basic courtesy phrases"` : isProgrammingTopic ? `"Variables and constants", "Primitive data types", "Operators", "Type conversion"` : `"Overview of ${topic}", "Key concepts", "Applications"`}],
+      "activities": [${isLanguageTopic ? `"Listening and pronunciation", "Speaking practice", "Conversation drills", "Cultural context"` : `"Video tutorials", "Coding exercises", "Practice problems", "Mini project"`}],
+      "project": "${isLanguageTopic ? `Greetings and introductions practice` : `${topic} practice exercises`}",
       "estimatedHours": 5,
-      "youtubeSearch": "JavaScript variables data types tutorial"
+      "youtubeSearch": "${isLanguageTopic ? `${topic} greetings and phrases for beginners` : isProgrammingTopic ? `${topic} variables data types tutorial` : `${topic} fundamentals tutorial`}"
     }
   ],
   "resources": [
@@ -696,18 +740,19 @@ RESPONSE FORMAT - Return ONLY valid JSON:
     {"type": "video-course", "title": "${topic} Video Course", "url": "https://youtube.com"}
   ],
   "finalProject": {
-    "title": "Complete ${topic} Application",
-    "description": "Build a real-world application using all learned ${topic} concepts",
+    "title": "Complete ${topic} ${isLanguageTopic ? 'Conversation' : 'Application'}",
+    "description": "${isLanguageTopic ? `Engage in a complete conversation using learned ${topic} expressions and vocabulary` : `Build a real-world application using all learned ${topic} concepts`}",
     "duration": "1-2 weeks",
-    "requirements": ["Implement core ${topic} features", "Follow best practices", "Complete documentation"]
+    "requirements": [${isLanguageTopic ? `"Conduct a multi-topic conversation in ${topic}", "Demonstrate vocabulary from all modules", "Show understanding of cultural context"` : `"Implement core ${topic} features", "Follow best practices", "Complete documentation"`}]
   }
 }
 
 REMEMBER: 
 - Generate ALL ${numModules} modules with SPECIFIC, SEARCHABLE titles
-- Use CONCRETE technical terms in every module title
-- NO vague or generic titles
-- Think: "Would this title match a real tutorial on GeeksforGeeks or YouTube?"
+- Use CONCRETE ${isLanguageTopic ? 'vocabulary themes or grammar concepts' : 'technical'} terms in every module title
+- NO vague or generic titles like "Basics", "Fundamentals", "Introduction"
+- Think: "Would this title match a real tutorial on ${isLanguageTopic ? 'language learning sites or YouTube?' : 'GeeksforGeeks or YouTube?'}"
+- For ${topic}: Create modules for actual ${isLanguageTopic ? 'conversations, vocabulary domains, and grammar concepts' : 'concepts and features'} users want to learn`
 `
 
     console.log('Sending to OpenRouter...')
