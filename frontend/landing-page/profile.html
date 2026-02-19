@@ -1167,24 +1167,58 @@
 
         async function loadProfile() {
             try {
-                console.log('📋 Loading profile...');
-                
-                // Check if user is logged in
-                let user = localStorage.getItem('careersync_user');
+                console.log('📋 Loading profile from live API...');
                 const loadingEl = document.getElementById('loading');
                 const profileContent = document.getElementById('profile-content');
                 
-                if (!user) {
-                    console.log('No user session, showing sample data...');
-                    // Show sample data for demo
-                    user = JSON.stringify({ email: 'demo@careersync.com', name: 'Demo User', full_name: 'Demo User' });
+                if (loadingEl) loadingEl.style.display = 'flex';
+                if (profileContent) profileContent.style.display = 'none';
+                
+                const token = localStorage.getItem('careersync_token');
+                const backendUrl = window.getModuleUrls().backend;
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers.Authorization = `Bearer ${token}`;
+
+                // Fetch user profile from backend
+                const userResponse = await fetch(backendUrl + '/api/auth/me', {
+                    credentials: 'include',
+                    headers: headers
+                });
+
+                if (!userResponse.ok) {
+                    throw new Error(`Failed to fetch user: ${userResponse.status}`);
                 }
+
+                const userData = await userResponse.json();
+                const user = userData.user || userData;
+                console.log('✅ User data:', user);
+
+                // Fetch all user data in parallel
+                const userId = user._id || user.id;
+                const email = user.email;
+
+                const [coursesResp, roadmapsResp, evalsResp] = await Promise.all([
+                    fetch(backendUrl + `/api/courses/user/${userId}`, { 
+                        credentials: 'include',
+                        headers: headers
+                    }),
+                    fetch(backendUrl + `/api/roadmaps/user/${userId}`, { 
+                        credentials: 'include',
+                        headers: headers
+                    }),
+                    fetch(backendUrl + `/api/evaluations/user/${userId}`, { 
+                        credentials: 'include',
+                        headers: headers
+                    })
+                ]);
+
+                const courses = coursesResp.ok ? await coursesResp.json() : [];
+                const roadmaps = roadmapsResp.ok ? await roadmapsResp.json() : [];
+                const evaluations = evalsResp.ok ? await evalsResp.json() : [];
+
+                console.log('✅ All profile data loaded from API');
                 
-                const userData = typeof user === 'string' ? JSON.parse(user) : user;
-                console.log('✅ User data:', userData);
-                
-                // Display profile immediately
-                displayCachedProfile(userData);
+                displayProfile(user, courses, roadmaps, evaluations);
                 
                 if (loadingEl) loadingEl.style.display = 'none';
                 if (profileContent) profileContent.style.display = 'block';
@@ -1198,78 +1232,42 @@
             }
         }
 
-        async function loadBackendDataInBackground(userData) {
-            try {
-                const token = localStorage.getItem('careersync_token');
-                if (!token) return;
-
-                const backendUrl = window.getModuleUrls().backend;
-                const response = await fetch(backendUrl + '/api/auth/me', {
-                    credentials: 'include',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Fetched user from backend:', data);
-                    if (data.user || data.data) {
-                        const user = data.user || data.data;
-                        localStorage.setItem('careersync_user', JSON.stringify(user));
-                        console.log('User data updated from backend');
-                    }
-                } else {
-                    console.log('Backend response not OK:', response.status);
-                }
-            } catch (err) {
-                console.log('Could not fetch user from backend:', err);
-            }
-        }
-
-        function displayCachedProfile(userData) {
-            console.log('📱 Displaying cached profile:', userData);
-            const initials = (userData.name || userData.full_name || userData.email || 'U').charAt(0).toUpperCase();
-            const loadingEl = document.getElementById('loading');
-            const profileContent = document.getElementById('profile-content');
-            
-            // Hide loading, show content
-            if (loadingEl) loadingEl.style.display = 'none';
-            if (profileContent) profileContent.style.display = 'block';
+        function displayProfile(user, courses, roadmaps, evaluations) {
+            console.log('📱 Displaying profile with live API data');
+            const initials = (user.name || user.full_name || user.email || 'U').charAt(0).toUpperCase();
             
             // Update user info
             if (document.getElementById('profile-avatar-large')) {
                 document.getElementById('profile-avatar-large').textContent = initials;
             }
             if (document.getElementById('profile-full-name')) {
-                document.getElementById('profile-full-name').textContent = userData.name || userData.full_name || 'User';
+                document.getElementById('profile-full-name').textContent = user.name || user.full_name || 'User';
             }
             if (document.getElementById('profile-full-email')) {
-                document.getElementById('profile-full-email').textContent = userData.email || 'user@careersync.com';
+                document.getElementById('profile-full-email').textContent = user.email || 'user@careersync.com';
             }
             
-            // Get cached data from localStorage
-            const courses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
-            const roadmaps = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
-            const evaluations = JSON.parse(localStorage.getItem('careersync_evaluations') || '[]');
+            // Ensure arrays
+            const courseArray = Array.isArray(courses) ? courses : (courses.courses || courses.data || []);
+            const roadmapArray = Array.isArray(roadmaps) ? roadmaps : (roadmaps.roadmaps || roadmaps.data || []);
+            const evalArray = Array.isArray(evaluations) ? evaluations : (evaluations.evaluations || evaluations.data || []);
             
             // Update stats
             if (document.getElementById('stat-courses')) {
-                document.getElementById('stat-courses').textContent = courses.length;
+                document.getElementById('stat-courses').textContent = courseArray.length;
             }
             if (document.getElementById('stat-roadmaps')) {
-                document.getElementById('stat-roadmaps').textContent = roadmaps.length;
+                document.getElementById('stat-roadmaps').textContent = roadmapArray.length;
             }
             if (document.getElementById('stat-evaluations')) {
-                document.getElementById('stat-evaluations').textContent = evaluations.length;
+                document.getElementById('stat-evaluations').textContent = evalArray.length;
             }
             
             // Display courses
             const courseContainer = document.getElementById('courses-container');
             if (courseContainer) {
-                if (courses && courses.length > 0) {
-                    courseContainer.innerHTML = courses.map(course => `
+                if (courseArray && courseArray.length > 0) {
+                    courseContainer.innerHTML = courseArray.map(course => `
                         <div class="item-card">
                             <div class="item-header">
                                 <div>
@@ -1291,8 +1289,8 @@
             // Display roadmaps
             const roadmapContainer = document.getElementById('roadmaps-container');
             if (roadmapContainer) {
-                if (roadmaps && roadmaps.length > 0) {
-                    roadmapContainer.innerHTML = roadmaps.map(roadmap => `
+                if (roadmapArray && roadmapArray.length > 0) {
+                    roadmapContainer.innerHTML = roadmapArray.map(roadmap => `
                         <div class="item-card">
                             <div class="item-header">
                                 <div>
@@ -1314,8 +1312,8 @@
             // Display evaluations
             const evalContainer = document.getElementById('evaluations-container');
             if (evalContainer) {
-                if (evaluations && evaluations.length > 0) {
-                    evalContainer.innerHTML = evaluations.map(eval => `
+                if (evalArray && evalArray.length > 0) {
+                    evalContainer.innerHTML = evalArray.map(eval => `
                         <div class="item-card">
                             <div class="item-header">
                                 <div>
@@ -1337,54 +1335,11 @@
             console.log('✅ Profile display complete');
         }
 
-        function displayProfile(profileData) {
-            displayCachedProfile(profileData);
-        }
-
-        async function fetchSupplementalProfileData(userId, email, token) {
-            try {
-                const API_BASE = getModuleUrls().backend;
-                const headers = { 'Content-Type': 'application/json' };
-                if (token) headers.Authorization = `Bearer ${token}`;
-
-                const query = userId ? `userId=${encodeURIComponent(userId)}` : `userEmail=${encodeURIComponent(email)}`;
-
-                const [roadmapResp, evalResp] = await Promise.all([
-                    fetch(`${API_BASE}/roadmaps?${query}`, { credentials: 'include', headers }),
-                    fetch(`${API_BASE}/skillEval?${query}`, { credentials: 'include', headers })
-                ]);
-
-                if (roadmapResp.ok) {
-                    const roadmapData = await roadmapResp.json();
-                    const roadmaps = roadmapData.roadmaps || roadmapData.data || [];
-                    if (roadmaps.length > 0) {
-                        localStorage.setItem('careersync_saved_roadmaps', JSON.stringify(roadmaps));
-                        renderRoadmaps(roadmaps);
-                        // Update stat counter
-                        document.getElementById('stat-roadmaps').textContent = roadmaps.length;
-                    }
-                }
-
-                if (evalResp.ok) {
-                    const evalData = await evalResp.json();
-                    const evaluations = evalData.evaluations || evalData.data || [];
-                    if (evaluations.length > 0) {
-                        localStorage.setItem('careersync_evaluations', JSON.stringify(evaluations));
-                        renderEvaluations(evaluations);
-                        // Update stat counter
-                        document.getElementById('stat-evaluations').textContent = evaluations.length;
-                    }
-                }
-            } catch (error) {
-                console.log('Supplemental profile fetch failed:', error);
-            }
-        }
-
         // Refresh profile when page becomes visible (returns from course-viewer)
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 console.log('📱 Page returned to focus, refreshing profile...');
-                refreshProfileData();
+                loadProfile();
             }
         });
 
@@ -1393,248 +1348,28 @@
             // Fires when navigating back via browser back button
             if (event.persisted) {
                 console.log('📱 Page loaded from cache, refreshing profile...');
-                refreshProfileData();
+                loadProfile();
             }
         });
 
         // Refresh when window gains focus
         window.addEventListener('focus', () => {
             console.log('📱 Window focused, refreshing profile...');
-            refreshProfileData();
+            loadProfile();
         });
-
-        function refreshProfileData() {
-            const userData = JSON.parse(localStorage.getItem('careersync_user') || '{}');
-            const token = localStorage.getItem('careersync_token');
-            
-            if (userData && userData.id) {
-                // Reload courses from localStorage (which may have been updated by course-viewer)
-                const courses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
-                const roadmaps = JSON.parse(localStorage.getItem('careersync_saved_roadmaps') || '[]');
-                const evaluations = JSON.parse(localStorage.getItem('careersync_evaluations') || '[]');
-                
-                console.log('🔄 Refreshing with courses:', courses.map(c => ({
-                    title: c.title,
-                    progress: c.progress,
-                    completedTopics: c.completedTopics,
-                    totalTopics: c.totalTopics
-                })));
-                
-                displayProfile({
-                    courses: courses,
-                    roadmaps: roadmaps,
-                    evaluations: evaluations
-                });
-            }
-        }
 
         // Logout handler
         window.addEventListener('DOMContentLoaded', () => {
             const logoutBtn = document.getElementById('logout-btn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', () => {
-                    localStorage.removeItem('careersync_profile_data');
                     localStorage.removeItem('careersync_user');
                     localStorage.removeItem('careersync_token');
-                    localStorage.removeItem('careersync_auth');
                     window.location.href = window.getModuleUrls().landing + '/auth.html';
                 });
             }
+            loadProfile();
         });
-
-        // Initialize sample data for testing if no data exists
-        function initializeSampleData() {
-            const courses = JSON.parse(localStorage.getItem('careersync_enrolled_courses') || '[]');
-            if (courses.length === 0) {
-                // Add sample courses for demo
-                const sampleCourses = [
-                    {
-                        id: 'course-1',
-                        title: 'Full Stack Web Development',
-                        courseName: 'Full Stack Web Development',
-                        level: 'Intermediate',
-                        duration: '12 weeks',
-                        totalModules: 3,
-                        completedModules: 1,
-                        progress: 33,
-                        enrolledAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-                        lastAccessedAt: new Date().toISOString(),
-                        status: 'in-progress',
-                        modules: [
-                            {
-                                id: 'mod1-1',
-                                title: 'HTML & CSS Fundamentals',
-                                duration: '2 weeks',
-                                description: 'Learn the basics of HTML5 and CSS3 for modern web development',
-                                topics: [
-                                    { name: 'HTML5 Semantic Elements', description: 'Understanding semantic HTML structure' },
-                                    { name: 'CSS Grid & Flexbox', description: 'Modern CSS layout techniques' },
-                                    { name: 'Responsive Design', description: 'Mobile-first design approach' }
-                                ],
-                                activities: [
-                                    { name: 'Build a Personal Portfolio', type: 'Project', description: 'Create a responsive portfolio website' }
-                                ],
-                                readingMaterials: [
-                                    { title: 'MDN Web Docs - HTML', url: 'https://developer.mozilla.org/en-US/docs/Web/HTML', source: 'MDN', estimatedReadTime: '2 hours' }
-                                ],
-                                youtubeLinks: [
-                                    { title: 'HTML Crash Course', url: 'https://youtube.com', duration: '2:30:00' }
-                                ]
-                            },
-                            {
-                                id: 'mod1-2',
-                                title: 'JavaScript Essentials',
-                                duration: '3 weeks',
-                                description: 'Master core JavaScript concepts and ES6+ features',
-                                topics: [
-                                    { name: 'Variables & Data Types', description: 'Understanding JavaScript fundamentals' },
-                                    { name: 'Functions & Arrow Functions', description: 'Function declarations and modern syntax' },
-                                    { name: 'Async/Await & Promises', description: 'Asynchronous programming patterns' }
-                                ],
-                                activities: [
-                                    { name: 'Build a Weather App', type: 'Project', description: 'Create an interactive weather application' }
-                                ],
-                                readingMaterials: [
-                                    { title: 'Eloquent JavaScript', url: 'https://eloquentjavascript.net', source: 'External', estimatedReadTime: '3 hours' }
-                                ],
-                                youtubeLinks: [
-                                    { title: 'JavaScript Complete Tutorial', url: 'https://youtube.com', duration: '3:30:00' }
-                                ],
-                                assessment: { name: 'JavaScript Quiz', title: 'Test Your Knowledge', type: 'Quiz', description: 'Test your understanding of JavaScript concepts' }
-                            },
-                            {
-                                id: 'mod1-3',
-                                title: 'React & Frontend Frameworks',
-                                duration: '4 weeks',
-                                description: 'Build modern web applications with React',
-                                topics: [
-                                    { name: 'React Components & JSX', description: 'Component-based architecture' },
-                                    { name: 'State Management & Hooks', description: 'Using useState, useEffect, and custom hooks' },
-                                    { name: 'React Router & Navigation', description: 'Building single-page applications' }
-                                ],
-                                activities: [
-                                    { name: 'Build an E-commerce App', type: 'Project', description: 'Create a full e-commerce platform with React' }
-                                ],
-                                readingMaterials: [
-                                    { title: 'React Official Documentation', url: 'https://react.dev', source: 'React', estimatedReadTime: '2.5 hours' }
-                                ],
-                                youtubeLinks: [
-                                    { title: 'React Comprehensive Course', url: 'https://youtube.com', duration: '4:00:00' }
-                                ],
-                                project: { name: 'React E-commerce App', title: 'Build E-commerce Platform', description: 'Create a full-stack e-commerce application' },
-                                assessment: { name: 'React Assessment', title: 'React Skills Test', type: 'Exam', description: 'Comprehensive React knowledge test' }
-                            }
-                        ]
-                    },
-                    {
-                        id: 'course-2',
-                        title: 'Python for Data Science',
-                        courseName: 'Python for Data Science',
-                        level: 'Beginner',
-                        duration: '8 weeks',
-                        totalModules: 2,
-                        completedModules: 2,
-                        progress: 100,
-                        enrolledAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-                        lastAccessedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-                        status: 'completed',
-                        completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-                        modules: [
-                            {
-                                id: 'mod2-1',
-                                title: 'Python Basics & NumPy',
-                                duration: '2 weeks',
-                                description: 'Get started with Python and numerical computing',
-                                topics: [
-                                    { name: 'Python Syntax & Control Flow', description: 'Fundamentals of Python programming' },
-                                    { name: 'NumPy Arrays & Operations', description: 'Numerical computing with NumPy' }
-                                ],
-                                activities: [
-                                    { name: 'Data Analysis Exercise', type: 'Exercise', description: 'Practice data manipulation' }
-                                ],
-                                readingMaterials: [
-                                    { title: 'NumPy Tutorial', url: 'https://numpy.org', source: 'NumPy', estimatedReadTime: '1.5 hours' }
-                                ],
-                                youtubeLinks: [
-                                    { title: 'Python for Beginners', url: 'https://youtube.com', duration: '2:00:00' }
-                                ]
-                            },
-                            {
-                                id: 'mod2-2',
-                                title: 'Pandas & Data Visualization',
-                                duration: '2 weeks',
-                                description: 'Explore and visualize data with Pandas and Matplotlib',
-                                topics: [
-                                    { name: 'Pandas DataFrames', description: 'Working with tabular data' },
-                                    { name: 'Data Visualization with Matplotlib', description: 'Creating meaningful visualizations' }
-                                ],
-                                activities: [
-                                    { name: 'Create Data Dashboards', type: 'Project', description: 'Build interactive dashboards' }
-                                ],
-                                readingMaterials: [
-                                    { title: 'Pandas Documentation', url: 'https://pandas.pydata.org', source: 'Pandas', estimatedReadTime: '2 hours' }
-                                ],
-                                youtubeLinks: [
-                                    { title: 'Data Visualization Guide', url: 'https://youtube.com', duration: '1:30:00' }
-                                ],
-                                project: { name: 'Data Analysis Project', title: 'Real-World Data Analysis', description: 'Analyze real datasets and create visualizations' }
-                            }
-                        ]
-                    }
-                ];
-                localStorage.setItem('careersync_enrolled_courses', JSON.stringify(sampleCourses));
-                
-                // Add sample roadmaps
-                const sampleRoadmaps = [
-                    {
-                        id: 'roadmap-1',
-                        title: 'Frontend Developer',
-                        careerGoal: 'Frontend Developer',
-                        targetRole: 'Frontend Developer',
-                        stages: 6,
-                        totalStages: 6,
-                        completedStages: 2,
-                        progress: 33,
-                        duration: '6 months',
-                        createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-                        lastAccessedAt: new Date().toISOString(),
-                        status: 'in-progress'
-                    }
-                ];
-                localStorage.setItem('careersync_saved_roadmaps', JSON.stringify(sampleRoadmaps));
-                
-                // Add sample evaluations
-                const sampleEvaluations = [
-                    {
-                        id: 'eval-1',
-                        topic: 'JavaScript Fundamentals',
-                        title: 'JavaScript Fundamentals',
-                        totalQuestions: 15,
-                        correctAnswers: 13,
-                        score: 87,
-                        completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-                        timeTaken: '25 min'
-                    },
-                    {
-                        id: 'eval-2',
-                        topic: 'React Basics',
-                        title: 'React Basics',
-                        totalQuestions: 12,
-                        correctAnswers: 8,
-                        score: 67,
-                        completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                        timeTaken: '18 min'
-                    }
-                ];
-                localStorage.setItem('careersync_evaluations', JSON.stringify(sampleEvaluations));
-                
-                console.log('Sample data initialized for testing');
-            }
-        }
-
-        // Load profile on page load
-        initializeSampleData(); // Initialize sample data as fallback
-        loadProfile();
     </script>
     
     <!-- Footer will be injected automatically by footer-component.js -->
