@@ -27,6 +27,29 @@
             };
         };
         
+        // Initialize navigation links with dynamic URLs
+        function initializeNavLinks() {
+            const urls = window.getModuleUrls();
+            const navBrand = document.getElementById('nav-brand');
+            const navCourse = document.getElementById('nav-course');
+            const navRoadmap = document.getElementById('nav-roadmap');
+            const navEvaluator = document.getElementById('nav-evaluator');
+            const navSignIn = document.getElementById('nav-signin');
+            
+            if (navBrand) navBrand.href = urls.landing;
+            if (navCourse) navCourse.href = urls.course;
+            if (navRoadmap) navRoadmap.href = urls.roadmap;
+            if (navEvaluator) navEvaluator.href = urls.skillEval;
+            if (navSignIn) navSignIn.href = urls.landing + '/auth.html';
+        }
+        
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeNavLinks);
+        } else {
+            initializeNavLinks();
+        }
+        
         // Restore auth from URL if coming from another app
         (function() {
             const params = new URLSearchParams(window.location.search);
@@ -47,27 +70,27 @@
     <header style="position: sticky; top: 0; z-index: 50; height: 72px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
       <div style="max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 100%; display: flex; align-items: center; justify-content: space-between;">
         <!-- Brand -->
-        <a href="http://localhost:4173" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;">
+        <a id="nav-brand" href="#" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;">
           <div style="width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);">C</div>
           <span style="font-size: 20px; font-weight: 600; color: #111827;">careersync</span>
         </a>
 
         <!-- Navigation -->
-        <nav style="display: flex; align-items: center; gap: 32px;">
-          <a href="http://localhost:3002" style="text-decoration: none; color: #374151; font-weight: 500; font-size: 14px; transition: color 0.2s;">
+        <nav id="nav-links" style="display: flex; align-items: center; gap: 32px;">
+          <a id="nav-course" href="#" style="text-decoration: none; color: #374151; font-weight: 500; font-size: 14px; transition: color 0.2s;">
             📚 Course Gen
           </a>
-          <a href="http://localhost:5173" style="text-decoration: none; color: #374151; font-weight: 500; font-size: 14px; transition: color 0.2s;">
+          <a id="nav-roadmap" href="#" style="text-decoration: none; color: #374151; font-weight: 500; font-size: 14px; transition: color 0.2s;">
             🗺️ Roadmaps
           </a>
-          <a href="http://localhost:3001" style="text-decoration: none; color: #4F46E5; font-weight: 600; font-size: 14px; border-bottom: 2px solid #4F46E5; padding-bottom: 4px;">
+          <a id="nav-evaluator" href="#" style="text-decoration: none; color: #4F46E5; font-weight: 600; font-size: 14px; border-bottom: 2px solid #4F46E5; padding-bottom: 4px;">
             ✅ Evaluator
           </a>
         </nav>
 
         <!-- Auth Section -->
         <div id="header-auth-section" style="display: flex; align-items: center; gap: 16px;">
-          <a href="http://localhost:4173/auth.html" style="padding: 10px 20px; background: #4F46E5; color: white; font-size: 14px; font-weight: 600; border-radius: 8px; text-decoration: none; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);">
+          <a id="nav-signin" href="#" style="padding: 10px 20px; background: #4F46E5; color: white; font-size: 14px; font-weight: 600; border-radius: 8px; text-decoration: none; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);">
             Sign In
           </a>
         </div>
@@ -85,9 +108,10 @@
             const userData = JSON.parse(user);
             const displayName = userData.name || userData.email?.split('@')[0] || 'User';
             const authSection = document.getElementById('header-auth-section');
+            const landingUrl = window.getModuleUrls().landing;
             
             authSection.innerHTML = `
-              <a href="http://localhost:4173/profile.html" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; text-decoration: none; transition: background 0.2s;">
+              <a href="${landingUrl}/profile.html" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; text-decoration: none; transition: background 0.2s;">
                 <span style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px;">${displayName.charAt(0).toUpperCase()}</span>
                 <span style="font-size: 14px; font-weight: 500; color: #374151;">${displayName}</span>
               </a>
