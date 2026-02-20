@@ -5,6 +5,15 @@ import SkillEvaluation from '../models/SkillEvaluation.js';
 
 const router = express.Router();
 
+const shuffleArray = (items) => {
+  const arr = Array.isArray(items) ? [...items] : [];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
 // Fallback questions for when API is unavailable
 const generateFallbackQuestions = (skillName, difficulty, questionCount) => {
   const difficultyLevelMap = {
@@ -12,67 +21,99 @@ const generateFallbackQuestions = (skillName, difficulty, questionCount) => {
     'intermediate': 'fundamental',
     'advanced': 'complex'
   };
+  const difficultyLabel = difficultyLevelMap[difficulty] || 'standard';
 
-  const baseQuestions = [
-    {
-      question: `What is ${skillName}?`,
-      options: [
-        `A core aspect of ${skillName}`,
+  const questionGenerators = [
+    () => ({
+      question: `What best describes ${skillName} at a ${difficultyLabel} level?`,
+      options: shuffleArray([
+        `A core concept of ${skillName}`,
         'A competing technology',
         'An outdated concept',
         'Not relevant to modern development'
-      ],
-      correctAnswer: 'A core aspect of ' + skillName
-    },
-    {
-      question: `Which of the following is a key benefit of ${skillName}?`,
-      options: [
+      ]),
+      correctAnswer: `A core concept of ${skillName}`
+    }),
+    () => ({
+      question: `Which of the following is a key benefit of using ${skillName}?`,
+      options: shuffleArray([
         'Increased efficiency and productivity',
         'It makes coding harder',
         'It requires more resources',
         'It reduces code quality'
-      ],
+      ]),
       correctAnswer: 'Increased efficiency and productivity'
-    },
-    {
-      question: `In a ${difficultyLevelMap[difficulty] || 'standard'} context, what is important when using ${skillName}?`,
-      options: [
+    }),
+    () => ({
+      question: `In a ${difficultyLabel} scenario, what is most important when applying ${skillName}?`,
+      options: shuffleArray([
         'Best practices and proper implementation',
         'Speed over accuracy',
         'Ignoring error handling',
         'Not documenting code'
-      ],
+      ]),
       correctAnswer: 'Best practices and proper implementation'
-    },
-    {
+    }),
+    () => ({
       question: `Which tool or framework commonly works with ${skillName}?`,
-      options: [
+      options: shuffleArray([
         'Modern development frameworks',
         'Obsolete technologies',
         'Hardware only',
         'Physical tools'
-      ],
+      ]),
       correctAnswer: 'Modern development frameworks'
-    },
-    {
-      question: `What is a common challenge when learning ${skillName}?`,
-      options: [
+    }),
+    () => ({
+      question: `What is a common challenge when learning ${skillName} at the ${difficultyLabel} level?`,
+      options: shuffleArray([
         'Understanding complex concepts',
         'It is too simple',
         'No documentation available',
         'Tools do not exist'
-      ],
+      ]),
       correctAnswer: 'Understanding complex concepts'
-    }
+    }),
+    () => ({
+      question: `Which practice helps avoid mistakes when using ${skillName}?`,
+      options: shuffleArray([
+        'Testing and validation',
+        'Skipping documentation',
+        'Hardcoding everything',
+        'Ignoring edge cases'
+      ]),
+      correctAnswer: 'Testing and validation'
+    }),
+    () => ({
+      question: `What would be an appropriate first step to start with ${skillName}?`,
+      options: shuffleArray([
+        'Learn the fundamentals and setup basics',
+        'Jump directly into advanced features',
+        'Ignore official documentation',
+        'Avoid hands-on practice'
+      ]),
+      correctAnswer: 'Learn the fundamentals and setup basics'
+    })
   ];
 
-  // Return requested number of questions, cycling through if needed
+  const requested = questionCount || 20;
   const questions = [];
-  for (let i = 0; i < (questionCount || 20); i++) {
-    questions.push(baseQuestions[i % baseQuestions.length]);
+  const seen = new Set();
+
+  while (questions.length < requested) {
+    const generator = questionGenerators[Math.floor(Math.random() * questionGenerators.length)];
+    const q = generator();
+    if (!seen.has(q.question)) {
+      seen.add(q.question);
+      questions.push(q);
+    }
+    if (seen.size >= questionGenerators.length && questions.length < requested) {
+      // Allow repeats only after exhausting all templates
+      questions.push(generator());
+    }
   }
 
-  return questions;
+  return shuffleArray(questions).slice(0, requested);
 };
 
 // Save/Create a skill evaluation
@@ -121,10 +162,6 @@ router.post('/evaluate', async (req, res) => {
     return res.status(400).json({ error: 'Skill name is required' });
   }
 
-  if (!process.env.GEMINI_API_KEY) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is not configured' });
-  }
-
   try {
     const qCount = questionCount || 20;
     const diff = difficulty || 'intermediate';
@@ -134,10 +171,17 @@ router.post('/evaluate', async (req, res) => {
     if (process.env.GEMINI_API_KEY) {
       try {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-        
-        const prompt = `Generate ${qCount} multiple-choice questions for evaluating "${skillName}" at ${diff} level. Format as JSON array with question, options (A-D), and correct answer.`;
-        
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-2.0-flash',
+          generationConfig: {
+            temperature: 0.9,
+            topP: 0.95,
+            topK: 40
+          }
+        });
+
+        const prompt = `You are an expert assessor. Generate ${qCount} unique multiple-choice questions for evaluating "${skillName}" at ${diff} level. Make questions topic-specific, avoid repeats, and vary the style. Return ONLY a JSON array. Each item must be: {"question":"...","options":["A","B","C","D"],"correctAnswer":"..."}.`;
+
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         
@@ -149,14 +193,22 @@ router.post('/evaluate', async (req, res) => {
             if (!q || !q.question || !q.options) return null;
             const opts = Array.isArray(q.options) ? q.options : Object.values(q.options);
             if (!opts || opts.length < 4) return null;
+            const normalizedOptions = shuffleArray(opts.slice(0, 4));
+            const normalizedAnswer = q.correctAnswer || q.answer || normalizedOptions[0];
             return {
               question: q.question,
-              options: opts.slice(0, 4),
-              correctAnswer: q.correctAnswer || q.answer
+              options: normalizedOptions,
+              correctAnswer: normalizedOptions.includes(normalizedAnswer) ? normalizedAnswer : normalizedOptions[0]
             };
           })
           .filter(Boolean);
-          
+
+        const unique = new Map();
+        questions.forEach(q => {
+          if (q.question && !unique.has(q.question)) unique.set(q.question, q);
+        });
+        questions = Array.from(unique.values());
+
         if (questions.length === 0) throw new Error('No valid questions generated');
       } catch (apiError) {
         console.warn('Gemini API error, using fallback questions:', apiError.message);
@@ -172,6 +224,13 @@ router.post('/evaluate', async (req, res) => {
     if (userId && userId !== 'guest' && mongoose.Types.ObjectId.isValid(userId)) {
       userObjectId = userId;
     }
+
+    if (questions.length < qCount) {
+      const fallback = generateFallbackQuestions(skillName, diff, qCount - questions.length);
+      questions = questions.concat(fallback);
+    }
+
+    questions = shuffleArray(questions).slice(0, qCount);
 
     const evalDoc = await SkillEvaluation.create({
       user: userObjectId,
