@@ -28,7 +28,30 @@ const generateMinimalFallback = (skillName, difficulty) => {
   ];
 };
 
-// ML-based question generation using Gemini API
+// Retry helper function for networks and rate limit issues
+const retryWithExponentialBackoff = async (fn, maxRetries = 3, initialDelayMs = 1000) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const isRateLimit = error.status === 429 || error.message.includes('429') || error.message.includes('rate');
+      const isTimeout = error.message.includes('timeout') || error.message.includes('ETIMEDOUT');
+      const isNetworkError = error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND');
+      
+      const isRetryable = isRateLimit || isTimeout || isNetworkError;
+      
+      if (isRetryable && attempt < maxRetries) {
+        const delayMs = initialDelayMs * Math.pow(2, attempt - 1);
+        console.warn(`⚠️  Attempt ${attempt} failed (${error.message}). Retrying in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      } else if (!isRetryable || attempt === maxRetries) {
+        throw error;
+      }
+    }
+  }
+};
+
+// ML-based question generation using Gemini API with timeout handling
 const generateQuestionsWithAI = async (skillName, difficulty, questionCount) => {
   const geminiKey = process.env.GEMINI_API_KEY;
   
@@ -101,7 +124,17 @@ Generate NOW with session ${timestamp}:`;
     console.log(`📡 Calling Gemini AI [Session: ${timestamp}-${randomSeed}]`);
     console.log(`   Topic: ${skillName} | Difficulty: ${difficulty} | Count: ${questionCount}`);
     
-    const result = await model.generateContent(detailedPrompt);
+    // Wrap API call with retry logic and timeout
+    let result;
+    await retryWithExponentialBackoff(async () => {
+      result = await Promise.race([
+        model.generateContent(detailedPrompt),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Gemini API call timeout (>45s)')), 45000)
+        )
+      ]);
+    }, 3, 1000);
+    
     const responseText = result.response.text();
     
     console.log(`📥 Received response (${responseText.length} chars)`);
@@ -164,7 +197,9 @@ Generate NOW with session ${timestamp}:`;
     return processedQuestions.length > 0 ? processedQuestions : null;
   } catch (error) {
     console.error('❌ AI generation error:', error.message);
-    if (error.stack) console.error('Stack:', error.stack.split('\n').slice(0, 3).join('\n'));
+    console.error('❌ Error details:', error.toString());
+    console.error('❌ Error type:', error.constructor.name);
+    if (error.stack) console.error('Stack trace:', error.stack.split('\n').slice(0, 5).join('\n'));
     return null;
   }
 };
@@ -292,6 +327,21 @@ router.post('/evaluate', async (req, res) => {
     
     questions = shuffleArray(Array.from(unique.values())).slice(0, qCount);
 
+    // CRITICAL: Ensure we have at least some questions
+    if (!questions || questions.length === 0) {
+      console.error('❌ CRITICAL ERROR: No questions available after deduplication');
+      console.error('   Try increasing the requested questionCount or check API logs');
+      
+      // Emergency fallback
+      console.log('🆘 Using emergency fallback questions...');
+      questions = generateMinimalFallback(skillName, diff);
+      source = 'Emergency Fallback (Critical)';
+      
+      if (!questions || questions.length === 0) {
+        throw new Error(`Unable to generate any questions for ${skillName}. This should never happen. Check API connectivity and rate limits.`);
+      }
+    }
+
     // Handle user field
     let userObjectId = null;
     if (userId && userId !== 'guest' && mongoose.Types.ObjectId.isValid(userId)) {
@@ -332,13 +382,24 @@ router.post('/evaluate', async (req, res) => {
       evaluatedAt: new Date()
     });
   } catch (error) {
-    console.error('❌ Evaluation error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('❌ ========== EVALUATION REQUEST FAILED ==========');
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error type:', error.constructor.name);
+    console.error('❌ Error details:', error.toString());
+    if (error.stack) console.error('❌ Stack:\n', error.stack);
+    console.error('❌ =============================================\n');
+    
+    // Return detailed error to help with debugging
     res.status(500).json({ 
       error: 'Failed to generate evaluation',
       message: error.message,
-      details: error.toString(),
-      geminiConfigured: !!process.env.GEMINI_API_KEY
+      type: error.constructor.name,
+      geminiConfigured: !!process.env.GEMINI_API_KEY,
+      geminiKeyLength: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0,
+      suggestion: error.message.includes('timeout') ? 'Gemini API is slow. Try with fewer questions or wait a moment.' 
+                  : error.message.includes('rate') ? 'Too many requests. Wait a moment before trying again.'
+                  : 'Check server logs for details. This may be a temporary issue.',
+      timestamp: new Date().toISOString()
     });
   }
 });
