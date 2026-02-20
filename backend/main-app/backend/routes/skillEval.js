@@ -14,127 +14,272 @@ const shuffleArray = (items) => {
   return arr;
 };
 
-// Fallback questions for when API is unavailable
-const generateFallbackQuestions = (skillName, difficulty, questionCount) => {
-  const difficultyLevelMap = {
-    'beginner': 'basic',
-    'intermediate': 'fundamental',
-    'advanced': 'complex'
+// Topic-specific question templates for fallback
+const getTopicSpecificQuestions = (skillName, difficulty) => {
+  const difficultyMap = {
+    'beginner': { level: 'basic', complexity: 'fundamental concepts', keywords: ['what is', 'basic', 'introduction'] },
+    'intermediate': { level: 'intermediate', complexity: 'practical implementation', keywords: ['how to', 'implement', 'use cases'] },
+    'advanced': { level: 'advanced', complexity: 'complex scenarios', keywords: ['optimize', 'architecture', 'best practices', 'design patterns'] }
   };
-  const difficultyLabel = difficultyLevelMap[difficulty] || 'standard';
 
-  const questionGenerators = [
-    () => ({
-      question: `What best describes ${skillName} at a ${difficultyLabel} level?`,
+  const diff = difficultyMap[difficulty] || difficultyMap['intermediate'];
+  const skillLower = skillName.toLowerCase();
+
+  // Theory questions
+  const theoryQuestions = [
+    {
+      type: 'theory',
+      question: `What is the primary purpose of ${skillName} in modern development?`,
       options: shuffleArray([
-        `A core concept of ${skillName}`,
-        'A competing technology',
-        'An outdated concept',
-        'Not relevant to modern development'
+        `To improve efficiency and code maintainability in ${skillLower} development`,
+        'To make code harder to understand',
+        'To increase computational overhead',
+        'To replace all existing tools'
       ]),
-      correctAnswer: `A core concept of ${skillName}`,
-      practicalExample: `// ${skillName} Basic Example\nconst example = new ${skillName}();\nconsole.log('${skillName} initialized');`,
-      exampleLanguage: 'javascript',
-      explanation: `${skillName} is a fundamental technology used in modern development to improve efficiency and code quality.`
-    }),
-    () => ({
-      question: `Which of the following is a key benefit of using ${skillName}?`,
+      correctAnswer: `To improve efficiency and code maintainability in ${skillLower} development`
+    },
+    {
+      type: 'theory',
+      question: `Which of these best describes ${skillName}?`,
       options: shuffleArray([
-        'Increased efficiency and productivity',
-        'It makes coding harder',
-        'It requires more resources',
-        'It reduces code quality'
+        `${skillName} is a ${diff.level} ${diff.complexity} used in professional development`,
+        `${skillName} is an outdated technology`,
+        `${skillName} is only for beginners`,
+        `${skillName} is not widely used in the industry`
       ]),
-      correctAnswer: 'Increased efficiency and productivity',
-      practicalExample: `// Demonstrating efficiency with ${skillName}\nfunction process${skillName}(data) {\n  return data.map(item => {\n    // Process using ${skillName} best practices\n    return item.transform();\n  });\n}`,
-      exampleLanguage: 'javascript',
-      explanation: `${skillName} improves productivity by reducing boilerplate and improving code maintainability.`
-    }),
-    () => ({
-      question: `In a ${difficultyLabel} scenario, what is most important when applying ${skillName}?`,
+      correctAnswer: `${skillName} is a ${diff.level} ${diff.complexity} used in professional development`
+    },
+    {
+      type: 'theory',
+      question: `In what scenarios is ${skillName} most effective?`,
       options: shuffleArray([
-        'Best practices and proper implementation',
-        'Speed over accuracy',
-        'Ignoring error handling',
-        'Not documenting code'
+        `${skillName} is effective when you need ${difficulty === 'beginner' ? 'basic structure' : difficulty === 'intermediate' ? 'scalable solutions' : 'optimized architecture'}`,
+        'It is never effective',
+        'Only in old legacy systems',
+        'Only in academic environments'
       ]),
-      correctAnswer: 'Best practices and proper implementation',
-      practicalExample: `// Best practice implementation of ${skillName}\ntry {\n  const result = await implement${skillName}();\n  console.log('Success:', result);\n} catch (error) {\n  console.error('Error in ${skillName}:', error);\n}`,
-      exampleLanguage: 'javascript',
-      explanation: `Following best practices with ${skillName} ensures code reliability, maintainability, and performance.`
-    }),
-    () => ({
-      question: `Which tool or framework commonly works with ${skillName}?`,
-      options: shuffleArray([
-        'Modern development frameworks',
-        'Obsolete technologies',
-        'Hardware only',
-        'Physical tools'
-      ]),
-      correctAnswer: 'Modern development frameworks',
-      practicalExample: `// Using ${skillName} with modern frameworks\nimport ${skillName} from '@modern-framework/${skillName.toLowerCase()}';\n\nclass Component extends Framework.Component {\n  use${skillName}() {\n    return <${skillName} />;\n  }\n}`,
-      exampleLanguage: 'javascript',
-      explanation: `${skillName} integrates seamlessly with modern frameworks like React, Vue, and Angular.`
-    }),
-    () => ({
-      question: `What is a common challenge when learning ${skillName} at the ${difficultyLabel} level?`,
-      options: shuffleArray([
-        'Understanding complex concepts',
-        'It is too simple',
-        'No documentation available',
-        'Tools do not exist'
-      ]),
-      correctAnswer: 'Understanding complex concepts',
-      practicalExample: `// Common challenge: Managing complex scenarios\n// This example shows handling multiple states\nconst handleComplex${skillName} = (state) => {\n  if (state.isReady && state.hasData) {\n    return state.data.process();\n  }\n  return state.error;\n};`,
-      exampleLanguage: 'javascript',
-      explanation: `${skillName} has complex concepts that require practice. Common challenges include state management and error handling.`
-    }),
-    () => ({
-      question: `Which practice helps avoid mistakes when using ${skillName}?`,
-      options: shuffleArray([
-        'Testing and validation',
-        'Skipping documentation',
-        'Hardcoding everything',
-        'Ignoring edge cases'
-      ]),
-      correctAnswer: 'Testing and validation',
-      practicalExample: `// Testing ${skillName} implementation\ntest('${skillName} should work correctly', () => {\n  const instance = new ${skillName}();\n  expect(instance.validate()).toBe(true);\n  expect(instance.process()).toEqual(expectedResult);\n});`,
-      exampleLanguage: 'javascript',
-      explanation: `Write comprehensive tests for ${skillName} implementations to catch bugs early and ensure reliability.`
-    }),
-    () => ({
-      question: `What would be an appropriate first step to start with ${skillName}?`,
-      options: shuffleArray([
-        'Learn the fundamentals and setup basics',
-        'Jump directly into advanced features',
-        'Ignore official documentation',
-        'Avoid hands-on practice'
-      ]),
-      correctAnswer: 'Learn the fundamentals and setup basics',
-      practicalExample: `// First step: Setup and basic initialization\nconst setup = async () => {\n  const config = {\n    debug: true,\n    version: '1.0',\n    features: ['feature1', 'feature2']\n  };\n  const instance = new ${skillName}(config);\n  await instance.initialize();\n  return instance;\n};`,
-      exampleLanguage: 'javascript',
-      explanation: `Start by understanding the basics: setup, configuration, and initialization. Then gradually explore advanced features.`
-    })
+      correctAnswer: `${skillName} is effective when you need ${difficulty === 'beginner' ? 'basic structure' : difficulty === 'intermediate' ? 'scalable solutions' : 'optimized architecture'}`
+    }
   ];
 
-  const requested = questionCount || 20;
-  const questions = [];
-  const seen = new Set();
+  // Practical/Programming questions
+  const practicalQuestions = [
+    {
+      type: 'practical',
+      question: `How would you implement a basic ${skillName} solution?`,
+      options: shuffleArray([
+        `By following ${skillName} best practices and structuring code properly`,
+        'By using any approach without planning',
+        'By avoiding documentation',
+        'By copying code from the internet without understanding'
+      ]),
+      correctAnswer: `By following ${skillName} best practices and structuring code properly`
+    },
+    {
+      type: 'practical',
+      question: `What is a common mistake when working with ${skillName}?`,
+      options: shuffleArray([
+        `Ignoring error handling and edge cases in ${skillName} implementations`,
+        'Using ${skillName} correctly',
+        'Following the documentation',
+        'Testing your code thoroughly'
+      ]),
+      correctAnswer: `Ignoring error handling and edge cases in ${skillName} implementations`
+    },
+    {
+      type: 'practical',
+      question: `Which approach is best for debugging ${skillName} code?`,
+      options: shuffleArray([
+        `Use systematic testing, logging, and debugging tools appropriate for ${skillName}`,
+        'Guess randomly what might be wrong',
+        'Ignore errors and keep going',
+        'Never test your code'
+      ]),
+      correctAnswer: `Use systematic testing, logging, and debugging tools appropriate for ${skillName}`
+    }
+  ];
 
-  while (questions.length < requested) {
-    const generator = questionGenerators[Math.floor(Math.random() * questionGenerators.length)];
-    const q = generator();
-    if (!seen.has(q.question)) {
-      seen.add(q.question);
-      questions.push(q);
-    }
-    if (seen.size >= questionGenerators.length && questions.length < requested) {
-      // Allow repeats only after exhausting all templates
-      questions.push(generator());
-    }
+  // Logical/Algorithmic questions based on difficulty
+  const logicalQuestions = [];
+  
+  if (difficulty === 'beginner' || difficulty === 'intermediate') {
+    logicalQuestions.push({
+      type: 'logical',
+      question: `When implementing ${skillName}, what should be your first step?`,
+      options: shuffleArray([
+        'Plan and understand the requirements before coding',
+        'Start coding immediately without planning',
+        'Copy existing code without modification',
+        'Skip the design phase'
+      ]),
+      correctAnswer: 'Plan and understand the requirements before coding'
+    });
+  }
+  
+  if (difficulty === 'intermediate' || difficulty === 'advanced') {
+    logicalQuestions.push({
+      type: 'logical',
+      question: `How do you optimize ${skillName} for performance?`,
+      options: shuffleArray([
+        `Profile code, identify bottlenecks, apply ${skillName}-specific optimization techniques`,
+        'Make random changes and hope it gets faster',
+        'Use the slowest approach for security',
+        'Ignore performance considerations'
+      ]),
+      correctAnswer: `Profile code, identify bottlenecks, apply ${skillName}-specific optimization techniques`
+    });
   }
 
-  return shuffleArray(questions).slice(0, requested);
+  if (difficulty === 'advanced') {
+    logicalQuestions.push({
+      type: 'logical',
+      question: `Describe an advanced architectural pattern for ${skillName} at scale.`,
+      options: shuffleArray([
+        `Use modular design, caching strategies, and distributed ${skillName} patterns for scalability`,
+        'Use only monolithic approaches',
+        'Avoid all architectural patterns',
+        'Store everything in memory'
+      ]),
+      correctAnswer: `Use modular design, caching strategies, and distributed ${skillName} patterns for scalability`
+    });
+  }
+
+  return { theoryQuestions, practicalQuestions, logicalQuestions };
+};
+
+// Enhanced fallback questions with topic awareness
+const generateFallbackQuestions = (skillName, difficulty, questionCount) => {
+  const { theoryQuestions, practicalQuestions, logicalQuestions } = getTopicSpecificQuestions(skillName, difficulty);
+  
+  const allQuestions = [...theoryQuestions, ...practicalQuestions, ...logicalQuestions];
+  const questions = [];
+
+  // Create question bank and randomly select from it
+  while (questions.length < (questionCount || 20)) {
+    const randomIndex = Math.floor(Math.random() * allQuestions.length);
+    const q = allQuestions[randomIndex];
+    
+    // Add practical example and explanation
+    const enrichedQuestion = {
+      ...q,
+      practicalExample: generatePracticalExample(skillName, q.type, difficulty),
+      exampleLanguage: 'javascript',
+      explanation: `${q.correctAnswer}. This relates to ${skillName} because proper implementation and best practices are essential for effective development.`
+    };
+    
+    questions.push(enrichedQuestion);
+    
+    if (questions.length >= (questionCount || 20)) break;
+  }
+
+  return shuffleArray(questions);
+};
+
+// Generate practical examples specific to question type
+const generatePracticalExample = (skillName, questType, difficulty) => {
+  const examples = {
+    theory: {
+      beginner: `// Understanding ${skillName}\nconst ${skillName.toLowerCase()} = {\n  concept: 'fundamental',\n  purpose: 'improve efficiency',\n  level: 'beginner'\n};\nconsole.log('${skillName} basics:', ${skillName.toLowerCase()});`,
+      intermediate: `// ${skillName} Implementation Pattern\nclass ${skillName}Handler {\n  process(data) {\n    return data.map(item => this.transform(item));\n  }\n  transform(item) { return item.process(); }\n}`,
+      advanced: `// Advanced ${skillName} Architecture\nconst ${skillName}Manager = {\n  cache: new Map(),\n  async execute(key, task) {\n    if (this.cache.has(key)) return this.cache.get(key);\n    const result = await task();\n    this.cache.set(key, result);\n    return result;\n  }\n};`
+    },
+    practical: {
+      beginner: `// Basic ${skillName} Usage\nconst init = () => {\n  const instance = new ${skillName}();\n  instance.setup();\n  return instance;\n};\nconst app = init();`,
+      intermediate: `// ${skillName} with Error Handling\nasync function process${skillName}(data) {\n  try {\n    const result = await execute(data);\n    return { success: true, data: result };\n  } catch (error) {\n    console.error('${skillName} failed:', error);\n    return { success: false, error: error.message };\n  }\n}`,
+      advanced: `// Production ${skillName} Pattern\nconst create${skillName}Pipeline = (...handlers) => async (input) => {\n  let result = input;\n  for (const handler of handlers) {\n    result = await handler(result);\n  }\n  return result;\n};`
+    },
+    logical: {
+      beginner: `// ${skillName} Logic Flow\nconst flow = (condition) => {\n  if (condition) { return 'valid'; }\n  return 'invalid';\n};\nconsole.log(flow(true));`,
+      intermediate: `// ${skillName} Algorithm\nconst optimize${skillName} = (data) => {\n  const filtered = data.filter(x => x.isValid);\n  return filtered.sort((a, b) => a.priority - b.priority);\n};`,
+      advanced: `// ${skillName} Complex Algorithm\nconst distributeLoad = (tasks, workers) => {\n  return tasks.reduce((acc, task, i) => {\n    acc[i % workers].push(task);\n    return acc;\n  }, Array(workers).fill([]));\n};`
+    }
+  };
+
+  return examples[questType]?.[difficulty] || examples['practical']['intermediate'];
+};
+
+// Smart Gemini API generator with better prompts
+const generateWithGeminiAPI = async (skillName, difficulty, questionCount) => {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  
+  if (!geminiKey) {
+    console.log('⚠️  GEMINI_API_KEY not configured');
+    return null;
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(geminiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      generationConfig: {
+        temperature: 0.8,
+        topP: 0.9,
+        topK: 40
+      }
+    });
+
+    const detailedPrompt = `You are an expert technical assessor. Generate ${questionCount} diversified questions for "${skillName}" at ${difficulty} difficulty level.
+
+IMPORTANT: Include THREE TYPES of questions:
+1. Theory Questions (5): Fundamental concepts, definitions, purpose
+2. Practical Questions (8): Implementation, best practices, real-world scenarios
+3. Logical/Algorithmic Questions (7): Problem-solving, optimization, design patterns
+
+For EACH question provide:
+{
+  "question": "Clear question text",
+  "type": "theory" | "practical" | "logical",
+  "options": ["Option A", "Option B", "Option C", "Option D"],
+  "correctAnswer": "The correct option",
+  "practicalExample": "Relevant code snippet or example",
+  "exampleLanguage": "javascript",
+  "explanation": "Why this answer is correct and how it applies to ${skillName}"
+}
+
+Make questions:
+- Specific to ${skillName}, not generic
+- Appropriate for ${difficulty} level
+- Varied in style and content
+- Include actual code examples
+- Practical and real-world relevant
+
+Return ONLY a valid JSON array, no other text.`;
+
+    console.log(`📡 Calling Gemini API for ${skillName} (${difficulty}) - ${questionCount} questions`);
+    const result = await model.generateContent(detailedPrompt);
+    const responseText = result.response.text();
+    
+    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      console.warn('⚠️  No JSON found in Gemini response');
+      return null;
+    }
+
+    const questionsRaw = JSON.parse(jsonMatch[0]);
+    console.log(`✅ Generated ${questionsRaw.length} questions from Gemini API`);
+
+    return questionsRaw
+      .map(q => {
+        if (!q?.question || !Array.isArray(q?.options) || q.options.length < 4) return null;
+        
+        const shuffledOptions = shuffleArray(q.options.slice(0, 4));
+        const correctAnswer = q.correctAnswer || shuffledOptions[0];
+        
+        return {
+          question: q.question,
+          type: q.type || 'theory',
+          options: shuffledOptions,
+          correctAnswer: shuffledOptions.includes(correctAnswer) ? correctAnswer : shuffledOptions[0],
+          practicalExample: q.practicalExample || '',
+          exampleLanguage: q.exampleLanguage || 'javascript',
+          explanation: q.explanation || ''
+        };
+      })
+      .filter(Boolean);
+  } catch (error) {
+    console.error('❌ Gemini API error:', error.message);
+    return null;
+  }
 };
 
 // Save/Create a skill evaluation
@@ -187,72 +332,50 @@ router.post('/evaluate', async (req, res) => {
     const qCount = questionCount || 20;
     const diff = difficulty || 'intermediate';
     let questions = [];
+    let source = 'unknown';
 
-    // Try to generate questions using Gemini API
+    console.log(`\n📝 Question Generation Request:`);
+    console.log(`   Skill: ${skillName}`);
+    console.log(`   Difficulty: ${diff}`);
+    console.log(`   Count: ${qCount}`);
+
+    // Try Gemini API first
     if (process.env.GEMINI_API_KEY) {
-      try {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({
-          model: 'gemini-2.0-flash',
-          generationConfig: {
-            temperature: 0.9,
-            topP: 0.95,
-            topK: 40
-          }
-        });
-
-        const prompt = `You are an expert assessor. Generate ${qCount} unique multiple-choice questions for evaluating "${skillName}" at ${diff} level. Make questions topic-specific, avoid repeats, and vary the style.
-
-For EACH question, include:
-1. question - The question text
-2. options - Array of 4 multiple choice options
-3. correctAnswer - The correct answer
-4. practicalExample - A relevant code snippet or practical example (JavaScript or relevant language)
-5. exampleLanguage - The language of the example (e.g., 'javascript', 'python', 'sql')
-6. explanation - A brief explanation of why the answer is correct and how it applies to ${skillName}
-
-Return ONLY a valid JSON array. Example format:
-[{"question":"...","options":["A","B","C","D"],"correctAnswer":"...","practicalExample":"code here","exampleLanguage":"javascript","explanation":"..."}]`;
-
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
-        
-        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-        const questionsRaw = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-
-        questions = questionsRaw
-          .map(q => {
-            if (!q || !q.question || !q.options) return null;
-            const opts = Array.isArray(q.options) ? q.options : Object.values(q.options);
-            if (!opts || opts.length < 4) return null;
-            const normalizedOptions = shuffleArray(opts.slice(0, 4));
-            const normalizedAnswer = q.correctAnswer || q.answer || normalizedOptions[0];
-            return {
-              question: q.question,
-              options: normalizedOptions,
-              correctAnswer: normalizedOptions.includes(normalizedAnswer) ? normalizedAnswer : normalizedOptions[0],
-              practicalExample: q.practicalExample || '',
-              exampleLanguage: q.exampleLanguage || 'javascript',
-              explanation: q.explanation || ''
-            };
-          })
-          .filter(Boolean);
-
-        const unique = new Map();
-        questions.forEach(q => {
-          if (q.question && !unique.has(q.question)) unique.set(q.question, q);
-        });
-        questions = Array.from(unique.values());
-
-        if (questions.length === 0) throw new Error('No valid questions generated');
-      } catch (apiError) {
-        console.warn('Gemini API error, using fallback questions:', apiError.message);
+      console.log(`🚀 Attempting Gemini API generation...`);
+      const apiQuestions = await generateWithGeminiAPI(skillName, diff, qCount);
+      
+      if (apiQuestions && apiQuestions.length > 0) {
+        questions = apiQuestions;
+        source = 'Gemini API';
+        console.log(`✅ Successfully generated ${questions.length} questions from Gemini API`);
+      } else {
+        console.log(`⚠️  Gemini API failed or returned no questions, falling back to local generator`);
         questions = generateFallbackQuestions(skillName, diff, qCount);
+        source = 'Local Fallback (API failed)';
       }
     } else {
-      console.warn('GEMINI_API_KEY not configured, using fallback questions');
+      console.log(`ℹ️  GEMINI_API_KEY not configured, using local question generator`);
       questions = generateFallbackQuestions(skillName, diff, qCount);
+      source = 'Local Fallback (No API Key)';
     }
+
+    // Ensure we have enough questions
+    if (questions.length < qCount) {
+      const needed = qCount - questions.length;
+      console.log(`⏸️  Need ${needed} more questions, generating from fallback...`);
+      const additional = generateFallbackQuestions(skillName, diff, needed);
+      questions = questions.concat(additional);
+    }
+
+    // Deduplicate and finalize
+    const unique = new Map();
+    questions.forEach(q => {
+      if (q.question && !unique.has(q.question)) {
+        unique.set(q.question, q);
+      }
+    });
+    
+    questions = shuffleArray(Array.from(unique.values())).slice(0, qCount);
 
     // Handle user field properly
     let userObjectId = null;
@@ -260,24 +383,25 @@ Return ONLY a valid JSON array. Example format:
       userObjectId = userId;
     }
 
-    if (questions.length < qCount) {
-      const fallback = generateFallbackQuestions(skillName, diff, qCount - questions.length);
-      questions = questions.concat(fallback);
-    }
-
-    questions = shuffleArray(questions).slice(0, qCount);
-
     const evalDoc = await SkillEvaluation.create({
       user: userObjectId,
       userId: userId || 'guest',
       userEmail: userEmail || null,
       skillName,
-      title: `${skillName} Evaluation`,
+      title: `${skillName} Evaluation (${diff})`,
       difficulty: diff,
       questions,
       totalQuestions: questions.length,
-      status: 'in-progress'
+      status: 'in-progress',
+      metadata: {
+        generatedFrom: source,
+        generatedAt: new Date()
+      }
     });
+
+    console.log(`✅ Evaluation created: ${evalDoc._id}`);
+    console.log(`   Source: ${source}`);
+    console.log(`   Questions: ${questions.length}\n`);
 
     res.json({ 
       evaluationId: evalDoc._id,
@@ -285,10 +409,11 @@ Return ONLY a valid JSON array. Example format:
       difficulty: diff,
       questions,
       totalQuestions: questions.length,
+      source,
       evaluatedAt: new Date()
     });
   } catch (error) {
-    console.error('Skill evaluation error:', error);
+    console.error('❌ Skill evaluation error:', error);
     res.status(500).json({ error: error.message || 'Failed to generate evaluation' });
   }
 });
