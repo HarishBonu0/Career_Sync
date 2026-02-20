@@ -5,6 +5,76 @@ import SkillEvaluation from '../models/SkillEvaluation.js';
 
 const router = express.Router();
 
+// Fallback questions for when API is unavailable
+const generateFallbackQuestions = (skillName, difficulty, questionCount) => {
+  const difficultyLevelMap = {
+    'beginner': 'basic',
+    'intermediate': 'fundamental',
+    'advanced': 'complex'
+  };
+
+  const baseQuestions = [
+    {
+      question: `What is ${skillName}?`,
+      options: [
+        `A core aspect of ${skillName}`,
+        'A competing technology',
+        'An outdated concept',
+        'Not relevant to modern development'
+      ],
+      correctAnswer: 'A core aspect of ' + skillName
+    },
+    {
+      question: `Which of the following is a key benefit of ${skillName}?`,
+      options: [
+        'Increased efficiency and productivity',
+        'It makes coding harder',
+        'It requires more resources',
+        'It reduces code quality'
+      ],
+      correctAnswer: 'Increased efficiency and productivity'
+    },
+    {
+      question: `In a ${difficultyLevelMap[difficulty] || 'standard'} context, what is important when using ${skillName}?`,
+      options: [
+        'Best practices and proper implementation',
+        'Speed over accuracy',
+        'Ignoring error handling',
+        'Not documenting code'
+      ],
+      correctAnswer: 'Best practices and proper implementation'
+    },
+    {
+      question: `Which tool or framework commonly works with ${skillName}?`,
+      options: [
+        'Modern development frameworks',
+        'Obsolete technologies',
+        'Hardware only',
+        'Physical tools'
+      ],
+      correctAnswer: 'Modern development frameworks'
+    },
+    {
+      question: `What is a common challenge when learning ${skillName}?`,
+      options: [
+        'Understanding complex concepts',
+        'It is too simple',
+        'No documentation available',
+        'Tools do not exist'
+      ],
+      correctAnswer: 'Understanding complex concepts'
+    }
+  ];
+
+  // Return requested number of questions, cycling through if needed
+  const questions = [];
+  for (let i = 0; i < (questionCount || 20); i++) {
+    questions.push(baseQuestions[i % baseQuestions.length]);
+  }
+
+  return questions;
+};
+
 // Save/Create a skill evaluation
 router.post('/', async (req, res) => {
   try {
@@ -56,31 +126,46 @@ router.post('/evaluate', async (req, res) => {
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     const qCount = questionCount || 20;
     const diff = difficulty || 'intermediate';
-    
-    const prompt = `Generate ${qCount} multiple-choice questions for evaluating "${skillName}" at ${diff} level. Format as JSON array with question, options (A-D), and correct answer.`;
-    
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    
-    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-    const questionsRaw = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    let questions = [];
 
-    const questions = questionsRaw
-      .map(q => {
-        if (!q || !q.question || !q.options) return null;
-        const opts = Array.isArray(q.options) ? q.options : Object.values(q.options);
-        if (!opts || opts.length < 4) return null;
-        return {
-          question: q.question,
-          options: opts.slice(0, 4),
-          correctAnswer: q.correctAnswer || q.answer
-        };
-      })
-      .filter(Boolean);
+    // Try to generate questions using Gemini API
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        
+        const prompt = `Generate ${qCount} multiple-choice questions for evaluating "${skillName}" at ${diff} level. Format as JSON array with question, options (A-D), and correct answer.`;
+        
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        const questionsRaw = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+
+        questions = questionsRaw
+          .map(q => {
+            if (!q || !q.question || !q.options) return null;
+            const opts = Array.isArray(q.options) ? q.options : Object.values(q.options);
+            if (!opts || opts.length < 4) return null;
+            return {
+              question: q.question,
+              options: opts.slice(0, 4),
+              correctAnswer: q.correctAnswer || q.answer
+            };
+          })
+          .filter(Boolean);
+          
+        if (questions.length === 0) throw new Error('No valid questions generated');
+      } catch (apiError) {
+        console.warn('Gemini API error, using fallback questions:', apiError.message);
+        questions = generateFallbackQuestions(skillName, diff, qCount);
+      }
+    } else {
+      console.warn('GEMINI_API_KEY not configured, using fallback questions');
+      questions = generateFallbackQuestions(skillName, diff, qCount);
+    }
 
     // Handle user field properly
     let userObjectId = null;
@@ -110,7 +195,7 @@ router.post('/evaluate', async (req, res) => {
     });
   } catch (error) {
     console.error('Skill evaluation error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message || 'Failed to generate evaluation' });
   }
 });
 
