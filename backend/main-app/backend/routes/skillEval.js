@@ -158,17 +158,23 @@ const generateMinimalFallback = (skillName, difficulty) => {
   return generateMockQuestions(skillName, difficulty, 1);
 };
 
-// Retry helper function for networks and rate limit issues
-const retryWithExponentialBackoff = async (fn, maxRetries = 3, initialDelayMs = 1000) => {
+// Retry helper function - ONLY for transient network errors, NOT quota errors
+const retryWithExponentialBackoff = async (fn, maxRetries = 1, initialDelayMs = 500) => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error) {
-      const isRateLimit = error.status === 429 || error.message.includes('429') || error.message.includes('rate');
+      // DO NOT retry on quota errors (429) - they won't succeed and waste API calls
+      const isQuotaError = error.status === 429 || error.message.includes('429') || error.message.includes('quota');
+      if (isQuotaError) {
+        throw error; // Fail immediately, don't waste retries
+      }
+      
+      // Only retry on transient network errors
       const isTimeout = error.message.includes('timeout') || error.message.includes('ETIMEDOUT');
       const isNetworkError = error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND');
       
-      const isRetryable = isRateLimit || isTimeout || isNetworkError;
+      const isRetryable = isTimeout || isNetworkError;
       
       if (isRetryable && attempt < maxRetries) {
         const delayMs = initialDelayMs * Math.pow(2, attempt - 1);
@@ -422,6 +428,7 @@ router.post('/evaluate', async (req, res) => {
     // Try AI first, fall back to mock data if API fails
     console.log(`🤖 Attempting Gemini AI to generate ${qCount} questions for "${skillName}"...`);
     const aiQuestions = await generateQuestionsWithAI(skillName, diff, qCount);
+    let questionSource = 'Unknown';
     
     if (!aiQuestions || aiQuestions.length === 0) {
       console.warn('⚠️  Gemini AI failed, falling back to mock questions...');
@@ -436,42 +443,21 @@ router.post('/evaluate', async (req, res) => {
       }
       console.log(`✅ Using mock questions as fallback\n`);
       questions = mockQuestions;
+      questionSource = 'Mock Data (API Fallback)';
     } else {
       console.log(`✅ Gemini AI generated ${aiQuestions.length} questions\n`);
       questions = aiQuestions;
+      questionSource = 'Gemini AI (Live)';
     }
-
-    // Ensure we have requested number of questions
-    if (questions.length < qCount) {
-      const needed = qCount - questions.length;
-      console.log(`⚠️  Generated ${questions.length} questions, requesting ${needed} more...`);
-      
-      // Try to get additional questions from AI
-      const additional = await generateQuestionsWithAI(skillName, diff, needed);
-      if (additional && additional.length > 0) {
-        questions = questions.concat(additional);
-        console.log(`✅ Got ${additional.length} additional questions, total now: ${questions.length}\n`);
-      } else if (questions.length > 0) {
-        // If we already have some questions from mock/AI, proceed with what we have
-        console.log(`⚠️  Could not get additional questions, proceeding with ${questions.length} questions\n`);
-      }
-    }
-
-    // Deduplicate by question text to ensure uniqueness
-    const unique = new Map();
-    questions.forEach(q => {
-      const questionKey = q.question.toLowerCase().trim();
-      if (!unique.has(questionKey)) {
-        unique.set(questionKey, q);
-      }
-    });
-    
-    questions = shuffleArray(Array.from(unique.values())).slice(0, qCount);
 
     // Ensure we have at least some questions
     if (!questions || questions.length === 0) {
-      console.error('❌ CRITICAL ERROR: No questions available after deduplication');
-      throw new Error(`Unable to generate any questions for ${skillName}. Gemini API may be failing.`);
+      console.error('❌ CRITICAL ERROR: No questions available');
+      return res.status(500).json({
+        error: 'Question Generation Failed',
+        message: 'Unable to generate questions. API quota may be exhausted.',
+        suggestion: 'Enable billing on your Google Cloud account'
+      });
     }
 
     // Handle user field
@@ -492,16 +478,16 @@ router.post('/evaluate', async (req, res) => {
       totalQuestions: questions.length,
       status: 'in-progress',
       metadata: {
-        generatedFrom: 'Gemini AI',
+        generatedFrom: questionSource,
         generatedAt: new Date(),
-        generationMethod: 'Live AI-based question generation'
+        generationMethod: questionSource.includes('Gemini') ? 'Live AI' : 'Mock Data Fallback'
       }
     });
 
     console.log(`✅ Evaluation created successfully`);
     console.log(`   Evaluation ID: ${evalDoc._id}`);
     console.log(`   Total Questions: ${questions.length}`);
-    console.log(`   Source: Gemini AI\n`);
+    console.log(`   Source: ${questionSource}\n`);
 
     res.json({ 
       evaluationId: evalDoc._id,
@@ -509,8 +495,7 @@ router.post('/evaluate', async (req, res) => {
       difficulty: diff,
       questions,
       totalQuestions: questions.length,
-      source: 'Gemini AI (Live)',
-      message: 'Questions generated by Google Gemini AI',
+      source: questionSource,
       evaluatedAt: new Date()
     });
   } catch (error) {
