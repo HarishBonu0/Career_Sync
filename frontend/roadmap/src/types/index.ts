@@ -11,7 +11,7 @@ export interface RoadmapStep {
   title: string;
   description: string;
   duration: string;
-  type: 'CERTIFICATION' | 'LEARNING' | 'APPLICATION';
+  type: 'CERTIFICATION' | 'LEARNING' | 'APPLICATION' | 'PROJECT';
 }
 
 export interface Pathway {

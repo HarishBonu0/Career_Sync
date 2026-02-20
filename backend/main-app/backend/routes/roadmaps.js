@@ -57,7 +57,58 @@ router.post('/generate', async (req, res) => {
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const prompt = `Create a detailed career roadmap from "${currentRole}" to "${targetRole}" within ${timeline || '12 months'}. Include skill gaps, learning resources, and milestones.`;
+    const prompt = `You are an expert Career Roadmap Architect.
+
+Your job is to generate a REALISTIC, ROLE-SPECIFIC, INDUSTRY-CORRECT career roadmap.
+
+IMPORTANT RULES (STRICTLY FOLLOW):
+
+1. NEVER assume the role is software or IT related.
+2. FIRST identify the domain from the target role:
+   - Software / IT / AI / Data
+   - Electrical Engineering
+   - Civil Engineering
+   - Mechanical Engineering
+   - Electronics & Communication
+   - Core Engineering (non-software)
+   - Management / Product / Business
+   - Design / Creative
+   - Other domain (adapt intelligently)
+
+3. The roadmap MUST adapt to that domain:
+   - If Electrical → include power systems, circuits, simulation tools, industry certifications
+   - If Civil → include structural design, AutoCAD, site execution, standards, real projects
+   - If Mechanical → include CAD, manufacturing, design analysis, industrial tools
+   - If Software → include programming, frameworks, projects, interviews
+   - Never force coding if role does not require it
+
+4. Roadmap must be PRACTICAL and JOB-MARKET REALISTIC:
+   - Mention real tools (AutoCAD, MATLAB, SolidWorks, STAAD Pro, etc.)
+   - Mention actual certifications or platforms
+   - Mention real project types
+   - Include hiring preparation relevant to that field
+
+5. Output must contain 4 main sections:
+   Step 1 → Foundation Learning & Core Skills
+   Step 2 → Tools, Certifications & Practical Knowledge
+   Step 3 → Projects / Industrial Exposure / Portfolio
+   Step 4 → Job Preparation & Application Strategy
+
+6. DO NOT give generic advice.
+   BAD: "Learn more skills"
+   GOOD: "Learn AutoCAD + STAAD Pro for structural drafting"
+
+7. Ensure the roadmap works for BOTH students and career switchers.
+
+---
+
+Current Role: "${currentRole}"
+Target Role: "${targetRole}"
+Timeline: ${timeline || '12 months'}
+
+---
+
+Generate a detailed, actionable roadmap with specific tools, certifications, projects, and preparation strategies for this target role.`;
     
     const result = await model.generateContent(prompt);
     const roadmapText = result.response.text();

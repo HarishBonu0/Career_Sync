@@ -41,51 +41,92 @@ function getRandomInt(min: number, max: number): number {
 // Generate AI-powered roadmap using Gemini API
 async function generateAIRoadmap(role: string, company: string, jobDescription?: string): Promise<RoadmapStep[]> {
   try {
-    const prompt = `You are a career roadmap expert. Generate a detailed 4-step career preparation roadmap for this job:
+    const prompt = `You are an expert Career Roadmap Architect.
+
+Your job is to generate a REALISTIC, ROLE-SPECIFIC, INDUSTRY-CORRECT career roadmap.
+
+IMPORTANT RULES (STRICTLY FOLLOW):
+
+1. NEVER assume the role is software or IT related.
+2. FIRST identify the domain from the target role:
+   - Software / IT / AI / Data
+   - Electrical Engineering
+   - Civil Engineering
+   - Mechanical Engineering
+   - Electronics & Communication
+   - Core Engineering (non-software)
+   - Management / Product / Business
+   - Design / Creative
+   - Other domain (adapt intelligently)
+
+3. The roadmap MUST adapt to that domain:
+   - If Electrical → include power systems, circuits, simulation tools, industry certifications
+   - If Civil → include structural design, AutoCAD, site execution, standards, real projects
+   - If Mechanical → include CAD, manufacturing, design analysis, industrial tools
+   - If Software → include programming, frameworks, projects, interviews
+   - Never force coding if role does not require it
+
+4. Roadmap must be PRACTICAL and JOB-MARKET REALISTIC:
+   - Mention real tools (AutoCAD, MATLAB, SolidWorks, STAAD Pro, etc.)
+   - Mention actual certifications or platforms
+   - Mention real project types
+   - Include hiring preparation relevant to that field
+
+5. Output must contain EXACTLY 4 steps:
+   Step 1 → Foundation Learning & Core Skills
+   Step 2 → Tools, Certifications & Practical Knowledge
+   Step 3 → Projects / Industrial Exposure / Portfolio
+   Step 4 → Job Preparation & Application Strategy
+
+6. DO NOT give generic advice.
+   BAD: "Learn more skills"
+   GOOD: "Learn AutoCAD + STAAD Pro for structural drafting"
+
+7. If job description is provided, extract required skills and adapt roadmap.
+
+8. Ensure the roadmap works for BOTH students and career switchers.
+
+---
 
 Job Title: ${role}
 Company: ${company}
 Job Description: ${jobDescription || 'Not provided'}
 
-Create exactly 4 actionable steps covering:
-1. Certification/Learning (what to learn, specific courses/resources, estimated cost)
-2. Projects/Portfolio (specific project ideas with tech stack)
-3. Interview Preparation (what to practice, platforms, strategies)
-4. Application Strategy (networking, platforms, timeline)
+---
 
 Return ONLY a valid JSON array with this exact format:
 [
   {
     "id": "1",
-    "title": "Brief title with emoji (e.g., ✓ Master React & TypeScript)",
-    "description": "Detailed description: specific courses (Udemy, Coursera), cost ($50-100), what to build, exact platforms to use",
+    "title": "Foundation Learning & Core Skills",
+    "description": "Detailed description with real tools, certifications, platforms, costs",
+    "duration": "3-5 weeks",
+    "type": "LEARNING"
+  },
+  {
+    "id": "2",
+    "title": "Tools, Certifications & Practical Knowledge",
+    "description": "Specific tools and certifications for this domain",
     "duration": "3-4 weeks",
     "type": "CERTIFICATION"
   },
   {
-    "id": "2",
-    "title": "Another title with emoji",
-    "description": "Specific actionable description",
-    "duration": "2-3 weeks",
-    "type": "LEARNING"
-  },
-  {
     "id": "3",
-    "title": "Interview prep title",
-    "description": "Specific platforms, number of problems, mock interviews",
-    "duration": "2 weeks",
-    "type": "LEARNING"
+    "title": "Projects / Industrial Exposure / Portfolio",
+    "description": "Real project ideas specific to this domain",
+    "duration": "4-6 weeks",
+    "type": "PROJECT"
   },
   {
     "id": "4",
-    "title": "Application strategy",
-    "description": "Specific steps: LinkedIn, job boards, networking events",
-    "duration": "2-4 weeks",
+    "title": "Job Preparation & Application Strategy",
+    "description": "Domain-specific interview prep and application strategy",
+    "duration": "2-3 weeks",
     "type": "APPLICATION"
   }
 ]
 
-Use types: CERTIFICATION, LEARNING, or APPLICATION. Be specific with course names, costs, platforms, and numbers.`;
+Use types: LEARNING, CERTIFICATION, PROJECT, or APPLICATION. Be domain-specific and practical.`;
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
@@ -138,13 +179,163 @@ function generateFallbackRoadmap(role: string, jobDescription?: string): Roadmap
   const jobContext = jobDescription?.toLowerCase() || '';
   const roleLower = role.toLowerCase();
   
-  // Determine job category for highly specific roadmaps
+  // Determine domain for highly specific roadmaps
+  // NEVER assume software by default
+  
+  // Engineering Domains (non-software)
+  const isElectrical = roleLower.includes('electrical') || roleLower.includes('power') || roleLower.includes('circuit') || 
+                       jobContext.includes('electrical') || jobContext.includes('power systems');
+  const isCivil = roleLower.includes('civil') || roleLower.includes('structural') || roleLower.includes('construction') ||
+                  jobContext.includes('civil') || jobContext.includes('autocad') || jobContext.includes('structural');
+  const isMechanical = roleLower.includes('mechanical') || roleLower.includes('manufacturing') || roleLower.includes('cad') ||
+                       jobContext.includes('mechanical') || jobContext.includes('solidworks') || jobContext.includes('manufacturing');
+  const isElectronics = roleLower.includes('electronics') || roleLower.includes('embedded') || roleLower.includes('vlsi') ||
+                        jobContext.includes('electronics') || jobContext.includes('embedded') || jobContext.includes('pcb');
+  
+  // Software/IT Domains
   const isFrontend = jobContext.includes('react') || jobContext.includes('frontend') || jobContext.includes('vue') || jobContext.includes('angular');
   const isBackend = jobContext.includes('backend') || jobContext.includes('nodejs') || jobContext.includes('python') || jobContext.includes('java');
   const isDataScience = jobContext.includes('data science') || jobContext.includes('ml') || jobContext.includes('machine learning') || roleLower.includes('data scientist');
   const isDevOps = jobContext.includes('devops') || jobContext.includes('kubernetes') || jobContext.includes('docker') || jobContext.includes('infrastructure');
+  
+  // Business/Product Domains
   const isProductManager = roleLower.includes('product manager') || roleLower.includes('pm');
-  // const isSenior = roleLower.includes('senior') || roleLower.includes('lead') || roleLower.includes('principal');
+  
+  // ELECTRICAL ENGINEERING ROADMAP
+  if (isElectrical) {
+    return [
+      {
+        id: '1',
+        title: '⚡ Foundation: Power Systems & Circuit Theory (4-5 weeks)',
+        description: 'Master electrical fundamentals: AC/DC circuits, power systems, transformers, motors. Study load flow analysis, fault calculations. Resources: MIT OCW Electrical Engineering, NPTEL courses (Free). Review IEEE standards for power systems.',
+        duration: '4-5 weeks',
+        type: 'LEARNING'
+      },
+      {
+        id: '2',
+        title: '🔧 Tools & Certifications: MATLAB, ETAP, AutoCAD Electrical (3-4 weeks)',
+        description: 'Learn simulation tools: MATLAB/Simulink for power system analysis, ETAP for electrical design, AutoCAD Electrical for schematics. Consider: Certified Energy Manager (CEM) prep. Cost: ~$100-200 for courses',
+        duration: '3-4 weeks',
+        type: 'CERTIFICATION'
+      },
+      {
+        id: '3',
+        title: '🏗️ Real Projects: Design & Simulation Portfolio (4-6 weeks)',
+        description: 'Build practical projects: 1) Power distribution system design using ETAP, 2) Motor control circuit with PLC simulation, 3) Renewable energy integration study. Document all designs with circuit diagrams and analysis reports. Upload to LinkedIn/GitHub.',
+        duration: '4-6 weeks',
+        type: 'PROJECT'
+      },
+      {
+        id: '4',
+        title: '💼 Job Prep: Technical Interviews + Applications (2-3 weeks)',
+        description: 'Prepare for technical questions: circuit analysis, power calculations, protective relays, safety standards. Practice on platforms like PrepInsta Engineering section. Apply to core electrical companies. Network with IEEE local chapters. Target: 20+ applications.',
+        duration: '2-3 weeks',
+        type: 'APPLICATION'
+      }
+    ];
+  }
+  
+  // CIVIL ENGINEERING ROADMAP
+  if (isCivil) {
+    return [
+      {
+        id: '1',
+        title: '🏗️ Foundation: Structural Analysis & Design Principles (4-5 weeks)',
+        description: 'Master core concepts: RCC design, structural mechanics, soil mechanics, surveying. Study IS codes (Indian Standards) or ACI/AISC (International). Resources: NPTEL Civil courses, Coursera Structural Engineering (Free-$50).',
+        duration: '4-5 weeks',
+        type: 'LEARNING'
+      },
+      {
+        id: '2',
+        title: '📐 Tools & Certifications: AutoCAD, STAAD Pro, Revit (3-4 weeks)',
+        description: 'Learn essential tools: AutoCAD for 2D drafting, STAAD Pro/ETABS for structural analysis, Revit for BIM modeling. Practice quantity surveying. Certification: Autodesk Revit certification prep. Cost: ~$150-300',
+        duration: '3-4 weeks',
+        type: 'CERTIFICATION'
+      },
+      {
+        id: '3',
+        title: '🏢 Real Projects: Design Complete Building Structure (4-6 weeks)',
+        description: 'Build portfolio: 1) Design G+2 residential building with structural drawings in STAAD Pro, 2) Road design project with estimates, 3) Site layout with AutoCAD. Include detailed reports: load calculations, material estimates, safety compliance. Upload drawings to portfolio.',
+        duration: '4-6 weeks',
+        type: 'PROJECT'
+      },
+      {
+        id: '4',
+        title: '💼 Job Prep: Site Visits, Interviews & Applications (2-3 weeks)',
+        description: 'Prepare for interviews: design questions, IS code knowledge, site execution scenarios. If possible, visit construction sites for exposure. Apply to construction firms, infrastructure companies, consulting firms. Network at ASCE events. Target: 20+ applications.',
+        duration: '2-3 weeks',
+        type: 'APPLICATION'
+      }
+    ];
+  }
+  
+  // MECHANICAL ENGINEERING ROADMAP
+  if (isMechanical) {
+    return [
+      {
+        id: '1',
+        title: '⚙️ Foundation: Thermodynamics, Mechanics & Design (4-5 weeks)',
+        description: 'Master mechanical fundamentals: strength of materials, thermodynamics, fluid mechanics, machine design. Study manufacturing processes. Resources: MIT OCW Mechanical, NPTEL courses (Free). Review ASME standards.',
+        duration: '4-5 weeks',
+        type: 'LEARNING'
+      },
+      {
+        id: '2',
+        title: '🔩 Tools & Certifications: SolidWorks, ANSYS, AutoCAD (3-4 weeks)',
+        description: 'Learn CAD/CAE tools: SolidWorks for 3D modeling, ANSYS for finite element analysis, AutoCAD for drafting, CNC programming basics. Certification: CSWA (Certified SolidWorks Associate). Cost: ~$100-200',
+        duration: '3-4 weeks',
+        type: 'CERTIFICATION'
+      },
+      {
+        id: '3',
+        title: '🏭 Real Projects: Design & Analysis Portfolio (4-6 weeks)',
+        description: 'Build projects: 1) Design mechanical assembly (gearbox/engine component) in SolidWorks with drawings, 2) Thermal analysis of heat exchanger using ANSYS, 3) Manufacturing process plan. Include stress analysis reports, GD&T annotations. Upload to GrabCAD/LinkedIn.',
+        duration: '4-6 weeks',
+        type: 'PROJECT'
+      },
+      {
+        id: '4',
+        title: '💼 Job Prep: Technical Rounds + Industrial Applications (2-3 weeks)',
+        description: 'Prepare for interviews: design problems, manufacturing questions, material selection scenarios. Practice on platforms like GATEOverflow Mechanical section. Apply to automotive, aerospace, manufacturing firms. Network with ASME chapters. Target: 20+ applications.',
+        duration: '2-3 weeks',
+        type: 'APPLICATION'
+      }
+    ];
+  }
+  
+  // ELECTRONICS & COMMUNICATION ROADMAP
+  if (isElectronics) {
+    return [
+      {
+        id: '1',
+        title: '📡 Foundation: Analog/Digital Electronics & Communication (4-5 weeks)',
+        description: 'Master core topics: analog circuits, digital logic, microcontrollers, signal processing, communication systems. Study embedded C programming. Resources: NPTEL ECE courses, Coursera Embedded Systems (Free-$50).',
+        duration: '4-5 weeks',
+        type: 'LEARNING'
+      },
+      {
+        id: '2',
+        title: '🔌 Tools & Certifications: MATLAB, Proteus, Embedded C (3-4 weeks)',
+        description: 'Learn essential tools: MATLAB for signal processing, Proteus for circuit simulation, Keil/Arduino IDE for embedded programming, PCB design basics. Practice with ARM/AVR microcontrollers. Cost: ~$50-150 for courses',
+        duration: '3-4 weeks',
+        type: 'CERTIFICATION'
+      },
+      {
+        id: '3',
+        title: '🤖 Real Projects: Embedded Systems & IoT Portfolio (4-6 weeks)',
+        description: 'Build projects: 1) Microcontroller-based system (home automation/robotics), 2) PCB design with custom circuit, 3) IoT device with sensor integration. Document: circuit diagrams, embedded code, working videos. Upload to GitHub + LinkedIn.',
+        duration: '4-6 weeks',
+        type: 'PROJECT'
+      },
+      {
+        id: '4',
+        title: '💼 Job Prep: Technical Tests + Core ECE Applications (2-3 weeks)',
+        description: 'Prepare for aptitude + technical rounds: circuit analysis, communication protocols, embedded programming questions. Practice on PrepBytes/InterviewBit. Apply to semiconductor, telecom, embedded systems companies. Network via IEEE. Target: 20+ applications.',
+        duration: '2-3 weeks',
+        type: 'APPLICATION'
+      }
+    ];
+  }
   
   // FRONTEND SPECIALIST ROADMAP
   if (isFrontend) {
@@ -316,34 +507,35 @@ function generateFallbackRoadmap(role: string, jobDescription?: string): Roadmap
     ];
   }
   
-  // DEFAULT: FULL-STACK/GENERALIST ROADMAP
+  // DEFAULT: ADAPTIVE ROADMAP (DO NOT ASSUME SOFTWARE)
+  // This is a fallback - try to be as role-relevant as possible
   return [
     {
       id: '1',
-      title: '✓ Core Technical Skills (4 weeks)',
-      description: `Master fundamentals relevant to ${role}. Follow structured curriculum: Fullstack Open (free), or paid: Udemy complete course ($15-50). Cover: frontend basics, backend fundamentals, databases`,
-      duration: '4 weeks',
-      type: 'CERTIFICATION'
+      title: `📚 Foundation: Core Skills for ${role} (4-5 weeks)`,
+      description: `Master domain fundamentals relevant to ${role}. Research required knowledge for this role: technical foundations, industry standards, basic tools. Resources: Industry-specific online courses (Coursera, Udemy, NPTEL), professional certifications prep. Cost: Free-$100.`,
+      duration: '4-5 weeks',
+      type: 'LEARNING'
     },
     {
       id: '2',
-      title: '⚙️ Hands-On Projects (3-4 weeks)',
-      description: `Build 2-3 production-quality projects showcasing ${role} expertise. Each project: complete feature set, clean code, documentation, deployed live, GitHub with detailed README`,
+      title: `🔧 Tools & Certifications: Industry-Standard Platforms (3-4 weeks)`,
+      description: `Learn tools specific to ${role}. Research what tools professionals use in this field (could be CAD software, analytics tools, programming languages, design tools, etc.). Get hands-on practice. Consider relevant certifications for this domain. Cost: ~$100-300.`,
       duration: '3-4 weeks',
-      type: 'LEARNING'
+      type: 'CERTIFICATION'
     },
     {
       id: '3',
-      title: '🔧 Advanced Concepts (2-3 weeks)',
-      description: `Study: system design patterns, performance optimization, scalability, security best practices. Practice: design interviews, code interviews. Read technical blogs from target companies`,
-      duration: '2-3 weeks',
-      type: 'LEARNING'
+      title: `🏆 Projects & Portfolio: Build Real Work Samples (4-6 weeks)`,
+      description: `Create 2-3 practical projects that demonstrate ${role} expertise. Each project should: solve a real problem, use industry tools, include detailed documentation, showcase your understanding. Build portfolio relevant to this field (GitHub for code, Behance for design, LinkedIn for all).`,
+      duration: '4-6 weeks',
+      type: 'PROJECT'
     },
     {
       id: '4',
-      title: '💼 Interviews & Apply (2-4 weeks)',
-      description: `LeetCode practice (20-30 problems), 3+ mock interviews, behavioral prep. Apply to 20+ companies. Tailor resume to role. Network: meetups, LinkedIn, tech events`,
-      duration: '2-4 weeks',
+      title: `💼 Job Preparation & Application Strategy (2-3 weeks)`,
+      description: `Prepare for ${role} interviews: research common interview questions for this field, practice technical + behavioral rounds, prepare portfolio presentation. Apply to 20+ relevant companies. Network via industry-specific groups (LinkedIn, professional associations). Tailor resume to highlight relevant skills.`,
+      duration: '2-3 weeks',
       type: 'APPLICATION'
     }
   ];
