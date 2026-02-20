@@ -90,7 +90,7 @@ router.post('/generate', async (req, res) => {
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     const prompt = `Create a detailed course curriculum for "${courseName}" at ${level || 'intermediate'} level, lasting ${duration || '4 weeks'}. Include modules, topics, and learning outcomes.`;
     
     const result = await model.generateContent(prompt);
@@ -103,7 +103,7 @@ router.post('/generate', async (req, res) => {
       duration,
       level,
       prompt,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       curriculum
     });
 
@@ -565,8 +565,7 @@ router.post('/generate-questions', async (req, res) => {
   if (process.env.GEMINI_API_KEY) {
     try {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
       const prompt = `Generate 6 personalized questions to understand a learner's needs for the topic: "${topic}". 
       
 Return ONLY a valid JSON array with NO additional text, explanations, or markdown formatting.
