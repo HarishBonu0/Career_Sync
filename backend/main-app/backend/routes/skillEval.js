@@ -207,6 +207,17 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Diagnostic endpoint to check environment configuration
+router.get('/config-check', (req, res) => {
+  res.json({
+    geminiApiKeyConfigured: !!process.env.GEMINI_API_KEY,
+    geminiApiKeyLength: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0,
+    mongodbConfigured: !!process.env.MONGODB_URI,
+    nodeEnv: process.env.NODE_ENV || 'not set',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Generate skill evaluation questions and persist
 router.post('/evaluate', async (req, res) => {
   const { skillName, difficulty, questionCount, userId, userEmail } = req.body;
@@ -225,9 +236,27 @@ router.post('/evaluate', async (req, res) => {
     console.log(`   Topic: ${skillName}`);
     console.log(`   Difficulty: ${diff}`);
     console.log(`   Questions: ${qCount}`);
+    console.log(`   GEMINI_API_KEY present: ${!!process.env.GEMINI_API_KEY}`);
     console.log(`   Using: AI-based random generation\n`);
 
     // Use AI to generate random questions based on topic and difficulty
+    if (!process.env.GEMINI_API_KEY) {
+      console.error(`❌ ERROR: GEMINI_API_KEY not configured`);
+      console.error(`   Environment check:`);
+      console.error(`   - NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+      console.error(`   - All env vars: ${Object.keys(process.env).filter(k => !k.includes('SECRET')).join(', ')}\n`);
+      
+      return res.status(500).json({ 
+        error: 'Configuration Error',
+        message: 'GEMINI_API_KEY environment variable is not configured on the server. Please set it in Render Dashboard -> Environment Variables.',
+        details: {
+          requiredVar: 'GEMINI_API_KEY',
+          configured: false,
+          fix: 'Add GEMINI_API_KEY to Render environment variables'
+        }
+      });
+    }
+    
     if (process.env.GEMINI_API_KEY) {
       console.log(`🤖 Calling AI to generate unique questions for "${skillName}"...`);
       const aiQuestions = await generateQuestionsWithAI(skillName, diff, qCount);
@@ -240,13 +269,6 @@ router.post('/evaluate', async (req, res) => {
         questions = generateMinimalFallback(skillName, diff);
         source = 'Minimal Fallback (AI failed)';
       }
-    } else {
-      console.log(`⚠️  GEMINI_API_KEY not configured, cannot generate questions`);
-      console.log(`   Please set GEMINI_API_KEY environment variable\n`);
-      return res.status(500).json({ 
-        error: 'GEMINI_API_KEY not configured',
-        message: 'AI question generation requires GEMINI_API_KEY environment variable'
-      });
     }
 
     // Ensure we have requested number of questions
@@ -311,9 +333,12 @@ router.post('/evaluate', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Evaluation error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       error: 'Failed to generate evaluation',
-      message: error.message 
+      message: error.message,
+      details: error.toString(),
+      geminiConfigured: !!process.env.GEMINI_API_KEY
     });
   }
 });

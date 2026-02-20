@@ -50,7 +50,13 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'SkillRoute Backend is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: {
+      nodeEnv: process.env.NODE_ENV || 'not set',
+      geminiConfigured: !!process.env.GEMINI_API_KEY,
+      mongodbConfigured: !!process.env.MONGODB_URI,
+      jwtConfigured: !!process.env.JWT_SECRET
+    }
   });
 });
 
