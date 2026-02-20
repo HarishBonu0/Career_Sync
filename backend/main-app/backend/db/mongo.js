@@ -4,7 +4,10 @@ export async function connectMongo() {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     console.error('❌ MONGODB_URI is not set. Add it to your environment.');
-    process.exit(1);
+    console.error('⚠️  Server will continue running with limited functionality');
+    console.error('🔧 To fix: Set MONGODB_URI in your environment variables');
+    // Don't exit - allow server to start for testing
+    return false;
   }
 
   try {
