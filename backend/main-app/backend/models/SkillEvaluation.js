@@ -5,7 +5,10 @@ const questionSchema = new mongoose.Schema({
   options: { type: [String], default: [] },
   correctAnswer: String,
   userAnswer: String,
-  isCorrect: Boolean
+  isCorrect: Boolean,
+  practicalExample: { type: String, default: '' },
+  exampleLanguage: { type: String, default: 'javascript' },
+  explanation: { type: String, default: '' }
 }, { _id: false });
 
 const skillEvaluationSchema = new mongoose.Schema({

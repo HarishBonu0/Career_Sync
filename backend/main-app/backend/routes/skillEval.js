@@ -32,7 +32,10 @@ const generateFallbackQuestions = (skillName, difficulty, questionCount) => {
         'An outdated concept',
         'Not relevant to modern development'
       ]),
-      correctAnswer: `A core concept of ${skillName}`
+      correctAnswer: `A core concept of ${skillName}`,
+      practicalExample: `// ${skillName} Basic Example\nconst example = new ${skillName}();\nconsole.log('${skillName} initialized');`,
+      exampleLanguage: 'javascript',
+      explanation: `${skillName} is a fundamental technology used in modern development to improve efficiency and code quality.`
     }),
     () => ({
       question: `Which of the following is a key benefit of using ${skillName}?`,
@@ -42,7 +45,10 @@ const generateFallbackQuestions = (skillName, difficulty, questionCount) => {
         'It requires more resources',
         'It reduces code quality'
       ]),
-      correctAnswer: 'Increased efficiency and productivity'
+      correctAnswer: 'Increased efficiency and productivity',
+      practicalExample: `// Demonstrating efficiency with ${skillName}\nfunction process${skillName}(data) {\n  return data.map(item => {\n    // Process using ${skillName} best practices\n    return item.transform();\n  });\n}`,
+      exampleLanguage: 'javascript',
+      explanation: `${skillName} improves productivity by reducing boilerplate and improving code maintainability.`
     }),
     () => ({
       question: `In a ${difficultyLabel} scenario, what is most important when applying ${skillName}?`,
@@ -52,7 +58,10 @@ const generateFallbackQuestions = (skillName, difficulty, questionCount) => {
         'Ignoring error handling',
         'Not documenting code'
       ]),
-      correctAnswer: 'Best practices and proper implementation'
+      correctAnswer: 'Best practices and proper implementation',
+      practicalExample: `// Best practice implementation of ${skillName}\ntry {\n  const result = await implement${skillName}();\n  console.log('Success:', result);\n} catch (error) {\n  console.error('Error in ${skillName}:', error);\n}`,
+      exampleLanguage: 'javascript',
+      explanation: `Following best practices with ${skillName} ensures code reliability, maintainability, and performance.`
     }),
     () => ({
       question: `Which tool or framework commonly works with ${skillName}?`,
@@ -62,7 +71,10 @@ const generateFallbackQuestions = (skillName, difficulty, questionCount) => {
         'Hardware only',
         'Physical tools'
       ]),
-      correctAnswer: 'Modern development frameworks'
+      correctAnswer: 'Modern development frameworks',
+      practicalExample: `// Using ${skillName} with modern frameworks\nimport ${skillName} from '@modern-framework/${skillName.toLowerCase()}';\n\nclass Component extends Framework.Component {\n  use${skillName}() {\n    return <${skillName} />;\n  }\n}`,
+      exampleLanguage: 'javascript',
+      explanation: `${skillName} integrates seamlessly with modern frameworks like React, Vue, and Angular.`
     }),
     () => ({
       question: `What is a common challenge when learning ${skillName} at the ${difficultyLabel} level?`,
@@ -72,7 +84,10 @@ const generateFallbackQuestions = (skillName, difficulty, questionCount) => {
         'No documentation available',
         'Tools do not exist'
       ]),
-      correctAnswer: 'Understanding complex concepts'
+      correctAnswer: 'Understanding complex concepts',
+      practicalExample: `// Common challenge: Managing complex scenarios\n// This example shows handling multiple states\nconst handleComplex${skillName} = (state) => {\n  if (state.isReady && state.hasData) {\n    return state.data.process();\n  }\n  return state.error;\n};`,
+      exampleLanguage: 'javascript',
+      explanation: `${skillName} has complex concepts that require practice. Common challenges include state management and error handling.`
     }),
     () => ({
       question: `Which practice helps avoid mistakes when using ${skillName}?`,
@@ -82,7 +97,10 @@ const generateFallbackQuestions = (skillName, difficulty, questionCount) => {
         'Hardcoding everything',
         'Ignoring edge cases'
       ]),
-      correctAnswer: 'Testing and validation'
+      correctAnswer: 'Testing and validation',
+      practicalExample: `// Testing ${skillName} implementation\ntest('${skillName} should work correctly', () => {\n  const instance = new ${skillName}();\n  expect(instance.validate()).toBe(true);\n  expect(instance.process()).toEqual(expectedResult);\n});`,
+      exampleLanguage: 'javascript',
+      explanation: `Write comprehensive tests for ${skillName} implementations to catch bugs early and ensure reliability.`
     }),
     () => ({
       question: `What would be an appropriate first step to start with ${skillName}?`,
@@ -92,7 +110,10 @@ const generateFallbackQuestions = (skillName, difficulty, questionCount) => {
         'Ignore official documentation',
         'Avoid hands-on practice'
       ]),
-      correctAnswer: 'Learn the fundamentals and setup basics'
+      correctAnswer: 'Learn the fundamentals and setup basics',
+      practicalExample: `// First step: Setup and basic initialization\nconst setup = async () => {\n  const config = {\n    debug: true,\n    version: '1.0',\n    features: ['feature1', 'feature2']\n  };\n  const instance = new ${skillName}(config);\n  await instance.initialize();\n  return instance;\n};`,
+      exampleLanguage: 'javascript',
+      explanation: `Start by understanding the basics: setup, configuration, and initialization. Then gradually explore advanced features.`
     })
   ];
 
@@ -180,7 +201,18 @@ router.post('/evaluate', async (req, res) => {
           }
         });
 
-        const prompt = `You are an expert assessor. Generate ${qCount} unique multiple-choice questions for evaluating "${skillName}" at ${diff} level. Make questions topic-specific, avoid repeats, and vary the style. Return ONLY a JSON array. Each item must be: {"question":"...","options":["A","B","C","D"],"correctAnswer":"..."}.`;
+        const prompt = `You are an expert assessor. Generate ${qCount} unique multiple-choice questions for evaluating "${skillName}" at ${diff} level. Make questions topic-specific, avoid repeats, and vary the style.
+
+For EACH question, include:
+1. question - The question text
+2. options - Array of 4 multiple choice options
+3. correctAnswer - The correct answer
+4. practicalExample - A relevant code snippet or practical example (JavaScript or relevant language)
+5. exampleLanguage - The language of the example (e.g., 'javascript', 'python', 'sql')
+6. explanation - A brief explanation of why the answer is correct and how it applies to ${skillName}
+
+Return ONLY a valid JSON array. Example format:
+[{"question":"...","options":["A","B","C","D"],"correctAnswer":"...","practicalExample":"code here","exampleLanguage":"javascript","explanation":"..."}]`;
 
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
@@ -198,7 +230,10 @@ router.post('/evaluate', async (req, res) => {
             return {
               question: q.question,
               options: normalizedOptions,
-              correctAnswer: normalizedOptions.includes(normalizedAnswer) ? normalizedAnswer : normalizedOptions[0]
+              correctAnswer: normalizedOptions.includes(normalizedAnswer) ? normalizedAnswer : normalizedOptions[0],
+              practicalExample: q.practicalExample || '',
+              exampleLanguage: q.exampleLanguage || 'javascript',
+              explanation: q.explanation || ''
             };
           })
           .filter(Boolean);

@@ -187,7 +187,10 @@ async function generateQuestions(courseName, difficulty) {
                 question: q.question,
                 options,
                 correctAnswer,
-                topic: q.topic || courseName
+                topic: q.topic || courseName,
+                practicalExample: q.practicalExample || '',
+                exampleLanguage: q.exampleLanguage || 'javascript',
+                explanation: q.explanation || ''
             };
         })
         .filter(Boolean);
@@ -211,6 +214,35 @@ function displayQuestions(questions, courseName) {
     questions.forEach((q, index) => {
         const questionCard = document.createElement('div');
         questionCard.className = 'question-card';
+        
+        const hasExample = q.practicalExample && q.practicalExample.trim();
+        const exampleLanguage = q.exampleLanguage || 'javascript';
+        const explanation = q.explanation || '';
+        
+        let exampleHTML = '';
+        if (hasExample) {
+            exampleHTML = `
+                <details class="practical-example-details" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+                    <summary style="cursor: pointer; font-weight: 600; color: #4F46E5; padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                        <span style="display: inline-block; transition: transform 0.2s;">►</span>
+                        💡 Practical Example & Explanation
+                    </summary>
+                    <div style="margin-top: 12px; padding: 12px; background: #f9fafb; border-radius: 6px; border-left: 3px solid #4F46E5;">
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px; font-weight: 500;">Code Example (${exampleLanguage}):</div>
+                            <pre style="background: #1f2937; color: #f3f4f6; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 13px; line-height: 1.5;"><code>${escapeHtml(q.practicalExample)}</code></pre>
+                        </div>
+                        ${explanation ? `
+                        <div>
+                            <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px; font-weight: 500;">Explanation:</div>
+                            <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0;">${explanation}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                </details>
+            `;
+        }
+        
         questionCard.innerHTML = `
             <div class="question-number">Question ${index + 1} of ${totalQuestions}</div>
             <div class="question-text">${q.question}</div>
@@ -222,9 +254,17 @@ function displayQuestions(questions, courseName) {
                     </label>
                 `).join('')}
             </div>
+            ${exampleHTML}
         `;
         container.appendChild(questionCard);
     });
+}
+
+// Utility function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Handle answer selection
