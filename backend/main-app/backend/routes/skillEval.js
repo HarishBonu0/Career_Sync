@@ -192,8 +192,7 @@ const generateQuestionsWithAI = async (skillName, difficulty, questionCount) => 
   const geminiKey = process.env.GEMINI_API_KEY;
   
   if (!geminiKey) {
-    console.log('⚠️  GEMINI_API_KEY not configured');
-    return null;
+    throw new Error('GEMINI_API_KEY is not configured. Add it to your .env file.');
   }
 
   try {
@@ -280,7 +279,7 @@ Generate NOW with session ${timestamp}:`;
     if (!jsonMatch) {
       console.warn('⚠️  No valid JSON array found in AI response');
       console.warn('Response preview:', responseText.substring(0, 200));
-      return null;
+      throw new Error('Gemini returned a non-JSON response. The model may be unavailable or the prompt was rejected.');
     }
 
     let questionsRaw = [];
@@ -289,12 +288,12 @@ Generate NOW with session ${timestamp}:`;
     } catch (parseError) {
       console.warn('⚠️  Failed to parse AI JSON:', parseError.message);
       console.warn('JSON preview:', jsonMatch[0].substring(0, 200));
-      return null;
+      throw new Error(`Failed to parse Gemini response as JSON: ${parseError.message}`);
     }
 
     if (!Array.isArray(questionsRaw) || questionsRaw.length === 0) {
       console.warn('⚠️  AI returned invalid or empty array');
-      return null;
+      throw new Error('Gemini returned an empty question array. Try again or check your API quota.');
     }
 
     console.log(`✅ Parsed ${questionsRaw.length} raw questions from AI`);
@@ -330,13 +329,17 @@ Generate NOW with session ${timestamp}:`;
       .slice(0, questionCount);
 
     console.log(`✅ Successfully processed ${processedQuestions.length} valid questions\n`);
-    return processedQuestions.length > 0 ? processedQuestions : null;
+    if (processedQuestions.length === 0) {
+      throw new Error('AI returned questions but none passed validation (check format)');
+    }
+    return processedQuestions;
   } catch (error) {
     console.error('❌ AI generation error:', error.message);
     console.error('❌ Error details:', error.toString());
     console.error('❌ Error type:', error.constructor.name);
     if (error.stack) console.error('Stack trace:', error.stack.split('\n').slice(0, 5).join('\n'));
-    return null;
+    // Re-throw so the caller can surface the real error to the client
+    throw error;
   }
 };
 
@@ -425,29 +428,52 @@ router.post('/evaluate', async (req, res) => {
       });
     }
 
-    // Try AI first, fall back to mock data if API fails
+    // Generate questions via Gemini AI — errors are surfaced directly to the client
     console.log(`🤖 Attempting Gemini AI to generate ${qCount} questions for "${skillName}"...`);
-    const aiQuestions = await generateQuestionsWithAI(skillName, diff, qCount);
-    let questionSource = 'Unknown';
-    
-    if (!aiQuestions || aiQuestions.length === 0) {
-      console.warn('⚠️  Gemini AI failed, falling back to mock questions...');
+    let aiError = null;
+    try {
+      questions = await generateQuestionsWithAI(skillName, diff, qCount);
+    } catch (err) {
+      aiError = err;
+    }
+
+    const questionSource = aiError ? 'Mock Data (API Fallback)' : 'Gemini AI (Live)';
+
+    if (aiError) {
+      // Detect quota / auth / config errors and return them directly — don't silently fall back
+      const isQuota = aiError.message.includes('429') || aiError.message.includes('quota') || aiError.message.includes('RESOURCE_EXHAUSTED');
+      const isAuth  = aiError.message.includes('API_KEY_INVALID') || aiError.message.includes('403') || aiError.message.includes('permission') || aiError.message.includes('not configured');
+      const isModel = aiError.message.includes('404') || aiError.message.includes('not found') || aiError.message.includes('model');
+
+      if (isQuota || isAuth || isModel) {
+        console.error(`❌ Gemini API error (not falling back): ${aiError.message}`);
+        return res.status(502).json({
+          error: 'Gemini API Error',
+          message: aiError.message,
+          hint: isQuota
+            ? 'API quota exhausted. Enable billing on Google Cloud or wait for quota reset.'
+            : isAuth
+              ? 'Invalid or missing GEMINI_API_KEY. Check your .env file.'
+              : 'Model not accessible. Try a different Gemini model name.',
+          source: 'Gemini AI (Failed)'
+        });
+      }
+
+      // For other transient errors, fall back to mock data with a warning
+      console.warn(`⚠️  Gemini AI failed (${aiError.message}), falling back to mock questions...`);
       const mockQuestions = generateMockQuestions(skillName, diff, qCount);
       if (!mockQuestions || mockQuestions.length === 0) {
         console.error('❌ Both AI and mock data failed');
         return res.status(500).json({
           error: 'Question Generation Failed',
-          message: 'Unable to generate questions. Please try again.',
+          message: aiError.message,
           suggestion: 'Check your API key quota or try a different skill'
         });
       }
       console.log(`✅ Using mock questions as fallback\n`);
       questions = mockQuestions;
-      questionSource = 'Mock Data (API Fallback)';
     } else {
-      console.log(`✅ Gemini AI generated ${aiQuestions.length} questions\n`);
-      questions = aiQuestions;
-      questionSource = 'Gemini AI (Live)';
+      console.log(`✅ Gemini AI generated ${questions.length} questions\n`);
     }
 
     // Ensure we have at least some questions

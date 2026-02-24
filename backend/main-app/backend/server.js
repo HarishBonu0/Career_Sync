@@ -26,9 +26,9 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({
   origin: [
-    'http://localhost:4173', 
-    'http://localhost:3002', 
-    'http://localhost:5173', 
+    'http://localhost:4173',
+    'http://localhost:3002',
+    'http://localhost:5173',
     'http://localhost:3001',
     'https://careersync-landing.onrender.com',
     'https://careersync-course-gen.onrender.com',
@@ -39,6 +39,9 @@ app.use(cors({
     'https://career-sync-skill-evalutor.onrender.com'
   ],
   credentials: true,
+  // Allow Authorization header for cross-domain JWT auth (localStorage token)
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Authorization'],
   optionsSuccessStatus: 200
 }));
 app.use(cookieParser());

@@ -14,16 +14,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     // UI Elements
     const navAuthContainer = document.getElementById('nav-auth-container');
 
-    // Wire module launch buttons/links
+    // Helper: append auth token to URL for cross-domain navigation
+    function addAuthToUrl(url) {
+        const token = localStorage.getItem('careersync_token');
+        const user = localStorage.getItem('careersync_user');
+        if (token && user) {
+            const sep = url.includes('?') ? '&' : '?';
+            return url + sep + 'auth_token=' + encodeURIComponent(token) + '&auth_user=' + encodeURIComponent(user);
+        }
+        return url;
+    }
+
+    // Wire module launch buttons/links (pass auth token for cross-domain SSO)
     document.querySelectorAll('[data-module-target]').forEach((el) => {
         el.addEventListener('click', (e) => {
             e.preventDefault();
             const targetKey = el.getAttribute('data-module-target');
             const directUrl = el.getAttribute('data-module-url');
-            const url = (targetKey && MODULE_LINKS[targetKey]) || directUrl;
+            const baseUrl = (targetKey && MODULE_LINKS[targetKey]) || directUrl;
 
-            if (url) {
-                // Open in new tab/window instead of redirecting
+            if (baseUrl) {
+                // Pass auth token so the target module can restore the session
+                const url = addAuthToUrl(baseUrl);
                 window.open(url, '_blank');
             } else {
                 console.warn(`No module URL configured for target: ${targetKey}`);
