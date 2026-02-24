@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const questionSchema = new mongoose.Schema({
   question: String,
+  type: { type: String, default: 'theory' },
   options: { type: [String], default: [] },
   correctAnswer: String,
   userAnswer: String,

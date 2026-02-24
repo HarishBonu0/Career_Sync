@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
 
+export function isMongoConnected() {
+  return mongoose.connection.readyState === 1;
+}
+
 export async function connectMongo() {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
@@ -29,8 +33,6 @@ export async function connectMongo() {
     // Don't exit - allow server to start for frontend development
     return false;
   }
-  
-  return true;
 
   // Handle connection events
   mongoose.connection.on('disconnected', () => {
@@ -44,4 +46,6 @@ export async function connectMongo() {
   mongoose.connection.on('reconnected', () => {
     console.log('✅ MongoDB reconnected');
   });
+
+  return true;
 }
