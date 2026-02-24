@@ -238,10 +238,20 @@ router.post('/logout', (req, res) => {
 });
 
 // Get current user endpoint (check authentication)
+// Accepts: HttpOnly cookie (same-domain) OR Authorization: Bearer <token> header (cross-domain)
 router.get('/me', async (req, res) => {
   try {
-    const token = req.cookies.Career_Sync_token;
-    
+    // 1. Try cookie first (same-domain / HttpOnly)
+    let token = req.cookies.Career_Sync_token;
+
+    // 2. Fall back to Authorization header (cross-domain localStorage JWT)
+    if (!token) {
+      const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.slice(7).trim();
+      }
+    }
+
     if (!token) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -253,7 +263,7 @@ router.get('/me', async (req, res) => {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    res.json({ 
+    res.json({
       user: { id: user._id, email: user.email, name: user.name }
     });
   } catch (error) {

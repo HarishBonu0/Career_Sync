@@ -182,8 +182,15 @@ export async function logout() {
 
 export async function getCurrentUser() {
   try {
+    const token = localStorage.getItem('careersync_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const resp = await fetch(`${API_BASE}/auth/me`, {
-      credentials: 'include'
+      credentials: 'include',
+      headers
     });
     
     if (!resp.ok) {
@@ -191,9 +198,20 @@ export async function getCurrentUser() {
     }
     
     const data = await resp.json();
+    // Keep localStorage in sync
+    if (data.user) {
+      localStorage.setItem('careersync_user', JSON.stringify(data.user));
+    }
     return { success: true, user: data.user };
   } catch (error) {
     console.error('Get current user error:', error);
+    // Fallback: return user from localStorage if backend is unreachable
+    try {
+      const stored = localStorage.getItem('careersync_user');
+      if (stored) {
+        return { success: true, user: JSON.parse(stored) };
+      }
+    } catch (_) {}
     return { success: false, user: null };
   }
 }

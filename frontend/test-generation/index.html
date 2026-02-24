@@ -27,7 +27,18 @@
             };
         };
         
-        // Initialize navigation links with dynamic URLs
+        // Helper to append auth token to a URL for cross-domain navigation
+        function addAuthToUrl(url) {
+            const token = localStorage.getItem('careersync_token');
+            const user = localStorage.getItem('careersync_user');
+            if (token && user) {
+                const sep = url.includes('?') ? '&' : '?';
+                return url + sep + 'auth_token=' + encodeURIComponent(token) + '&auth_user=' + encodeURIComponent(user);
+            }
+            return url;
+        }
+
+        // Initialize navigation links with dynamic URLs (include auth for cross-domain)
         function initializeNavLinks() {
             const urls = window.getModuleUrls();
             const navBrand = document.getElementById('nav-brand');
@@ -37,8 +48,8 @@
             const navSignIn = document.getElementById('nav-signin');
             
             if (navBrand) navBrand.href = urls.landing;
-            if (navCourse) navCourse.href = urls.course;
-            if (navRoadmap) navRoadmap.href = urls.roadmap;
+            if (navCourse) navCourse.href = addAuthToUrl(urls.course);
+            if (navRoadmap) navRoadmap.href = addAuthToUrl(urls.roadmap);
             if (navEvaluator) navEvaluator.href = urls.skillEval;
             if (navSignIn) navSignIn.href = urls.landing + '/auth.html';
         }
@@ -128,7 +139,8 @@
       function handleLogout() {
         localStorage.removeItem('careersync_token');
         localStorage.removeItem('careersync_user');
-        window.location.href = 'http://localhost:4173';
+        localStorage.removeItem('careersync_auth');
+        window.location.href = window.getModuleUrls().landing + '/auth.html';
       }
     </script>
 
