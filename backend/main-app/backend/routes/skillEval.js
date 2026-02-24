@@ -199,7 +199,7 @@ const generateQuestionsWithAI = async (skillName, difficulty, questionCount) => 
   try {
     const genAI = new GoogleGenerativeAI(geminiKey);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-1.5-flash',
       generationConfig: {
         temperature: 1.0,
         topP: 0.95,
@@ -466,31 +466,38 @@ router.post('/evaluate', async (req, res) => {
       userObjectId = userId;
     }
 
-    // Save evaluation to database
-    const evalDoc = await SkillEvaluation.create({
-      user: userObjectId,
-      userId: userId || 'guest',
-      userEmail: userEmail || null,
-      skillName,
-      title: `${skillName} Assessment (${diff})`,
-      difficulty: diff,
-      questions,
-      totalQuestions: questions.length,
-      status: 'in-progress',
-      metadata: {
-        generatedFrom: questionSource,
-        generatedAt: new Date(),
-        generationMethod: questionSource.includes('Gemini') ? 'Live AI' : 'Mock Data Fallback'
-      }
-    });
+    // Save evaluation to database (non-fatal - questions are returned even if DB save fails)
+    let evalId = null;
+    try {
+      const evalDoc = await SkillEvaluation.create({
+        user: userObjectId,
+        userId: userId || 'guest',
+        userEmail: userEmail || null,
+        skillName,
+        title: `${skillName} Assessment (${diff})`,
+        difficulty: diff,
+        questions,
+        totalQuestions: questions.length,
+        status: 'in-progress',
+        metadata: {
+          generatedFrom: questionSource,
+          generatedAt: new Date(),
+          generationMethod: questionSource.includes('Gemini') ? 'Live AI' : 'Mock Data Fallback'
+        }
+      });
+      evalId = evalDoc._id;
+      console.log(`✅ Evaluation created successfully`);
+      console.log(`   Evaluation ID: ${evalId}`);
+    } catch (dbError) {
+      console.warn(`⚠️  DB save failed (non-fatal): ${dbError.message}`);
+      console.warn(`   Questions will still be returned to the client`);
+    }
 
-    console.log(`✅ Evaluation created successfully`);
-    console.log(`   Evaluation ID: ${evalDoc._id}`);
     console.log(`   Total Questions: ${questions.length}`);
     console.log(`   Source: ${questionSource}\n`);
 
-    res.json({ 
-      evaluationId: evalDoc._id,
+    res.json({
+      evaluationId: evalId,
       skillName,
       difficulty: diff,
       questions,

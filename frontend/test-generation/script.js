@@ -142,7 +142,7 @@ async function generateQuestions(courseName, difficulty) {
         let msg = response.statusText;
         try {
             const errJson = JSON.parse(raw);
-            msg = errJson.error?.message || msg;
+            msg = errJson.message || errJson.error || msg;
         } catch (_) {
             msg = `${msg} | ${raw}`;
         }
