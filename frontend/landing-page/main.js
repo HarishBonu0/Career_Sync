@@ -48,12 +48,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function checkAuthState() {
         // Check cookie-based auth via API
-        const response = await getCurrentUser();
+        const user = await getCurrentUser();
         
-        if (response.success && response.user) {
+        if (user) {
             // User is LOGGED IN
-            const userEmail = response.user.email || '';
-            const userName = response.user.name || userEmail.split('@')[0];
+            const userEmail = user.email || '';
+            const userName = user.name || userEmail.split('@')[0];
 
             // Update Nav
             if (navAuthContainer) {

@@ -304,7 +304,12 @@ async function handleGoogleSignIn(response) {
         console.log('Google Sign-In successful:', payload);
 
         // Send credential to backend for verification and cookie-based auth
-        const result = await fetch('http://localhost:5000/api/auth/google-signin', {
+        const backendUrl = (typeof window.getModuleUrls === 'function')
+            ? window.getModuleUrls().backend
+            : (window.location.hostname.endsWith('.onrender.com') || window.location.hostname === 'onrender.com'
+                ? 'https://careersync-backend-oldo.onrender.com'
+                : 'http://localhost:5000');
+        const result = await fetch(backendUrl + '/api/auth/google-signin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',

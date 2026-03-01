@@ -303,7 +303,7 @@
     <script>
         // Update auth UI for evaluator page
         function updateEvaluatorAuthUI() {
-            const authContainer = document.getElementById('careersync-nav-auth');
+            const authContainer = document.getElementById('header-auth-section');
             if (!authContainer) return;
 
             const user = localStorage.getItem('careersync_user');
@@ -386,7 +386,7 @@
         }
 
         function updateAuthUI(user) {
-            const authContainer = document.getElementById('careersync-nav-auth');
+            const authContainer = document.getElementById('header-auth-section');
             if (!authContainer) return;
 
             if (user) {

@@ -96,34 +96,6 @@ export async function checkAuth() {
 
     return authCheckPromise;
 }
-                currentUser = data.user;
-                return data.user;
-            }
-        } catch (error) {
-            console.warn('Backend auth check failed:', error);
-        }
-
-        // Fallback: Check localStorage for user data (demo/offline mode)
-        try {
-            const userFromStorage = localStorage.getItem('careersync_user');
-            if (userFromStorage) {
-                currentUser = JSON.parse(userFromStorage);
-                console.log('Using localStorage user:', currentUser.email);
-                return currentUser;
-            }
-        } catch (error) {
-            console.error('Error parsing localStorage user:', error);
-        }
-
-        currentUser = null;
-        return null;
-    })()
-    .finally(() => {
-        authCheckPromise = null;
-    });
-
-    return authCheckPromise;
-}
 
 // Get current user (from cache or fetch)
 export async function getCurrentUser() {
