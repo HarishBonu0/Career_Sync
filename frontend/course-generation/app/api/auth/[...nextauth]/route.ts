@@ -1,6 +1,16 @@
-import NextAuth from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextResponse } from 'next/server'
 
-const handler = NextAuth(authOptions)
+/** NextAuth is disabled — use MongoDB backend auth via AuthContext. */
+export async function GET() {
+  return NextResponse.json(
+    {
+      error: 'NextAuth is disabled for CareerSync',
+      message: 'Use the Express API auth endpoints via NEXT_PUBLIC_API_URL',
+    },
+    { status: 410 }
+  )
+}
 
-export { handler as GET, handler as POST }
+export async function POST() {
+  return GET()
+}

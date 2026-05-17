@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import SearchBar from '@/components/search/SearchBar'
 import CourseCard from '@/components/courses/CourseCard'
@@ -9,7 +9,7 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Course, LearningJourney } from '@/types'
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ''
   
@@ -118,5 +118,19 @@ export default function SearchPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <p className="text-gray-600">Loading search...</p>
+        </div>
+      }
+    >
+      <SearchPageContent />
+    </Suspense>
   )
 }

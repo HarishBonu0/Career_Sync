@@ -2,6 +2,10 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import SkillEvaluation from '../models/SkillEvaluation.js';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { withAuthenticatedUser } from '../utils/requestUser.js';
+import { documentOwnedByUser, ownerFilter } from '../utils/ownership.js';
+import { requireMongo } from '../middleware/mongoCheck.js';
 
 const router = express.Router();
 
@@ -545,24 +549,33 @@ Generate NOW with session ${timestamp}:`;
 };
 
 // Save/Create a skill evaluation
-router.post('/', async (req, res) => {
+router.post('/', authenticate, requireMongo, async (req, res) => {
   try {
-    const { user, userId, userEmail, skillName, title, difficulty, questions, score, percentage, feedback, status, completedAt } = req.body;
+    const {
+      user,
+      userId,
+      userEmail,
+      skillName,
+      title,
+      difficulty,
+      questions,
+      score,
+      percentage,
+      feedback,
+      status,
+      completedAt,
+    } = withAuthenticatedUser(req, req.body);
 
     if (!skillName && !title) {
       return res.status(400).json({ error: 'Skill name or title is required' });
     }
 
-    // Handle user field properly
-    let userObjectId = null;
-    if (user && user !== 'guest' && mongoose.Types.ObjectId.isValid(user)) {
-      userObjectId = user;
-    }
+    const userObjectId = req.user.id;
 
     const evaluation = await SkillEvaluation.create({
       user: userObjectId,
-      userId: userId || (user === 'guest' ? 'guest' : user),
-      userEmail: userEmail || null,
+      userId: userId || userObjectId.toString(),
+      userEmail: userEmail || req.user.email,
       skillName: skillName || title || '',
       title: title || skillName || '',
       difficulty: difficulty || 'intermediate',
@@ -640,8 +653,11 @@ router.post('/analyze-profile', async (req, res) => {
 });
 
 // Generate skill evaluation questions and persist
-router.post('/evaluate', async (req, res) => {
-  const { skillName, difficulty, questionCount, userId, userEmail, context } = req.body;
+router.post('/evaluate', optionalAuth, async (req, res) => {
+  const { skillName, difficulty, questionCount, userId, userEmail, context } = withAuthenticatedUser(
+    req,
+    req.body
+  );
 
   if (!skillName) {
     return res.status(400).json({ error: 'Skill name is required' });
@@ -710,17 +726,15 @@ router.post('/evaluate', async (req, res) => {
       });
     }
 
-    // Handle user field
-    let userObjectId = null;
-    if (userId && userId !== 'guest' && mongoose.Types.ObjectId.isValid(userId)) {
-      userObjectId = userId;
-    }
+    const userObjectId =
+      req.user?.id ||
+      (userId && userId !== 'guest' && mongoose.Types.ObjectId.isValid(userId) ? userId : null);
 
     // Save evaluation to database
     const evalDoc = await SkillEvaluation.create({
       user: userObjectId,
-      userId: userId || 'guest',
-      userEmail: userEmail || null,
+      userId: userId || (userObjectId ? userObjectId.toString() : 'guest'),
+      userEmail: userEmail || req.user?.email || null,
       skillName,
       title: `${skillName} Assessment (${diff})`,
       difficulty: diff,
@@ -772,7 +786,7 @@ router.post('/evaluate', async (req, res) => {
 });
 
 // Submit evaluation answers and score
-router.post('/submit', async (req, res) => {
+router.post('/submit', authenticate, requireMongo, async (req, res) => {
   const { evaluationId, answers } = req.body;
 
   if (!evaluationId || !answers) {
@@ -780,7 +794,10 @@ router.post('/submit', async (req, res) => {
   }
 
   try {
-    const evalDoc = await SkillEvaluation.findById(evaluationId);
+    const evalDoc = await SkillEvaluation.findOne({
+      _id: evaluationId,
+      user: req.user.id,
+    });
     if (!evalDoc) {
       return res.status(404).json({ error: 'Evaluation not found' });
     }
@@ -819,22 +836,10 @@ router.post('/submit', async (req, res) => {
   }
 });
 
-// List evaluations for a user
-router.get('/', async (req, res) => {
+// List evaluations for authenticated user
+router.get('/', authenticate, requireMongo, async (req, res) => {
   try {
-    const { userId, userEmail } = req.query;
-    
-    let filter = {};
-    if (userId) {
-      if (mongoose.Types.ObjectId.isValid(userId) && userId !== 'guest') {
-        filter = { user: userId };
-      } else {
-        filter = { userId: userId };
-      }
-    } else if (userEmail) {
-      filter = { userEmail: userEmail };
-    }
-    
+    const filter = ownerFilter(req.user);
     const evaluations = await SkillEvaluation.find(filter).sort({ createdAt: -1 });
     res.json({ success: true, evaluations, count: evaluations.length });
   } catch (error) {
@@ -844,11 +849,14 @@ router.get('/', async (req, res) => {
 });
 
 // Get single evaluation by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, requireMongo, async (req, res) => {
   try {
     const evaluation = await SkillEvaluation.findById(req.params.id);
     if (!evaluation) {
       return res.status(404).json({ error: 'Evaluation not found' });
+    }
+    if (evaluation.user && (!req.user || !documentOwnedByUser(evaluation, req.user))) {
+      return res.status(403).json({ error: 'Forbidden' });
     }
     res.json({ success: true, data: evaluation });
   } catch (error) {

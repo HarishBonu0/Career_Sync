@@ -1,5 +1,15 @@
 // API client for MongoDB backend
-const API_BASE_URL = 'http://localhost:5000/api'
+function resolveApiBase() {
+  if (typeof window !== 'undefined' && window.getModuleUrls) {
+    return `${window.getModuleUrls().backend}/api`;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com')) {
+    return 'https://careersync-backend.onrender.com/api';
+  }
+  return 'http://localhost:5000/api';
+}
+
+const API_BASE_URL = resolveApiBase();
 
 export const api = {
   // Auth

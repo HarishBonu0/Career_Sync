@@ -4,6 +4,8 @@ import bcryptjs from 'bcryptjs';
 import User from '../models/User.js';
 import { sendOtpEmail } from '../services/email.js';
 import { getDeviceInfo, generateSessionId } from '../utils/deviceDetector.js';
+import { extractToken } from '../utils/token.js';
+import { requireMongo } from '../middleware/mongoCheck.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -32,7 +34,7 @@ function setAuthCookie(res, token) {
 }
 
 // Register/Signup endpoint
-router.post('/register', async (req, res) => {
+router.post('/register', requireMongo, async (req, res) => {
   try {
     const { email, password, name, phone } = req.body;
 
@@ -66,7 +68,7 @@ router.post('/signup', async (req, res) => {
 });
 
 // Login endpoint
-router.post('/login', async (req, res) => {
+router.post('/login', requireMongo, async (req, res) => {
   try {
     const { email, password, deviceInfo } = req.body;
 
@@ -240,21 +242,21 @@ router.post('/logout', (req, res) => {
 // Get current user endpoint (check authentication)
 router.get('/me', async (req, res) => {
   try {
-    const token = req.cookies.Career_Sync_token;
-    
+    const token = extractToken(req);
+
     if (!token) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id).select('email name');
-    
+    const user = await User.findById(decoded.id).select('email name role');
+
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    res.json({ 
-      user: { id: user._id, email: user.email, name: user.name }
+    res.json({
+      user: { id: user._id, email: user.email, name: user.name, role: user.role },
     });
   } catch (error) {
     res.status(401).json({ error: 'Invalid or expired token' });

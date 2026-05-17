@@ -5,23 +5,23 @@ import User from '../models/User.js';
 import Course from '../models/Course.js';
 import Roadmap from '../models/Roadmap.js';
 import SkillEvaluation from '../models/SkillEvaluation.js';
+import { authenticate } from '../middleware/auth.js';
+import { userOwnsParam, withAuthenticatedUser } from '../utils/requestUser.js';
+import { requireMongo } from '../middleware/mongoCheck.js';
 
 const router = express.Router();
 
 // Enroll in a course
-router.post('/enroll/course', async (req, res) => {
+router.post('/enroll/course', authenticate, requireMongo, async (req, res) => {
   try {
-    const { userId, userEmail, courseId, courseTitle, courseModules } = req.body;
-
-    if (!userId && !userEmail) {
-      return res.status(400).json({ error: 'User ID or email required' });
-    }
+    const { courseId, courseTitle, courseModules } = req.body;
+    const { userId, userEmail, user } = withAuthenticatedUser(req, {});
 
     // Check if already enrolled
     const existing = await UserEnrollment.findOne({
-      $or: [{ userId }, { userEmail }],
+      user,
       courseTitle,
-      type: 'course'
+      type: 'course',
     });
 
     if (existing) {
@@ -33,13 +33,14 @@ router.post('/enroll/course', async (req, res) => {
     }
 
     const enrollment = await UserEnrollment.create({
+      user,
       userId,
       userEmail,
       courseId,
       courseTitle,
       courseModules,
       courseProgress: 0,
-      type: 'course'
+      type: 'course',
     });
 
     res.json({ 
@@ -54,18 +55,15 @@ router.post('/enroll/course', async (req, res) => {
 });
 
 // Enroll in a roadmap
-router.post('/enroll/roadmap', async (req, res) => {
+router.post('/enroll/roadmap', authenticate, requireMongo, async (req, res) => {
   try {
-    const { userId, userEmail, roadmapId, roadmapTitle, roadmapStages } = req.body;
-
-    if (!userId && !userEmail) {
-      return res.status(400).json({ error: 'User ID or email required' });
-    }
+    const { roadmapId, roadmapTitle, roadmapStages } = req.body;
+    const { userId, userEmail, user } = withAuthenticatedUser(req, {});
 
     const existing = await UserEnrollment.findOne({
-      $or: [{ userId }, { userEmail }],
+      user,
       roadmapTitle,
-      type: 'roadmap'
+      type: 'roadmap',
     });
 
     if (existing) {
@@ -77,13 +75,14 @@ router.post('/enroll/roadmap', async (req, res) => {
     }
 
     const enrollment = await UserEnrollment.create({
+      user,
       userId,
       userEmail,
       roadmapId,
       roadmapTitle,
       roadmapStages,
       roadmapCreatedAt: new Date(),
-      type: 'roadmap'
+      type: 'roadmap',
     });
 
     res.json({ 
@@ -98,9 +97,13 @@ router.post('/enroll/roadmap', async (req, res) => {
 });
 
 // Get user profile with all enrollments
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', authenticate, requireMongo, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (!userOwnsParam(req, userId)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
     console.log('Fetching profile for userId:', userId);
 
@@ -248,18 +251,18 @@ router.get('/:userId', async (req, res) => {
 });
 
 // Update course progress
-router.put('/progress/course/:enrollmentId', async (req, res) => {
+router.put('/progress/course/:enrollmentId', authenticate, async (req, res) => {
   try {
     const { enrollmentId } = req.params;
     const { progress, completed, completedModules } = req.body;
 
-    const enrollment = await UserEnrollment.findByIdAndUpdate(
-      enrollmentId,
+    const enrollment = await UserEnrollment.findOneAndUpdate(
+      { _id: enrollmentId, user: req.user.id },
       {
         courseProgress: progress,
         courseCompleted: completed,
         courseLastAccessed: new Date(),
-        'metadata.completedModules': completedModules
+        'metadata.completedModules': completedModules,
       },
       { new: true }
     );
@@ -276,17 +279,17 @@ router.put('/progress/course/:enrollmentId', async (req, res) => {
 });
 
 // Update roadmap progress
-router.put('/progress/roadmap/:enrollmentId', async (req, res) => {
+router.put('/progress/roadmap/:enrollmentId', authenticate, async (req, res) => {
   try {
     const { enrollmentId } = req.params;
     const { progress, completedStages } = req.body;
 
-    const enrollment = await UserEnrollment.findByIdAndUpdate(
-      enrollmentId,
+    const enrollment = await UserEnrollment.findOneAndUpdate(
+      { _id: enrollmentId, user: req.user.id },
       {
         roadmapProgress: progress,
         'metadata.completedStages': completedStages,
-        'metadata.lastUpdated': new Date()
+        'metadata.lastUpdated': new Date(),
       },
       { new: true }
     );
@@ -303,15 +306,13 @@ router.put('/progress/roadmap/:enrollmentId', async (req, res) => {
 });
 
 // Submit skill evaluation/test
-router.post('/evaluation/submit', async (req, res) => {
+router.post('/evaluation/submit', authenticate, async (req, res) => {
   try {
-    const { userId, userEmail, evaluationTitle, score, totalQuestions, correctAnswers, timeTaken } = req.body;
-
-    if (!userId && !userEmail) {
-      return res.status(400).json({ error: 'User ID or email required' });
-    }
+    const { evaluationTitle, score, totalQuestions, correctAnswers, timeTaken } = req.body;
+    const { userId, userEmail, user } = withAuthenticatedUser(req, {});
 
     const enrollment = await UserEnrollment.create({
+      user,
       userId,
       userEmail,
       evaluationTitle,

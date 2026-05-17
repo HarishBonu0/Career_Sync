@@ -10,7 +10,12 @@ class ApiClient {
 
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseUrl}${endpoint}`
-    const token = typeof window !== 'undefined' ? localStorage.getItem('Career Sync_token') : null
+    const token =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('careersync_token') ||
+          localStorage.getItem('Career_Sync_token') ||
+          localStorage.getItem('Career Sync_token')
+        : null
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

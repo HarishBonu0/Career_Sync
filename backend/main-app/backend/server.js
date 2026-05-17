@@ -4,7 +4,8 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { connectMongo } from './db/mongo.js';
+import { connectMongo, isMongoConnected } from './db/mongo.js';
+import { getCorsOrigins } from './config/urls.js';
 
 // Get current directory
 const __filename = fileURLToPath(import.meta.url);
@@ -23,21 +24,15 @@ import profileRoutes from './routes/profile.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const DEFAULT_JWT = 'your-secret-key-change-in-production';
+if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET === DEFAULT_JWT)) {
+  console.error('❌ JWT_SECRET must be set to a strong value in production');
+  process.exit(1);
+}
+
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:4173', 
-    'http://localhost:3002', 
-    'http://localhost:5173', 
-    'http://localhost:3001',
-    'https://careersync-landing.onrender.com',
-    'https://careersync-course-gen.onrender.com',
-    'https://careersync-roadmap.onrender.com',
-    'https://careersync-landing-oldo.onrender.com',
-    'https://careersync-course-gen-oldo.onrender.com',
-    'https://careersync-roadmap-oldo.onrender.com',
-    'https://career-sync-skill-evalutor.onrender.com'
-  ],
+  origin: getCorsOrigins(),
   credentials: true,
   optionsSuccessStatus: 200
 }));
@@ -54,7 +49,8 @@ app.get('/api/health', (req, res) => {
     environment: {
       nodeEnv: process.env.NODE_ENV || 'not set',
       geminiConfigured: !!process.env.GEMINI_API_KEY,
-      mongodbConfigured: !!process.env.MONGODB_URI,
+      mongodbConfigured: isMongoConnected(),
+      mongodbUriSet: !!process.env.MONGODB_URI,
       jwtConfigured: !!process.env.JWT_SECRET
     }
   });
@@ -82,6 +78,11 @@ app.use((req, res) => {
 });
 
 connectMongo().then((connected) => {
+  if (process.env.NODE_ENV === 'production' && !connected) {
+    console.error('❌ MongoDB connection required in production. Exiting.');
+    process.exit(1);
+  }
+
   app.listen(PORT, () => {
     console.log(`\n🚀 Career Sync Backend running on port ${PORT}`);
     console.log(`📡 API endpoint: http://localhost:${PORT}`);

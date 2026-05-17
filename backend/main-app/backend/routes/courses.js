@@ -3,6 +3,10 @@ import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import CourseGeneration from '../models/CourseGeneration.js';
 import Course from '../models/Course.js';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { withAuthenticatedUser } from '../utils/requestUser.js';
+import { documentOwnedByUser, ownerFilter } from '../utils/ownership.js';
+import { requireMongo } from '../middleware/mongoCheck.js';
 
 const router = express.Router();
 
@@ -77,8 +81,10 @@ function normalizeModules(modules) {
 }
 
 // Generate course curriculum and persist
-router.post('/generate', async (req, res) => {
-  const { courseName, duration, level, userId } = req.body;
+router.post('/generate', optionalAuth, async (req, res) => {
+  const body = withAuthenticatedUser(req, req.body);
+  const { courseName, duration, level, userId } = body;
+  const ownerId = req.user?.id?.toString() || userId;
 
   if (!courseName) {
     return res.status(400).json({ error: 'Course name is required' });
@@ -97,8 +103,17 @@ router.post('/generate', async (req, res) => {
     const curriculum = result.response.text();
 
     // Save generation
+    const generationUser =
+      ownerId && ownerId !== 'guest' && mongoose.Types.ObjectId.isValid(ownerId)
+        ? ownerId
+        : req.user?.id || null;
+
+    if (!generationUser) {
+      return res.status(401).json({ error: 'Authentication required to save generation history' });
+    }
+
     const generation = await CourseGeneration.create({
-      user: userId,
+      user: generationUser,
       courseName,
       duration,
       level,
@@ -633,25 +648,36 @@ Return ONLY the JSON array, nothing else.`;
 });
 
 // Save a generated course or create a new course
-router.post('/', async (req, res) => {
+router.post('/', authenticate, requireMongo, async (req, res) => {
   try {
-    const { user, userId, userEmail, title, description, level, difficulty, duration, totalModules, modules, objectives, resources, finalProject, status } = req.body;
+    const {
+      user,
+      userId,
+      userEmail,
+      title,
+      description,
+      level,
+      difficulty,
+      duration,
+      totalModules,
+      modules,
+      objectives,
+      resources,
+      finalProject,
+      status,
+    } = withAuthenticatedUser(req, req.body);
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-    // Handle user field properly - convert "guest" to null for MongoDB
-    let userObjectId = null;
-    if (user && user !== 'guest' && mongoose.Types.ObjectId.isValid(user)) {
-      userObjectId = user;
-    }
+    const userObjectId = req.user.id;
 
     const normalizedModules = normalizeModules(modules || []);
     const course = await Course.create({
       user: userObjectId,
-      userId: userId || (user === 'guest' ? 'guest' : user),
-      userEmail: userEmail || null,
+      userId: userId || userObjectId.toString(),
+      userEmail: userEmail || req.user.email,
       title,
       description: description || '',
       level: level || difficulty || 'beginner',
@@ -673,9 +699,10 @@ router.post('/', async (req, res) => {
 });
 
 // Save a generated course as a curated course (legacy endpoint)
-router.post('/save', async (req, res) => {
+router.post('/save', authenticate, requireMongo, async (req, res) => {
   try {
-    const { userId, userEmail, generationId, title, description, level, duration, modules, course } = req.body;
+    const { userId, userEmail, generationId, title, description, level, duration, modules, course, clientRequestId } =
+      withAuthenticatedUser(req, req.body);
 
     // LOG EVERYTHING RECEIVED
     console.log('\n🔍 COURSE SAVE REQUEST RECEIVED:');
@@ -691,22 +718,28 @@ router.post('/save', async (req, res) => {
       return res.status(400).json({ error: 'title is required' });
     }
 
-    // Handle user field properly
-    let userObjectId = null;
-    if (userId && userId !== 'guest' && mongoose.Types.ObjectId.isValid(userId)) {
-      userObjectId = userId;
+    if (clientRequestId) {
+      const existing = await Course.findOne({
+        user: req.user.id,
+        'metadata.clientRequestId': clientRequestId,
+      });
+      if (existing) {
+        return res.status(200).json({ success: true, courseId: existing._id, data: existing, deduplicated: true });
+      }
     }
+
+    const userObjectId = req.user.id;
 
     console.log('✅ SAVING WITH:');
     console.log('   user:', userObjectId);
-    console.log('   userId:', userId || 'guest');
-    console.log('   userEmail:', userEmail || null);
+    console.log('   userId:', userId);
+    console.log('   userEmail:', userEmail);
 
     const normalizedModules = normalizeModules(courseData.modules || []);
     const newCourse = await Course.create({
       user: userObjectId,
-      userId: userId || 'guest',
-      userEmail: userEmail || null,
+      userId: userId || userObjectId.toString(),
+      userEmail: userEmail || req.user.email,
       generation: generationId,
       title: courseData.title,
       description: courseData.description || '',
@@ -718,37 +751,29 @@ router.post('/save', async (req, res) => {
       objectives: courseData.objectives || [],
       resources: courseData.resources || [],
       finalProject: courseData.finalProject || null,
-      status: 'published'
+      status: 'published',
+      metadata: {
+        ...(courseData.metadata || {}),
+        ...(clientRequestId ? { clientRequestId } : {}),
+      },
     });
 
     if (generationId) {
       await CourseGeneration.findByIdAndUpdate(generationId, { status: 'saved' });
     }
 
-    console.log('✅ COURSE SAVED WITH ID:', newCourse._id);    res.status(201).json({ success: true, courseId: newCourse._id, data: newCourse });
+    console.log('✅ COURSE SAVED WITH ID:', newCourse._id);
+    res.status(201).json({ success: true, courseId: newCourse._id, data: newCourse });
   } catch (error) {
     console.error('Save course error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// List courses for a user
-router.get('/', async (req, res) => {
+// List courses for authenticated user
+router.get('/', authenticate, requireMongo, async (req, res) => {
   try {
-    const { userId, userEmail } = req.query;
-    
-    let filter = {};
-    if (userId) {
-      // Check if it's a valid ObjectId, otherwise search by userId string field
-      if (mongoose.Types.ObjectId.isValid(userId) && userId !== 'guest') {
-        filter = { user: userId };
-      } else {
-        filter = { userId: userId };
-      }
-    } else if (userEmail) {
-      filter = { userEmail: userEmail };
-    }
-    
+    const filter = ownerFilter(req.user);
     const courses = await Course.find(filter).sort({ createdAt: -1 });
     res.json({ success: true, data: courses });
   } catch (error) {
@@ -757,14 +782,18 @@ router.get('/', async (req, res) => {
 });
 
 // Get a single course by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, requireMongo, async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
-    
+
     if (!course) {
       return res.status(404).json({ error: 'Course not found' });
     }
-    
+
+    if (course.user && (!req.user || !documentOwnedByUser(course, req.user))) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
     res.json({ success: true, data: course });
   } catch (error) {
     console.error('Get course error:', error);

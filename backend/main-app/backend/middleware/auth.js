@@ -1,62 +1,55 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { extractToken } from '../utils/token.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
+async function attachUserFromToken(req, token) {
+  const decoded = jwt.verify(token, JWT_SECRET);
+  const user = await User.findById(decoded.id).select('email name role');
+  if (!user) return false;
+
+  req.user = {
+    id: user._id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  };
+  return true;
+}
+
 /**
- * Middleware to verify JWT from HttpOnly cookie
- * Attaches user object to req.user if authenticated
+ * Require valid JWT (Bearer header or Career_Sync_token cookie).
  */
 export const authenticate = async (req, res, next) => {
   try {
-    const token = req.cookies.Career_Sync_token;
-    
+    const token = extractToken(req);
     if (!token) {
       return res.status(401).json({ error: 'Authentication required' });
     }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id).select('email name');
-    
-    if (!user) {
+    const ok = await attachUserFromToken(req, token);
+    if (!ok) {
       return res.status(401).json({ error: 'User not found' });
     }
-
-    req.user = {
-      id: user._id,
-      email: user.email,
-      name: user.name
-    };
-    
     next();
-  } catch (error) {
+  } catch {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
 
 /**
- * Optional authentication middleware
- * Attaches user if token exists, but doesn't block request
+ * Attach user when token present; do not block the request.
  */
 export const optionalAuth = async (req, res, next) => {
   try {
-    const token = req.cookies.Career_Sync_token;
-    
+    const token = extractToken(req);
     if (token) {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      const user = await User.findById(decoded.id).select('email name');
-      
-      if (user) {
-        req.user = {
-          id: user._id,
-          email: user.email,
-          name: user.name
-        };
-      }
+      await attachUserFromToken(req, token);
     }
-  } catch (error) {
-    // Silently fail for optional auth
+  } catch {
+    // ignore invalid optional tokens
   }
-  
   next();
 };
+
+export { extractToken, JWT_SECRET };

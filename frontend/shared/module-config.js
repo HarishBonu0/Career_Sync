@@ -8,22 +8,22 @@ export function getModuleUrls() {
   const isProduction = window.location.hostname.includes('onrender.com');
   
   if (isProduction) {
-    // Explicit Render URLs for the deployed services
     return {
-      landing: 'https://careersync-landing-oldo.onrender.com',
-      course: 'https://careersync-course-gen-oldo.onrender.com',
-      roadmap: 'https://careersync-roadmap-oldo.onrender.com',
-      backend: 'https://careersync-backend-oldo.onrender.com'
-    };
-  } else {
-    // Development/localhost
-    return {
-      landing: 'http://localhost:4173',
-      course: 'http://localhost:3002',
-      roadmap: 'http://localhost:5173',
-      backend: 'http://localhost:5000'
+      landing: 'https://careersync-landing.onrender.com',
+      course: 'https://careersync-course-gen.onrender.com',
+      roadmap: 'https://careersync-roadmap.onrender.com',
+      skillEval: 'https://careersync-evaluator.onrender.com',
+      backend: 'https://careersync-backend.onrender.com',
     };
   }
+
+  return {
+    landing: 'http://localhost:4173',
+    course: 'http://localhost:3002',
+    roadmap: 'http://localhost:5173',
+    skillEval: 'http://localhost:3001',
+    backend: 'http://localhost:5000',
+  };
 }
 
 export function getBackendUrl() {
@@ -42,7 +42,7 @@ export function getRoadmapUrl() {
 }
 
 export function getEvaluatorUrl() {
-  return '';
+  return getModuleUrls().skillEval;
 }
 
 export function getLandingUrl() {

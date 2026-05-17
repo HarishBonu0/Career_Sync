@@ -26,8 +26,7 @@ services:
         sync: false
       - key: YOUTUBE_API_KEY
         sync: false
-      - key: OPENROUTER_API_KEYok now rerun whole project
-      
+      - key: OPENROUTER_API_KEY
         sync: false
 
   # Course Generation Frontend
@@ -42,12 +41,10 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_URL
-        value: https://careersync-backend-oldo.onrender.com/api
+        value: https://careersync-backend.onrender.com/api
       - key: NEXT_PUBLIC_YOUTUBE_API_KEY
         sync: false
       - key: OPENROUTER_API_KEY
-        sync: false
-      - key: GEMINI_API_KEY
         sync: false
       - key: NPM_CONFIG_PRODUCTION
         value: "false"
@@ -75,13 +72,12 @@ services:
     buildCommand: cd frontend/roadmap && npm install --include=dev && npm run build
     startCommand: cd frontend/roadmap && npm run preview -- --host 0.0.0.0 --port $PORT
     envVars:
-      - key: VITE_API_URL
-        value: https://careersync-backend-oldo.onrender.com
-      - key: VITE_GEMINI_API_KEY
-        sync: false
+      - key: VITE_API_BASE_URL
+        value: https://careersync-backend.onrender.com
       - key: NPM_CONFIG_PRODUCTION
         value: "false"
-  # Test Generation / Evaluator Frontend
+
+  # Skill Evaluator Frontend
   - type: web
     name: careersync-evaluator
     runtime: node
@@ -90,9 +86,7 @@ services:
     buildCommand: cd frontend/test-generation && npm install --include=dev && npm run build
     startCommand: cd frontend/test-generation && npm run preview -- --host 0.0.0.0 --port $PORT
     envVars:
-      - key: VITE_API_URL
-        value: https://careersync-backend-oldo.onrender.com
-      - key: VITE_GEMINI_API_KEY
-        sync: false
+      - key: VITE_API_BASE_URL
+        value: https://careersync-backend.onrender.com
       - key: NPM_CONFIG_PRODUCTION
         value: "false"

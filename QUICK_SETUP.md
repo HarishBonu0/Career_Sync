@@ -1,9 +1,8 @@
 # ⚡ Quick Setup Checklist - Google Gemini API
 
-## **Current Status** ❌
-- Your API key: `AIzaSyBSgNSgEROToOSKUMYreRcCmZF8_WmRsoE`
-- Quota: **EXHAUSTED** (0 remaining)
-- Action: **Create new API key**
+## **Current Status**
+- Replace any exposed or exhausted API key in `backend/main-app/backend/.env`
+- Action: **Create a new API key in Google Cloud Console**
 
 ---
 
@@ -48,7 +47,7 @@ cd c:\Users\vamsi\Desktop\Career
 OS\backend\main-app\backend\.env
 
 # Replace this line:
-# GEMINI_API_KEY=AIzaSyBSgNSgEROToOSKUMYreRcCmZF8_WmRsoE
+# GEMINI_API_KEY=<old-revoked-key>
 
 # With:
 # GEMINI_API_KEY=<YOUR_NEW_KEY>

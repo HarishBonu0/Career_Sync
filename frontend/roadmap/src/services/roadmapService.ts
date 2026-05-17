@@ -1,4 +1,18 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:5000'
+
+function authHeaders(): HeadersInit {
+  const headers: HeadersInit = { 'Content-Type': 'application/json' }
+  if (typeof window !== 'undefined') {
+    const token =
+      localStorage.getItem('careersync_token') ||
+      localStorage.getItem('Career_Sync_token')
+    if (token) headers['Authorization'] = `Bearer ${token}`
+  }
+  return headers
+}
 
 export interface RoadmapStageInput {
   title: string
@@ -23,10 +37,11 @@ export interface RoadmapInput {
 }
 
 export async function createRoadmap(payload: RoadmapInput) {
-  const res = await fetch(`${API_BASE}/api/roadmaps/create`, {
+  const res = await fetch(`${API_BASE}/api/roadmaps`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(payload),
+    credentials: 'include',
   })
   const json = await res.json()
   if (!res.ok) throw new Error(json.error || 'Failed to create roadmap')
@@ -34,7 +49,10 @@ export async function createRoadmap(payload: RoadmapInput) {
 }
 
 export async function fetchRoadmap(id: string) {
-  const res = await fetch(`${API_BASE}/api/roadmaps/${id}`)
+  const res = await fetch(`${API_BASE}/api/roadmaps/${id}`, {
+    headers: authHeaders(),
+    credentials: 'include',
+  })
   const json = await res.json()
   if (!res.ok) throw new Error(json.error || 'Failed to fetch roadmap')
   return json.roadmap

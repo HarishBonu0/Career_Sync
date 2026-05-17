@@ -7,7 +7,9 @@
   "scripts": {
     "start": "tsx server.js",
     "dev": "tsx watch server.js",
-    "test:services": "tsx test-services.js"
+    "test:services": "tsx test-services.js",
+    "test:phase0": "node scripts/verify-phase0.mjs",
+    "test:phase1": "node scripts/verify-phase1.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

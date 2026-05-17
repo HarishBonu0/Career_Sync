@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRoadmapDeep } from '@/lib/db-queries'
 
-export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params
+    const { id } = await context.params
     const data = await getRoadmapDeep(id)
     return NextResponse.json({ success: true, roadmap: data })
   } catch (error) {

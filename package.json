@@ -18,7 +18,9 @@
     "install:landing": "cd frontend/landing-page && npm install",
     "install:course": "cd frontend/course-generation && npm install",
     "install:roadmap": "cd frontend/roadmap && npm install",
-    "install:evaluator": "cd frontend/test-generation && npm install"
+    "install:evaluator": "cd frontend/test-generation && npm install",
+    "test:phase0": "cd backend/main-app/backend && npm run test:phase0",
+    "test:phase1": "cd backend/main-app/backend && npm run test:phase1"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
