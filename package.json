@@ -5,27 +5,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "npm run start:backend",
-    "dev": "npm run start:backend",
-    "start:all": "node deploy.js",
-    "start:backend": "cd backend/main-app/backend && npm start",
-    "start:landing": "cd frontend/landing-page && npm run dev",
-    "start:course": "cd frontend/course-generation && npm run dev",
-    "start:roadmap": "cd frontend/roadmap && npm run dev",
-    "start:evaluator": "cd frontend/test-generation && npm run dev",
-    "install:all": "npm run install:backend && npm run install:landing && npm run install:course && npm run install:roadmap && npm run install:evaluator",
-    "install:backend": "cd backend/main-app/backend && npm install",
-    "install:landing": "cd frontend/landing-page && npm install",
-    "install:course": "cd frontend/course-generation && npm install",
-    "install:roadmap": "cd frontend/roadmap && npm install",
-    "install:evaluator": "cd frontend/test-generation && npm install",
-    "test:phase0": "cd backend/main-app/backend && npm run test:phase0",
-    "test:phase1": "cd backend/main-app/backend && npm run test:phase1"
-  },
-  "dependencies": {
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "http-proxy-middleware": "^3.0.5"
+    "start": "npm run start:api",
+    "dev": "npm run start:api",
+    "start:api": "cd apps/api && npm start",
+    "start:web": "cd apps/web && npm run dev",
+    "install:all": "npm run install:api && npm run install:web",
+    "install:api": "cd apps/api && npm install",
+    "install:web": "cd apps/web && npm install",
+    "test:phase0": "cd apps/api && npm run test:phase0",
+    "test:phase1": "cd apps/api && npm run test:phase1"
   },
   "repository": {
     "type": "git",

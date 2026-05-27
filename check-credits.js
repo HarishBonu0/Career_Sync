@@ -1,24 +1,29 @@
+#!/usr/bin/env node
+// Operational tool: prints the OpenRouter account credit balance.
+// Reads OPENROUTER_API_KEY from the environment — do NOT commit the key.
+//   Usage:  OPENROUTER_API_KEY=sk-or-... node check-credits.js
+
 const https = require('https');
 
-const apiKey = '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';
+const apiKey = process.env.OPENROUTER_API_KEY;
+if (!apiKey) {
+  console.error('OPENROUTER_API_KEY is not set. Export it before running this script.');
+  process.exit(1);
+}
 
 const options = {
   hostname: 'openrouter.ai',
   path: '/api/v1/auth/key',
   method: 'GET',
   headers: {
-    'Authorization': `Bearer ${apiKey}`,
-    'Content-Type': 'application/json'
-  }
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+  },
 };
 
 const req = https.request(options, (res) => {
   let data = '';
-
-  res.on('data', (chunk) => {
-    data += chunk;
-  });
-
+  res.on('data', (chunk) => { data += chunk; });
   res.on('end', () => {
     try {
       const response = JSON.parse(data);
@@ -26,13 +31,13 @@ const req = https.request(options, (res) => {
         console.log('\n✓ OpenRouter Account Info:');
         console.log('========================');
         console.log(`Credits Remaining: $${response.data.credit_balance}`);
-        
+
         if (response.data.credit_balance > 5) {
-          console.log('✓ Status: SUFFICIENT - You can run course generation');
+          console.log('✓ Status: SUFFICIENT — you can run course generation');
         } else if (response.data.credit_balance > 0) {
-          console.log('⚠ Status: LOW - Limited credits remaining');
+          console.log('⚠ Status: LOW — limited credits remaining');
         } else {
-          console.log('✗ Status: OUT OF CREDITS - Cannot run course generation');
+          console.log('✗ Status: OUT OF CREDITS');
         }
       } else {
         console.log('Response:', JSON.stringify(response, null, 2));
