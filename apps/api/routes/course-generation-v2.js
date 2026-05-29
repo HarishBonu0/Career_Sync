@@ -12,6 +12,7 @@
  */
 
 import express from 'express'
+import { body, validationResult } from 'express-validator'
 
 const router = express.Router()
 
@@ -71,9 +72,18 @@ function calculateModuleCount(timeline, difficulty) {
  * POST /api/generate-course-v2
  * Generate course using refactored modular services
  */
-router.post('/generate-course-v2', async (req, res) => {
-  try {
-    const { topic, answers } = req.body
+router.post(
+  '/generate-course-v2',
+  body('topic').isString().trim().isLength({ min: 1, max: 200 }).withMessage('Topic is required and must be <=200 chars'),
+  body('answers').optional().isObject().withMessage('Answers must be an object'),
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() })
+    }
+
+    try {
+      const { topic, answers } = req.body
 
     console.log('🚀 PRODUCTION COURSE GENERATION REQUEST')
     console.log('Topic:', topic)
@@ -144,7 +154,7 @@ router.post('/generate-course-v2', async (req, res) => {
           : 'Enrichment not available (no Redis)',
       },
     })
-  } catch (error) {
+    } catch (error) {
     console.error('❌ Course generation failed:', error)
     res.status(500).json({
       error: 'Course generation failed',
@@ -152,8 +162,8 @@ router.post('/generate-course-v2', async (req, res) => {
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     })
   }
-})
-
+  }
+)
 /**
  * GET /api/enrich/status/:jobId
  * Check enrichment progress

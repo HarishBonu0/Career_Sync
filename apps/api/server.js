@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectMongo, isMongoConnected } from './db/mongo.js';
@@ -36,6 +38,17 @@ app.use(cors({
   credentials: true,
   optionsSuccessStatus: 200
 }));
+// Basic security headers
+app.use(helmet());
+
+// Simple rate limiter to protect public endpoints
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 200, // limit each IP to 200 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', apiLimiter);
 app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -84,16 +97,16 @@ connectMongo().then((connected) => {
   }
 
   app.listen(PORT, () => {
-    console.log(`\n🚀 Career Sync Backend running on port ${PORT}`);
-    console.log(`📡 API endpoint: http://localhost:${PORT}`);
-    console.log(`✅ CORS enabled for frontend origins`);
+    console.info(`\n🚀 Career Sync Backend running on port ${PORT}`);
+    console.info(`📡 API endpoint: http://localhost:${PORT}`);
+    console.info(`✅ CORS enabled for frontend origins`);
     if (connected) {
-      console.log(`✅ MongoDB: Connected`);
+      console.info(`✅ MongoDB: Connected`);
     } else {
-      console.log(`⚠️  MongoDB: Not connected (using localStorage only)`);
-      console.log(`🔧 Fix MongoDB: https://cloud.mongodb.com/`);
+      console.warn(`⚠️  MongoDB: Not connected (using localStorage only)`);
+      console.info(`🔧 Fix MongoDB: https://cloud.mongodb.com/`);
     }
-    console.log(`⏰ Server started at ${new Date().toISOString()}\n`);
+    console.info(`⏰ Server started at ${new Date().toISOString()}\n`);
   });
 }).catch((err) => {
   console.error('Failed to start server:', err.message);

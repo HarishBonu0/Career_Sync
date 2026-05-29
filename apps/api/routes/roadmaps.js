@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Roadmap from '../models/Roadmap.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { body, validationResult, param } from 'express-validator';
 import { withAuthenticatedUser } from '../utils/requestUser.js';
 import { documentOwnedByUser, ownerFilter } from '../utils/ownership.js';
 import { requireMongo } from '../middleware/mongoCheck.js';
@@ -11,6 +12,9 @@ const router = express.Router();
 
 async function createRoadmapHandler(req, res) {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
     const {
       user,
       userId,
@@ -55,17 +59,37 @@ async function createRoadmapHandler(req, res) {
 }
 
 // Save/Create a roadmap
-router.post('/', authenticate, requireMongo, createRoadmapHandler);
-router.post('/create', authenticate, requireMongo, createRoadmapHandler);
+router.post(
+  '/',
+  authenticate,
+  requireMongo,
+  body('title').optional().isString().trim().isLength({ max: 200 }).withMessage('Title must be <= 200 chars'),
+  body('targetRole').optional().isString().trim().isLength({ max: 200 }).withMessage('Target role must be <= 200 chars'),
+  createRoadmapHandler
+);
+
+router.post(
+  '/create',
+  authenticate,
+  requireMongo,
+  body('title').optional().isString().trim().isLength({ max: 200 }).withMessage('Title must be <= 200 chars'),
+  body('targetRole').optional().isString().trim().isLength({ max: 200 }).withMessage('Target role must be <= 200 chars'),
+  createRoadmapHandler
+);
 
 // Generate career roadmap and persist
-router.post('/generate', optionalAuth, async (req, res) => {
-  const body = withAuthenticatedUser(req, req.body);
-  const { currentRole, targetRole, timeline, userId, userEmail } = body;
+router.post(
+  '/generate',
+  optionalAuth,
+  body('currentRole').isString().trim().isLength({ min: 1 }).withMessage('currentRole is required'),
+  body('targetRole').isString().trim().isLength({ min: 1 }).withMessage('targetRole is required'),
+  body('timeline').optional().isString().isLength({ max: 200 }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-  if (!currentRole || !targetRole) {
-    return res.status(400).json({ error: 'Current and target roles are required' });
-  }
+    const body = withAuthenticatedUser(req, req.body);
+    const { currentRole, targetRole, timeline, userId, userEmail } = body;
 
   if (!process.env.GEMINI_API_KEY) {
     return res.status(500).json({ error: 'GEMINI_API_KEY is not configured' });
@@ -189,50 +213,56 @@ router.get('/:id', optionalAuth, requireMongo, async (req, res) => {
 });
 
 // Update roadmap progress
-router.put('/:id/progress', authenticate, requireMongo, async (req, res) => {
-  try {
-    const { progress, completedStages } = req.body;
+router.put(
+  '/:id/progress',
+  authenticate,
+  requireMongo,
+  param('id').isString().withMessage('Invalid roadmap id'),
+  body('progress').isNumeric().withMessage('Progress must be a number').custom((v) => v >= 0 && v <= 100).withMessage('Progress must be between 0 and 100'),
+  body('completedStages').optional().isArray(),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const updateData = {
-      progress: progress,
-      'metadata.completedStages': completedStages,
-    };
+      const { progress, completedStages } = req.body;
 
-    if (progress >= 100) {
-      updateData.status = 'completed';
+      const updateData = {
+        progress: progress,
+        'metadata.completedStages': completedStages,
+      };
+
+      if (progress >= 100) {
+        updateData.status = 'completed';
+      }
+
+      const roadmap = await Roadmap.findOneAndUpdate({ _id: req.params.id, user: req.user.id }, updateData, { new: true });
+
+      if (!roadmap) return res.status(404).json({ error: 'Roadmap not found' });
+
+      res.json({ success: true, data: roadmap });
+    } catch (error) {
+      console.error('Roadmap update error:', error);
+      res.status(500).json({ error: error.message });
     }
-
-    const roadmap = await Roadmap.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
-      updateData,
-      { new: true }
-    );
-
-    if (!roadmap) {
-      return res.status(404).json({ error: 'Roadmap not found' });
-    }
-
-    res.json({ success: true, data: roadmap });
-  } catch (error) {
-    console.error('Roadmap update error:', error);
-    res.status(500).json({ error: error.message });
   }
-});
+);
 
 /**
  * POST /api/roadmaps/ai-generate
  * Auth-gated Gemini proxy. Frontend sends a prompt; backend invokes Gemini with its own key.
  * This replaces the previous browser-side Gemini calls in apps/web simulationService.
  */
-router.post('/ai-generate', authenticate, async (req, res) => {
-  try {
-    const { prompt } = req.body || {};
-    if (!prompt || typeof prompt !== 'string') {
-      return res.status(400).json({ error: 'prompt is required' });
-    }
-    if (prompt.length > 64000) {
-      return res.status(400).json({ error: 'prompt exceeds 64000 character limit' });
-    }
+router.post(
+  '/ai-generate',
+  authenticate,
+  body('prompt').isString().isLength({ min: 1, max: 64000 }).withMessage('prompt is required and must be <=64000 chars'),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+      const { prompt } = req.body || {};
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -260,12 +290,18 @@ router.post('/ai-generate', authenticate, async (req, res) => {
  * POST /api/roadmaps/jobs-search
  * Auth-gated JSearch (RapidAPI) proxy. Backend reads RAPIDAPI_KEY from env.
  */
-router.post('/jobs-search', authenticate, async (req, res) => {
-  try {
-    const { query, page = 1, numPages = 1 } = req.body || {};
-    if (!query || typeof query !== 'string' || query.length > 200) {
-      return res.status(400).json({ error: 'query is required and must be <= 200 chars' });
-    }
+router.post(
+  '/jobs-search',
+  authenticate,
+  body('query').isString().trim().isLength({ min: 1, max: 200 }).withMessage('query is required and must be <=200 chars'),
+  body('page').optional().isInt({ min: 1 }),
+  body('numPages').optional().isInt({ min: 1, max: 10 }),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+      const { query, page = 1, numPages = 1 } = req.body || {};
 
     const rapidKey = process.env.RAPIDAPI_KEY;
     if (!rapidKey) {

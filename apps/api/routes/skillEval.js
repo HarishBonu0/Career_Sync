@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import SkillEvaluation from '../models/SkillEvaluation.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { body, param, validationResult } from 'express-validator';
 import { withAuthenticatedUser } from '../utils/requestUser.js';
 import { documentOwnedByUser, ownerFilter } from '../utils/ownership.js';
 import { requireMongo } from '../middleware/mongoCheck.js';
@@ -549,7 +550,17 @@ Generate NOW with session ${timestamp}:`;
 };
 
 // Save/Create a skill evaluation
-router.post('/', authenticate, requireMongo, async (req, res) => {
+router.post(
+  '/',
+  authenticate,
+  requireMongo,
+  body('skillName').optional().isString().trim().isLength({ max: 200 }).withMessage('skillName must be a string <=200 chars'),
+  body('title').optional().isString().trim().isLength({ max: 200 }).withMessage('title must be <=200 chars'),
+  body('difficulty').optional().isIn(['beginner', 'intermediate', 'advanced']).withMessage('Invalid difficulty'),
+  body('questions').optional().isArray().withMessage('questions must be an array'),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
   try {
     const {
       user,
@@ -606,9 +617,19 @@ router.get('/config-check', (req, res) => {
   });
 });
 
-router.post('/analyze-profile', authenticate, async (req, res) => {
-  try {
-    const { currentRole, targetRole, userSkills, resumeText } = req.body || {};
+router.post(
+  '/analyze-profile',
+  authenticate,
+  body('currentRole').optional().isString().trim().isLength({ max: 200 }),
+  body('targetRole').optional().isString().trim().isLength({ max: 200 }),
+  body('userSkills').optional().isArray(),
+  body('resumeText').optional().isString().isLength({ max: 60000 }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    try {
+      const { currentRole, targetRole, userSkills, resumeText } = req.body || {};
 
     const fallback = buildProfileFallback({
       targetRole,
@@ -653,15 +674,18 @@ router.post('/analyze-profile', authenticate, async (req, res) => {
 });
 
 // Generate skill evaluation questions and persist
-router.post('/evaluate', optionalAuth, async (req, res) => {
-  const { skillName, difficulty, questionCount, userId, userEmail, context } = withAuthenticatedUser(
-    req,
-    req.body
-  );
+router.post(
+  '/evaluate',
+  optionalAuth,
+  body('skillName').isString().trim().isLength({ min: 1, max: 200 }).withMessage('skillName is required'),
+  body('difficulty').optional().isIn(['beginner', 'intermediate', 'advanced']).withMessage('Invalid difficulty'),
+  body('questionCount').optional().isInt({ min: 1, max: 200 }).withMessage('questionCount must be an integer between 1 and 200'),
+  body('context').optional().isString().isLength({ max: 20000 }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-  if (!skillName) {
-    return res.status(400).json({ error: 'Skill name is required' });
-  }
+    const { skillName, difficulty, questionCount, userId, userEmail, context } = withAuthenticatedUser(req, req.body);
 
   try {
     const qCount = questionCount || 20;
@@ -786,12 +810,17 @@ router.post('/evaluate', optionalAuth, async (req, res) => {
 });
 
 // Submit evaluation answers and score
-router.post('/submit', authenticate, requireMongo, async (req, res) => {
-  const { evaluationId, answers } = req.body;
+router.post(
+  '/submit',
+  authenticate,
+  requireMongo,
+  body('evaluationId').isString().trim().withMessage('evaluationId is required'),
+  body('answers').custom((v) => typeof v === 'object' && v !== null).withMessage('answers must be an object or array'),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-  if (!evaluationId || !answers) {
-    return res.status(400).json({ error: 'evaluationId and answers are required' });
-  }
+    const { evaluationId, answers } = req.body;
 
   try {
     const evalDoc = await SkillEvaluation.findOne({

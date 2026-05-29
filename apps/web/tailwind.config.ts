@@ -17,6 +17,16 @@ const config: Config = {
       },
     },
     extend: {
+      fontSize: {
+        'display-2': ['2.5rem', { lineHeight: '1.05', fontWeight: '700' }],
+        'display-1': ['1.875rem', { lineHeight: '1.1', fontWeight: '700' }],
+        'heading-1': ['1.25rem', { lineHeight: '1.2', fontWeight: '600' }],
+        'body-lg': ['1.0625rem', { lineHeight: '1.5' }],
+      },
+      boxShadow: {
+        elevated: '0 10px 30px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06)',
+        'elevated-sm': '0 6px 18px rgba(15,23,42,0.08), 0 1px 3px rgba(15,23,42,0.04)'
+      },
       fontFamily: {
         sans: ['var(--font-sans)'],
       },

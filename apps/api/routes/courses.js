@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import CourseGeneration from '../models/CourseGeneration.js';
 import Course from '../models/Course.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { body, param, validationResult } from 'express-validator';
 import { withAuthenticatedUser } from '../utils/requestUser.js';
 import { documentOwnedByUser, ownerFilter } from '../utils/ownership.js';
 import { requireMongo } from '../middleware/mongoCheck.js';
@@ -81,9 +82,18 @@ function normalizeModules(modules) {
 }
 
 // Generate course curriculum and persist
-router.post('/generate', optionalAuth, async (req, res) => {
-  const body = withAuthenticatedUser(req, req.body);
-  const { courseName, duration, level, userId } = body;
+router.post(
+  '/generate',
+  optionalAuth,
+  body('courseName').isString().trim().isLength({ min: 1, max: 200 }).withMessage('courseName is required'),
+  body('duration').optional().isString().isLength({ max: 100 }),
+  body('level').optional().isIn(['beginner', 'intermediate', 'advanced']),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const body = withAuthenticatedUser(req, req.body);
+    const { courseName, duration, level, userId } = body;
   const ownerId = req.user?.id?.toString() || userId;
 
   if (!courseName) {
@@ -566,12 +576,14 @@ function generateFallbackQuestions(topic) {
 }
 
 // Generate dynamic questions based on course topic
-router.post('/generate-questions', async (req, res) => {
-  const { topic } = req.body;
+router.post(
+  '/generate-questions',
+  body('topic').isString().trim().isLength({ min: 1, max: 200 }).withMessage('topic is required'),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-  if (!topic) {
-    return res.status(400).json({ error: 'Topic is required' });
-  }
+    const { topic } = req.body;
 
   // DISABLED: Gemini API to avoid rate limits
   // Using predefined generic questions for all courses
@@ -648,28 +660,35 @@ Return ONLY the JSON array, nothing else.`;
 });
 
 // Save a generated course or create a new course
-router.post('/', authenticate, requireMongo, async (req, res) => {
-  try {
-    const {
-      user,
-      userId,
-      userEmail,
-      title,
-      description,
-      level,
-      difficulty,
-      duration,
-      totalModules,
-      modules,
-      objectives,
-      resources,
-      finalProject,
-      status,
-    } = withAuthenticatedUser(req, req.body);
+router.post(
+  '/',
+  authenticate,
+  requireMongo,
+  body('title').isString().trim().isLength({ min: 1, max: 300 }).withMessage('title is required'),
+  body('description').optional().isString().isLength({ max: 2000 }),
+  body('modules').optional().isArray(),
+  body('duration').optional().isString().isLength({ max: 200 }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
-    }
+    try {
+      const {
+        user,
+        userId,
+        userEmail,
+        title,
+        description,
+        level,
+        difficulty,
+        duration,
+        totalModules,
+        modules,
+        objectives,
+        resources,
+        finalProject,
+        status,
+      } = withAuthenticatedUser(req, req.body);
 
     const userObjectId = req.user.id;
 
@@ -699,10 +718,21 @@ router.post('/', authenticate, requireMongo, async (req, res) => {
 });
 
 // Save a generated course as a curated course (legacy endpoint)
-router.post('/save', authenticate, requireMongo, async (req, res) => {
-  try {
-    const { userId, userEmail, generationId, title, description, level, duration, modules, course, clientRequestId } =
-      withAuthenticatedUser(req, req.body);
+router.post(
+  '/save',
+  authenticate,
+  requireMongo,
+  body('clientRequestId').optional().isString(),
+  body('generationId').optional().isString(),
+  body('course').optional().custom((v) => typeof v === 'object' || v === null),
+  body('title').optional().isString().isLength({ min: 1 }).withMessage('title is required if course object not provided'),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    try {
+      const { userId, userEmail, generationId, title, description, level, duration, modules, course, clientRequestId } =
+        withAuthenticatedUser(req, req.body);
 
     // LOG EVERYTHING RECEIVED
     console.log('\n🔍 COURSE SAVE REQUEST RECEIVED:');
@@ -782,7 +812,10 @@ router.get('/', authenticate, requireMongo, async (req, res) => {
 });
 
 // Get a single course by ID
-router.get('/:id', optionalAuth, requireMongo, async (req, res) => {
+router.get('/:id', optionalAuth, requireMongo, param('id').isMongoId().withMessage('Invalid course id'), async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
   try {
     const course = await Course.findById(req.params.id);
 

@@ -7,15 +7,26 @@ import Roadmap from '../models/Roadmap.js';
 import SkillEvaluation from '../models/SkillEvaluation.js';
 import { authenticate } from '../middleware/auth.js';
 import { userOwnsParam, withAuthenticatedUser } from '../utils/requestUser.js';
+import { body, param, validationResult } from 'express-validator';
 import { requireMongo } from '../middleware/mongoCheck.js';
 
 const router = express.Router();
 
 // Enroll in a course
-router.post('/enroll/course', authenticate, requireMongo, async (req, res) => {
-  try {
-    const { courseId, courseTitle, courseModules } = req.body;
-    const { userId, userEmail, user } = withAuthenticatedUser(req, {});
+router.post(
+  '/enroll/course',
+  authenticate,
+  requireMongo,
+  body('courseTitle').isString().trim().isLength({ min: 1 }).withMessage('courseTitle is required'),
+  body('courseId').optional().isString(),
+  body('courseModules').optional().isArray(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    try {
+      const { courseId, courseTitle, courseModules } = req.body;
+      const { userId, userEmail, user } = withAuthenticatedUser(req, {});
 
     // Check if already enrolled
     const existing = await UserEnrollment.findOne({
@@ -55,10 +66,20 @@ router.post('/enroll/course', authenticate, requireMongo, async (req, res) => {
 });
 
 // Enroll in a roadmap
-router.post('/enroll/roadmap', authenticate, requireMongo, async (req, res) => {
-  try {
-    const { roadmapId, roadmapTitle, roadmapStages } = req.body;
-    const { userId, userEmail, user } = withAuthenticatedUser(req, {});
+router.post(
+  '/enroll/roadmap',
+  authenticate,
+  requireMongo,
+  body('roadmapTitle').isString().trim().isLength({ min: 1 }).withMessage('roadmapTitle is required'),
+  body('roadmapId').optional().isString(),
+  body('roadmapStages').optional().isArray(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    try {
+      const { roadmapId, roadmapTitle, roadmapStages } = req.body;
+      const { userId, userEmail, user } = withAuthenticatedUser(req, {});
 
     const existing = await UserEnrollment.findOne({
       user,
@@ -97,7 +118,10 @@ router.post('/enroll/roadmap', authenticate, requireMongo, async (req, res) => {
 });
 
 // Get user profile with all enrollments
-router.get('/:userId', authenticate, requireMongo, async (req, res) => {
+router.get('/:userId', authenticate, requireMongo, param('userId').isString().isLength({ min: 1 }).withMessage('userId required'), async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
   try {
     const { userId } = req.params;
 
@@ -251,10 +275,20 @@ router.get('/:userId', authenticate, requireMongo, async (req, res) => {
 });
 
 // Update course progress
-router.put('/progress/course/:enrollmentId', authenticate, async (req, res) => {
-  try {
-    const { enrollmentId } = req.params;
-    const { progress, completed, completedModules } = req.body;
+router.put(
+  '/progress/course/:enrollmentId',
+  authenticate,
+  param('enrollmentId').isMongoId().withMessage('Invalid enrollment id'),
+  body('progress').isNumeric().withMessage('progress must be numeric').custom((v) => v >= 0 && v <= 100).withMessage('progress must be 0-100'),
+  body('completed').optional().isBoolean(),
+  body('completedModules').optional().isArray(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    try {
+      const { enrollmentId } = req.params;
+      const { progress, completed, completedModules } = req.body;
 
     const enrollment = await UserEnrollment.findOneAndUpdate(
       { _id: enrollmentId, user: req.user.id },
@@ -279,10 +313,19 @@ router.put('/progress/course/:enrollmentId', authenticate, async (req, res) => {
 });
 
 // Update roadmap progress
-router.put('/progress/roadmap/:enrollmentId', authenticate, async (req, res) => {
-  try {
-    const { enrollmentId } = req.params;
-    const { progress, completedStages } = req.body;
+router.put(
+  '/progress/roadmap/:enrollmentId',
+  authenticate,
+  param('enrollmentId').isMongoId().withMessage('Invalid enrollment id'),
+  body('progress').isNumeric().withMessage('progress must be numeric').custom((v) => v >= 0 && v <= 100).withMessage('progress must be 0-100'),
+  body('completedStages').optional().isArray(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    try {
+      const { enrollmentId } = req.params;
+      const { progress, completedStages } = req.body;
 
     const enrollment = await UserEnrollment.findOneAndUpdate(
       { _id: enrollmentId, user: req.user.id },
@@ -306,10 +349,21 @@ router.put('/progress/roadmap/:enrollmentId', authenticate, async (req, res) => 
 });
 
 // Submit skill evaluation/test
-router.post('/evaluation/submit', authenticate, async (req, res) => {
-  try {
-    const { evaluationTitle, score, totalQuestions, correctAnswers, timeTaken } = req.body;
-    const { userId, userEmail, user } = withAuthenticatedUser(req, {});
+router.post(
+  '/evaluation/submit',
+  authenticate,
+  body('evaluationTitle').optional().isString(),
+  body('score').isNumeric().withMessage('score is required'),
+  body('totalQuestions').optional().isInt(),
+  body('correctAnswers').optional().isInt(),
+  body('timeTaken').optional().isNumeric(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    try {
+      const { evaluationTitle, score, totalQuestions, correctAnswers, timeTaken } = req.body;
+      const { userId, userEmail, user } = withAuthenticatedUser(req, {});
 
     const enrollment = await UserEnrollment.create({
       user,

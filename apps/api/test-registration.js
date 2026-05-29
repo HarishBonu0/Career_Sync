@@ -1,4 +1,5 @@
 import http from 'http';
+import logger from './utils/logger.js';
 
 const testEmail = `test${Math.floor(Math.random() * 100000)}@example.com`;
 
@@ -9,8 +10,8 @@ const postData = JSON.stringify({
   phone: '1234567890'
 });
 
-console.log(`\n🧪 Testing user registration...`);
-console.log(`📧 Test Email: ${testEmail}`);
+logger.info(`\n🧪 Testing user registration...`);
+logger.info(`📧 Test Email: ${testEmail}`);
 
 const options = {
   hostname: 'localhost',
@@ -34,27 +35,27 @@ const req = http.request(options, (res) => {
     try {
       const response = JSON.parse(data);
       if (res.statusCode === 200) {
-        console.log('\n✅ REGISTRATION SUCCESSFUL!');
-        console.log('User ID:', response.user.id);
-        console.log('User Email:', response.user.email);
-        console.log('User Name:', response.user.name);
-        console.log('\n✅ DATABASE IS WORKING - User saved successfully!\n');
+        logger.info('\n✅ REGISTRATION SUCCESSFUL!');
+        logger.info('User ID:', response.user.id);
+        logger.info('User Email:', response.user.email);
+        logger.info('User Name:', response.user.name);
+        logger.info('\n✅ DATABASE IS WORKING - User saved successfully!\n');
       } else {
-        console.log('\n❌ REGISTRATION FAILED!');
-        console.log('Status Code:', res.statusCode);
-        console.log('Error:', response.error);
-        console.log('\n');
+        logger.warn('\n❌ REGISTRATION FAILED!');
+        logger.warn('Status Code:', res.statusCode);
+        logger.warn('Error:', response.error);
+        logger.warn('\n');
       }
     } catch (error) {
-      console.error('\n❌ Failed to parse response:', error.message);
-      console.log('Raw response:', data);
+      logger.error('\n❌ Failed to parse response:', error.message);
+      logger.debug('Raw response:', data);
     }
   });
 });
 
 req.on('error', (error) => {
-  console.error('\n❌ TEST FAILED:', error.message);
-  console.log('Make sure the backend is running on port 5000\n');
+  logger.error('\n❌ TEST FAILED:', error.message);
+  logger.info('Make sure the backend is running on port 5000\n');
 });
 
 req.write(postData);

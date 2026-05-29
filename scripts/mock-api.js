@@ -7,6 +7,7 @@
 */
 import { createServer } from 'http'
 import { parse } from 'url'
+import logger from '../apps/api/utils/logger.js'
 
 const PORT = Number(process.env.MOCK_API_PORT || process.env.PORT || 5000)
 
@@ -76,11 +77,11 @@ const server = createServer(async (req, res) => {
 
 server.on('error', (error) => {
   if (error && typeof error === 'object' && 'code' in error && error.code === 'EADDRINUSE') {
-    console.log(`Mock API already running on http://localhost:${PORT}`)
+    logger.info(`Mock API already running on http://localhost:${PORT}`)
     return
   }
 
   throw error
 })
 
-server.listen(PORT, () => console.log(`Mock API listening on http://localhost:${PORT}`))
+server.listen(PORT, () => logger.info(`Mock API listening on http://localhost:${PORT}`))

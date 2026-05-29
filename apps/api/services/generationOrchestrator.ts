@@ -36,7 +36,7 @@ interface GeneratedCourse {
  * 2. Generate module titles
  * 3. Validate curriculum (deduplicate, reorder)
  * 4. Expand modules into full structures
- * 5. Create base course and save to DB (TODO)
+ * 5. Create base course object ready for persistence
  * 6. Queue enrichment jobs
  * 7. Return base course immediately (don't wait for enrichment)
  */
@@ -216,7 +216,7 @@ export async function getEnrichmentStatus(
   message: string
 }> {
   try {
-    // TODO: Integrate with enrichmentOrchestrator to get actual status
+    // Hook this up to the enrichment queue state store when a status endpoint is added
     return {
       status: 'pending',
       message: 'Enrichment in progress. Check again in a few seconds.',

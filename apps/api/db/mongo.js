@@ -13,15 +13,15 @@ export async function connectMongo() {
   }
 
   try {
-    console.log('🔄 Connecting to MongoDB Atlas...');
+    console.info('🔄 Connecting to MongoDB Atlas...');
     await mongoose.connect(uri, {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
     });
-    console.log(`✅ MongoDB connected successfully!`);
-    console.log(`📦 Database: ${mongoose.connection.db.databaseName}`);
-    console.log(`🌐 Host: ${mongoose.connection.host}`);
+    console.info(`✅ MongoDB connected successfully!`);
+    console.info(`📦 Database: ${mongoose.connection.db.databaseName}`);
+    console.info(`🌐 Host: ${mongoose.connection.host}`);
 
     mongoose.connection.on('disconnected', () => {
       console.warn('⚠️  MongoDB disconnected');
@@ -32,7 +32,7 @@ export async function connectMongo() {
     });
 
     mongoose.connection.on('reconnected', () => {
-      console.log('✅ MongoDB reconnected');
+      console.info('✅ MongoDB reconnected');
     });
 
     return true;

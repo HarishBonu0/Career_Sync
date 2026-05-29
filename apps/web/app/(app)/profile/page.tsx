@@ -129,7 +129,10 @@ export default function ProfilePage() {
             </div>
           </CardHeader>
           <CardContent>
-            <ActivityHeatmap dates={profile?.courses?.map(c => c.lastAccessed).filter(Boolean)} days={91} />
+            <ActivityHeatmap
+              dates={(profile?.courses?.map((course) => course.lastAccessed).filter((date): date is string => Boolean(date)) ?? []) as (string | Date | null)[]}
+              days={91}
+            />
             <p className="mt-3 text-sm text-muted-foreground">Current streak: <span className="font-medium">{profile?.stats?.activeDays ?? 0}</span></p>
           </CardContent>
         </Card>

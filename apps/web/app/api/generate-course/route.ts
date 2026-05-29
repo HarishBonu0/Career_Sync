@@ -911,7 +911,7 @@ REMEMBER:
           },
         ],
         maxTokens: 4000,
-        response_format: { type: 'json_object' },
+        responseFormat: { type: 'json_object' },
         stream: true,
       },
     })
