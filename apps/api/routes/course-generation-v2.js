@@ -18,6 +18,8 @@ const router = express.Router()
 
 // Import services
 import { generateCourse } from '../services/generationOrchestrator.ts'
+import CourseGeneration from '../models/CourseGeneration.js'
+import Course from '../models/Course.js'
 
 /**
  * Extract difficulty level from user answers
@@ -126,24 +128,95 @@ router.post(
     console.log(`   Module count: ${numModules}`)
     console.log(`   Timeline: ${timelineText}`)
 
-    // Generate course using orchestrator
+    // Generate course using orchestrator. If external generation fails (API keys, model),
+    // fall back to a deterministic base course so the user still gets a usable curriculum.
     const startTime = Date.now()
-    const generatedCourse = await generateCourse({
-      topic,
-      numModules,
-      difficulty: experience,
-    })
-    const generationTime = Date.now() - startTime
+    let generatedCourse = null
+    let generationTime = 0
+    try {
+      generatedCourse = await generateCourse({ topic, numModules, difficulty: experience })
+      generationTime = Date.now() - startTime
+    } catch (genErr) {
+      console.warn('Course generation failed, falling back to deterministic course:', genErr?.message || genErr)
+      // Create a lightweight fallback course
+      const fallbackModules = []
+      for (let i = 1; i <= numModules; i++) {
+        fallbackModules.push({
+          id: i,
+          title: `Module ${i}: ${topic} - Part ${i}`,
+          description: `Core concepts and hands-on exercises for ${topic} - module ${i}`,
+          topics: [topic],
+          youtubeSearch: `${topic} tutorial ${i}`,
+          objectives: [`Understand ${topic} basics for module ${i}`],
+        })
+      }
+      generatedCourse = {
+        id: `fallback_${Date.now()}`,
+        title: `Intro to ${topic} - Fallback Course`,
+        topic,
+        difficulty: experience,
+        modules: fallbackModules,
+        totalModules: fallbackModules.length,
+        objectives: [`Learn core ${topic} concepts`, 'Build practical projects'],
+        status: 'base-generated',
+        enrichmentJobId: null,
+        createdAt: new Date().toISOString(),
+      }
+      generationTime = Date.now() - startTime
+    }
 
     console.log(`✅ Course generated in ${(generationTime / 1000).toFixed(1)}s`)
     console.log(`   Course ID: ${generatedCourse.id}`)
     console.log(`   Enrichment Job: ${generatedCourse.enrichmentJobId}`)
     console.log(`   Status: ${generatedCourse.status}`)
 
+    // Persist generation + course if user is authenticated
+    let persisted = null
+    try {
+      if (req.user && req.user.id) {
+        const userId = req.user.id
+
+        const generationDoc = await CourseGeneration.create({
+          user: userId,
+          courseName: generatedCourse.title,
+          duration: answers?.[6] || undefined,
+          level: generatedCourse.difficulty,
+          prompt: `Auto-generated course for topic: ${topic}`,
+          model: 'generation-orchestrator-v2',
+          curriculum: JSON.stringify({ modules: generatedCourse.modules }),
+          modules: generatedCourse.modules.map(m => ({
+            title: m.title,
+            topics: m.topics || [],
+            learningOutcomes: m.objectives || [],
+            duration: m.duration || ''
+          }))
+        })
+
+        const courseDoc = await Course.create({
+          user: userId,
+          userId: userId.toString(),
+          generation: generationDoc._id,
+          title: generatedCourse.title,
+          description: generatedCourse.objectives?.join('\n') || '',
+          difficulty: generatedCourse.difficulty,
+          totalModules: generatedCourse.totalModules,
+          objectives: generatedCourse.objectives || [],
+          modules: generatedCourse.modules,
+          status: 'in-progress',
+          metadata: { enrichmentJobId: generatedCourse.enrichmentJobId }
+        })
+
+        persisted = { generationId: generationDoc._id, courseId: courseDoc._id }
+      }
+    } catch (persistErr) {
+      console.warn('Failed to persist generated course:', persistErr.message || persistErr)
+    }
+
     // Return base course immediately
     res.json({
       success: true,
       course: generatedCourse,
+      persisted,
       meta: {
         topic,
         userName: answers?.[1] || 'Student',

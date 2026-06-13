@@ -8,6 +8,7 @@ import * as titleGenerator from './titleGenerator.ts'
 import * as curriculumValidator from './curriculumValidator.ts'
 import * as moduleExpander from './moduleExpander.ts'
 import { queueEnrichmentJob } from '../queues/enrichmentQueue.ts'
+import logger from '../utils/logger.js'
 import { sanitizeModule } from './utils/schemaValidation.ts'
 
 interface CourseRequest {
@@ -42,7 +43,7 @@ interface GeneratedCourse {
  */
 export async function generateCourse(request: CourseRequest): Promise<GeneratedCourse> {
   const startTime = Date.now()
-  console.log(`\n🚀 Starting course generation for: ${request.topic}`)
+  logger.info(`\n🚀 Starting course generation for: ${request.topic}`)
 
   const topic = request.topic
   const difficulty = request.difficulty || 'intermediate'
@@ -50,7 +51,7 @@ export async function generateCourse(request: CourseRequest): Promise<GeneratedC
 
   try {
     // Step 1: Generate module titles
-    console.log(`\n📝 Step 1: Generating ${numModules} module titles...`)
+    logger.info(`\n📝 Step 1: Generating ${numModules} module titles...`)
     const startTitles = Date.now()
 
     const titles = await titleGenerator.generateModuleTitles(
@@ -64,10 +65,10 @@ export async function generateCourse(request: CourseRequest): Promise<GeneratedC
     )
 
     const titlesTime = Date.now() - startTitles
-    console.log(`✅ Generated titles in ${titlesTime}ms`)
+    logger.info(`✅ Generated titles in ${titlesTime}ms`)
 
     // Step 2: Validate curriculum (semantic deduplication + progression)
-    console.log(`\n🔍 Step 2: Validating curriculum (deduplication & progression)...`)
+    logger.info(`\n🔍 Step 2: Validating curriculum (deduplication & progression)...`)
     const startValidation = Date.now()
 
     const validation = await curriculumValidator.validateCurriculum(
@@ -78,16 +79,16 @@ export async function generateCourse(request: CourseRequest): Promise<GeneratedC
     )
 
     const validationTime = Date.now() - startValidation
-    console.log(`✅ Curriculum validated in ${validationTime}ms`)
+    logger.info(`✅ Curriculum validated in ${validationTime}ms`)
     if (validation.duplicates.length > 0) {
-      console.log(`   Found and fixed ${validation.duplicates.length} semantic duplicates`)
+      logger.debug(`   Found and fixed ${validation.duplicates.length} semantic duplicates`)
     }
     if (validation.changes.length > 0) {
-      console.log(`   Reordered ${validation.changes.length} modules for progression`)
+      logger.debug(`   Reordered ${validation.changes.length} modules for progression`)
     }
 
     // Step 3: Expand modules into full structures
-    console.log(`\n📚 Step 3: Expanding ${validation.validatedTitles.length} modules...`)
+    logger.info(`\n📚 Step 3: Expanding ${validation.validatedTitles.length} modules...`)
     const startExpansion = Date.now()
 
     const expandedModules = await moduleExpander.expandModules(
@@ -98,7 +99,7 @@ export async function generateCourse(request: CourseRequest): Promise<GeneratedC
     )
 
     const expansionTime = Date.now() - startExpansion
-    console.log(`✅ Modules expanded in ${expansionTime}ms`)
+    logger.info(`✅ Modules expanded in ${expansionTime}ms`)
 
     // Step 4: Generate course objectives
     const objectives = generateCourseObjectives(topic, difficulty, expandedModules)
@@ -118,12 +119,12 @@ export async function generateCourse(request: CourseRequest): Promise<GeneratedC
     }
 
     const baseTime = Date.now() - startTime
-    console.log(`\n✅ Base course generated in ${baseTime}ms`)
-    console.log(`   Modules: ${expandedModules.length}`)
-    console.log(`   Objectives: ${objectives.length}`)
+    logger.info(`\n✅ Base course generated in ${baseTime}ms`)
+    logger.info(`   Modules: ${expandedModules.length}`)
+    logger.info(`   Objectives: ${objectives.length}`)
 
     // Step 6: Queue enrichment jobs (DON'T WAIT FOR THESE)
-    console.log(`\n📌 Step 4: Queuing background enrichment...`)
+    logger.info(`\n📌 Step 4: Queuing background enrichment...`)
     const startEnrichment = Date.now()
 
     const modulesForEnrichment = expandedModules.map(m => ({
@@ -143,19 +144,19 @@ export async function generateCourse(request: CourseRequest): Promise<GeneratedC
     baseCourse.status = 'enriching'
 
     const enrichmentQueueTime = Date.now() - startEnrichment
-    console.log(`✅ Enrichment queued in ${enrichmentQueueTime}ms`)
-    console.log(`   Job ID: ${enrichmentJobId}`)
+    logger.info(`✅ Enrichment queued in ${enrichmentQueueTime}ms`)
+    logger.debug(`   Job ID: ${enrichmentJobId}`)
 
     // Step 7: Return immediately (enrichment continues in background)
     const totalTime = Date.now() - startTime
-    console.log(`\n🎉 Course generation complete in ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s)`)
-    console.log(`   ✅ Base course ready immediately`)
-    console.log(`   🔄 Enrichment in background (videos, resources)`)
-    console.log(`   Poll enrichmentJobId: ${enrichmentJobId} for progress`)
+    logger.info(`\n🎉 Course generation complete in ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s)`)
+    logger.info(`   ✅ Base course ready immediately`)
+    logger.info(`   🔄 Enrichment in background (videos, resources)`)
+    logger.debug(`   Poll enrichmentJobId: ${enrichmentJobId} for progress`)
 
     return baseCourse
   } catch (error) {
-    console.error(`❌ Course generation failed:`, error)
+    logger.error(`❌ Course generation failed:`, error)
     throw new Error(
       `Course generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     )

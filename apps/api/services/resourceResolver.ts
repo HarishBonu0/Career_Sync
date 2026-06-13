@@ -14,29 +14,31 @@ export interface Resource {
  * Resolve resources for a module
  * Three-tier strategy: keyword matching → topic mapping → fallback
  */
+import logger from '../utils/logger.js'
+
 export async function resolveResources(
   moduleTitle: string,
   topic: string,
   difficulty: 'beginner' | 'intermediate' | 'advanced'
 ): Promise<Resource[]> {
-  console.log(`📚 Resolving resources for: "${moduleTitle}"`)
+  logger.info(`📚 Resolving resources for: "${moduleTitle}"`)
 
   // Tier 1: Try keyword matching
   const keywordResources = tryKeywordMatching(moduleTitle)
   if (keywordResources.length > 0) {
-    console.log(`  ✅ Found ${keywordResources.length} keyword-matched resources`)
+    logger.info(`  ✅ Found ${keywordResources.length} keyword-matched resources`)
     return keywordResources
   }
 
   // Tier 2: Try topic-level mapping
   const topicResources = tryTopicMapping(topic, difficulty)
   if (topicResources.length > 0) {
-    console.log(`  ✅ Found ${topicResources.length} topic-level resources`)
+    logger.info(`  ✅ Found ${topicResources.length} topic-level resources`)
     return topicResources
   }
 
   // Tier 3: Generate fallback search URLs
-  console.log(`  ⚠️ Using fallback search URLs`)
+  logger.warn(`  ⚠️ Using fallback search URLs`)
   const fallbackResources = generateFallbackResources(moduleTitle, topic)
   return fallbackResources
 }

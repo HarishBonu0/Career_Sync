@@ -6,6 +6,7 @@
 import { getEmbedding, getEmbeddingsBatch } from './utils/embeddings.ts'
 import { cosineSimilarity, clusterSimilarItems } from './utils/similarity.ts'
 import { generateModuleTitles } from './titleGenerator.ts'
+import logger from '../utils/logger.js'
 
 export interface ValidationResult {
   validatedTitles: string[]
@@ -23,14 +24,14 @@ export async function validateCurriculum(
   difficulty: 'beginner' | 'intermediate' | 'advanced',
   similarityThreshold: number = 0.82
 ): Promise<ValidationResult> {
-  console.log(`🔍 Validating curriculum with ${titles.length} modules`)
+  logger.info(`🔍 Validating curriculum with ${titles.length} modules`)
 
   const changes: string[] = []
   let validatedTitles = [...titles]
   const duplicateClusters: Array<{ cluster: string[]; representative: string }> = []
 
   // Step 1: Detect semantic duplicates using embeddings
-  console.log('📊 Computing embeddings for semantic analysis...')
+  logger.info('📊 Computing embeddings for semantic analysis...')
   const embeddings = await getEmbeddingsBatch(titles)
 
   const itemsWithEmbeddings = titles.map((title, idx) => ({
@@ -45,7 +46,7 @@ export async function validateCurriculum(
   // Find and handle duplicates
   for (const cluster of clusters) {
     if (cluster.length > 1) {
-      console.log(`⚠️ Found ${cluster.length} similar titles:`, cluster.map(c => c.text))
+      logger.warn(`⚠️ Found ${cluster.length} similar titles:`, cluster.map(c => c.text))
       changes.push(`Found semantic duplicate cluster: ${cluster.map(c => c.text).join(', ')}`)
 
       // Keep the most representative (first) and mark others as duplicates
@@ -58,7 +59,7 @@ export async function validateCurriculum(
       })
 
       // Regenerate duplicate titles
-      console.log(`🔄 Regenerating ${duplicates.length} duplicate titles...`)
+      logger.info(`🔄 Regenerating ${duplicates.length} duplicate titles...`)
       const existingTitles = validatedTitles.filter(
         t => !duplicates.includes(t)
       )
@@ -79,22 +80,22 @@ export async function validateCurriculum(
             changes.push(`Replaced "${oldTitle}" with regenerated title`)
           }
         }
-      } catch (error) {
-        console.error('Failed to regenerate duplicates:', error)
+        } catch (error) {
+        logger.error('Failed to regenerate duplicates:', error)
         // Keep originals if regeneration fails
       }
     }
   }
 
   // Step 2: Validate learning progression
-  console.log('📚 Validating learning progression...')
+  logger.info('📚 Validating learning progression...')
   const progressionResult = validateProgression(validatedTitles, difficulty)
   if (progressionResult.reordered) {
     validatedTitles = progressionResult.reorderedTitles
     changes.push('Reordered modules for better learning progression')
   }
 
-  console.log(`✅ Curriculum validation complete. Changes: ${changes.length}`)
+  logger.info(`✅ Curriculum validation complete. Changes: ${changes.length}`)
 
   return {
     validatedTitles,

@@ -1,4 +1,8 @@
 import axios from 'axios';
+import dotenv from 'dotenv';
+import logger from '../utils/logger.js';
+
+dotenv.config()
 
 export async function sendOtpEmail({ toEmail, otp, serviceId, templateId, publicKey, privateKey }) {
   if (!serviceId || !templateId || !publicKey) {
@@ -22,17 +26,17 @@ export async function sendOtpEmail({ toEmail, otp, serviceId, templateId, public
     template_params: templateParams,
   };
 
-  console.log('📧 Sending OTP email (EmailJS) to:', toEmail);
-  console.log('📦 EmailJS payload:', JSON.stringify(payload));
+  logger.info('📧 Sending OTP email (EmailJS) to:', toEmail);
+  logger.debug('📦 EmailJS payload:', JSON.stringify(payload));
   try {
     const resp = await axios.post('https://api.emailjs.com/api/v1.0/email/send', payload, {
       headers: { 'Content-Type': 'application/json' },
       timeout: 15000,
     });
-    console.log('✅ OTP email send response status:', resp.status);
+    logger.info('✅ OTP email send response status:', resp.status);
     return resp.data;
   } catch (err) {
-    console.error('❌ EmailJS send failed:', err.response?.status, err.response?.data || err.message);
+    logger.error('❌ EmailJS send failed:', err.response?.status, err.response?.data || err.message);
     throw err;
   }
 }

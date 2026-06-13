@@ -27,6 +27,8 @@ class ApiClient {
       const response = await fetch(url, {
         ...options,
         headers,
+        // Ensure cookies are sent with requests (auth cookie from backend)
+        credentials: 'include',
       })
 
       const data = await response.json()
@@ -51,10 +53,22 @@ class ApiClient {
   }
 
   async signIn(email: string, password: string) {
-    return this.request('/auth/login', {
+    const data = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
+
+    // Persist token + basic user info for Authorization header fallback
+    try {
+      if (typeof window !== 'undefined' && data?.token) {
+        localStorage.setItem('careersync_token', data.token)
+        localStorage.setItem('Career_Sync_user', JSON.stringify(data.user || {}))
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+
+    return data
   }
 
   async signOut() {

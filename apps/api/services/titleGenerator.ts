@@ -1,3 +1,4 @@
+import logger from '../utils/logger.js'
 /**
  * Title Generator Service
  * Generates unique, specific module titles using LLM
@@ -25,7 +26,7 @@ export async function generateModuleTitles(
 
   const prompt = buildTitleGenerationPrompt(topic, numModules, difficulty)
 
-  console.log(`🎯 Generating ${numModules} module titles for "${topic}" (${difficulty})`)
+  logger.info(`🎯 Generating ${numModules} module titles for "${topic}" (${difficulty})`)
 
   let attempt = 0
   while (attempt <= maxRetries) {
@@ -82,14 +83,14 @@ export async function generateModuleTitles(
         throw new Error('Some titles are empty or too short')
       }
 
-      console.log(`✅ Generated ${titles.length} titles`)
+      logger.info(`✅ Generated ${titles.length} titles`)
       return titles
     } catch (error) {
       attempt++
-      console.error(`❌ Attempt ${attempt} failed:`, error instanceof Error ? error.message : error)
+      logger.error(`❌ Attempt ${attempt} failed:`, error instanceof Error ? error.message : error)
 
       if (attempt > maxRetries) {
-        console.error('🔴 Max retries exceeded for title generation')
+        logger.error('🔴 Max retries exceeded for title generation')
         throw error
       }
 

@@ -238,16 +238,45 @@ const buildProfileFallback = ({ targetRole = '', userSkills = [], resumeText = '
         .filter(Boolean)
     : [];
 
+  // Expand fallback with common skill ontology and simple resume scanning
+  const commonSkills = [
+    'JavaScript','TypeScript','React','Angular','Vue','Node.js','Express','HTML','CSS',
+    'Python','Django','Flask','Pandas','NumPy','Machine Learning','SQL','PostgreSQL','MongoDB',
+    'Docker','Kubernetes','AWS','Azure','GCP','Linux','DevOps','CI/CD','Terraform',
+    'Data Science','Deep Learning','TensorFlow','PyTorch','NLP','Computer Vision',
+    'System Design','APIs','REST','GraphQL','Testing','Jest','Mocha','Cypress',
+    'Git','GitHub','Agile','Scrum','Product Management','UX','UI','Figma'
+  ];
+
+  const inferred = inferRoleSkillsFallback(targetRole);
   const requiredSkillNames = Array.from(
     new Set([
       ...normalizedUserSkills,
-      ...inferRoleSkillsFallback(targetRole),
+      ...inferred,
+      // include top common skills to increase detection
+      ...commonSkills.slice(0, 12)
     ]),
-  ).slice(0, 8);
+  ).slice(0, 12);
 
   const resumeLower = String(resumeText || '').toLowerCase();
-  const observedSkills = requiredSkillNames.filter((skill) => resumeLower.includes(skill.toLowerCase()));
-  const missingSkills = requiredSkillNames.filter((skill) => !observedSkills.includes(skill)).slice(0, 6);
+
+  // Detect skills directly mentioned in resume text (word-boundary aware)
+  const observedSet = new Set();
+  for (const skill of requiredSkillNames) {
+    const pattern = new RegExp(`\\b${skill.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+    if (pattern.test(resumeText)) observedSet.add(skill);
+    else if (resumeLower.includes(skill.toLowerCase())) observedSet.add(skill);
+  }
+
+  // also scan commonSkills for additional signals
+  for (const skill of commonSkills) {
+    if (observedSet.size >= 10) break;
+    const pattern = new RegExp(`\\b${skill.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+    if (pattern.test(resumeText)) observedSet.add(skill);
+  }
+
+  const observedSkills = Array.from(observedSet).slice(0, 10);
+  const missingSkills = requiredSkillNames.filter((skill) => !observedSet.has(skill)).slice(0, 6);
 
   return {
     requiredSkills: requiredSkillNames.map((name, index) => ({

@@ -3,6 +3,8 @@
  * Supports OpenAI embeddings or local embedding service
  */
 
+import logger from '../../utils/logger.js'
+
 const EMBEDDING_CACHE = new Map<string, number[]>()
 const EMBEDDING_CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
 
@@ -27,7 +29,7 @@ export async function getEmbedding(text: string): Promise<number[]> {
   // Check cache
   const cached = embeddingCache.get(cacheKey)
   if (cached && Date.now() - cached.timestamp < EMBEDDING_CACHE_TTL) {
-    console.log('📦 Cache hit for embedding:', text.substring(0, 50))
+    logger.debug('📦 Cache hit for embedding:', text.substring(0, 50))
     return cached.embeddings
   }
 
@@ -36,7 +38,7 @@ export async function getEmbedding(text: string): Promise<number[]> {
     const apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
     
     if (!apiKey) {
-      console.warn('⚠️ OpenAI API key not found, using mock embeddings')
+      logger.warn('⚠️ OpenAI API key not found, using mock embeddings')
       return generateMockEmbedding(text)
     }
 
@@ -54,7 +56,7 @@ export async function getEmbedding(text: string): Promise<number[]> {
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('Embedding API error:', error)
+      logger.error('Embedding API error:', error)
       throw new Error(`Failed to get embeddings: ${response.statusText}`)
     }
 
@@ -67,10 +69,10 @@ export async function getEmbedding(text: string): Promise<number[]> {
       timestamp: Date.now(),
     })
 
-    console.log('✅ Got embeddings for:', text.substring(0, 50))
+    logger.info('✅ Got embeddings for:', text.substring(0, 50))
     return embeddings
   } catch (error) {
-    console.error('Error getting embeddings:', error)
+    logger.error('Error getting embeddings:', error)
     // Fallback to mock embeddings
     return generateMockEmbedding(text)
   }
@@ -111,7 +113,7 @@ export function clearOldEmbeddingCache() {
       embeddingCache.delete(key)
     }
   }
-  console.log('🧹 Cleared old embeddings cache')
+  logger.info('🧹 Cleared old embeddings cache')
 }
 
 // Clean cache every hour

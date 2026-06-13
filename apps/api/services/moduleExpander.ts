@@ -4,6 +4,7 @@
  */
 
 import { validateModule, ensureModuleDefaults, sanitizeModule } from './utils/schemaValidation.ts'
+import logger from '../utils/logger.js'
 
 export interface ExpandedModule {
   id: number
@@ -28,7 +29,7 @@ export async function expandModules(
   difficulty: 'beginner' | 'intermediate' | 'advanced',
   totalModules: number
 ): Promise<ExpandedModule[]> {
-  console.log(`📖 Expanding ${titles.length} module titles into full structures`)
+  logger.info(`📖 Expanding ${titles.length} module titles into full structures`)
 
   const expandedModules: ExpandedModule[] = []
 
@@ -38,7 +39,7 @@ export async function expandModules(
     const weekNumber = Math.ceil((moduleNum / totalModules) * Math.max(4, totalModules / 2))
 
     try {
-      console.log(`  [${moduleNum}/${titles.length}] Expanding: "${title}"`)
+      logger.debug(`  [${moduleNum}/${titles.length}] Expanding: "${title}"`)
 
       const expanded = await expandSingleModule(
         title,
@@ -51,7 +52,7 @@ export async function expandModules(
 
       expandedModules.push(expanded)
     } catch (error) {
-      console.error(`❌ Failed to expand module ${moduleNum}:`, error)
+      logger.error(`❌ Failed to expand module ${moduleNum}:`, error)
 
       // Create fallback module
       const fallback = createFallbackModule(title, moduleNum, weekNumber)
@@ -59,7 +60,7 @@ export async function expandModules(
     }
   }
 
-  console.log(`✅ Expanded ${expandedModules.length}/${titles.length} modules`)
+  logger.info(`✅ Expanded ${expandedModules.length}/${titles.length} modules`)
   return expandedModules
 }
 
@@ -257,7 +258,7 @@ export async function retryModuleExpansion(
   try {
     return await expandSingleModule(title, topic, difficulty, moduleNum, totalModules, weekNumber)
   } catch (error) {
-    console.warn(`Retry ${attempt} for module ${moduleNum}:`, error instanceof Error ? error.message : error)
+    logger.warn(`Retry ${attempt} for module ${moduleNum}:`, error instanceof Error ? error.message : error)
     return retryModuleExpansion(
       title,
       topic,
