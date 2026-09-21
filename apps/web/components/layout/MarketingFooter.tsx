@@ -35,8 +35,8 @@ const COLUMNS: FooterColumn[] = [
 export function MarketingFooter() {
   return (
     <footer className="border-t border-border bg-muted/30">
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <div className="grid gap-8 lg:grid-cols-4">
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        <div className="grid gap-6 lg:grid-cols-4">
           <div>
             <Link href="/" className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-md bg-gradient-to-br from-indigo-600 to-purple-600 text-sm font-bold text-white shadow-sm">
@@ -44,14 +44,14 @@ export function MarketingFooter() {
               </div>
               <span className="text-base font-semibold tracking-tight">Career Sync</span>
             </Link>
-            <p className="mt-4 max-w-xs text-sm text-muted-foreground">
+            <p className="mt-3 max-w-xs text-sm text-muted-foreground">
               AI-powered career planning, roadmaps, courses, and assessments — in one place.
             </p>
           </div>
           {COLUMNS.map((col) => (
             <div key={col.heading}>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">{col.heading}</h4>
-              <ul className="mt-4 space-y-2.5">
+              <ul className="mt-3 space-y-2">
                 {col.links.map((link) => (
                   <li key={link.label}>
                     <Link
@@ -66,7 +66,7 @@ export function MarketingFooter() {
             </div>
           ))}
         </div>
-        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center">
+        <div className="mt-8 flex flex-col items-start justify-between gap-3 border-t border-border pt-5 text-xs text-muted-foreground sm:flex-row sm:items-center">
           <span>© {new Date().getFullYear()} Career Sync Inc. All rights reserved.</span>
           <div className="flex gap-4">
             <a href="https://policies.google.com/privacy" className="hover:text-foreground" target="_blank" rel="noreferrer">
