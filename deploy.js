@@ -48,5 +48,5 @@ function stopAll() {
 process.on('SIGINT', stopAll);
 process.on('SIGTERM', stopAll);
 
-console.log('Starting Career Sync: API 5000, Web 3000');
+console.log('Starting Career Sync: API 5000, Web 3002');
 services.forEach(startService);
