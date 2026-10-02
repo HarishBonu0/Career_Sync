@@ -228,6 +228,14 @@ const moduleUrls = (typeof window.getModuleUrls === 'function')
           roadmap: 'https://careersync-roadmap-oldo.onrender.com'
         });
 
+function addAuthToUrl(url) {
+  const token = localStorage.getItem('careersync_token');
+  const user = localStorage.getItem('careersync_user');
+  if (!token || !user) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}auth_token=${encodeURIComponent(token)}&auth_user=${encodeURIComponent(user)}`;
+}
+
 const HEADER_HTML = `
 <header class="careersync-header">
   <div class="careersync-header-container">
@@ -240,14 +248,14 @@ const HEADER_HTML = `
     <!-- Navigation Links -->
     <nav class="careersync-nav-links" id="careersync-nav-links">
       <a 
-        href="${moduleUrls.course}" 
+        href="${addAuthToUrl(moduleUrls.course)}"
         class="careersync-nav-link" 
         data-module="course"
       >
         📚 Course Gen
       </a>
       <a 
-        href="${moduleUrls.roadmap}" 
+        href="${addAuthToUrl(moduleUrls.roadmap)}"
         class="careersync-nav-link" 
         data-module="roadmap"
       >

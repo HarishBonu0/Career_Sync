@@ -28,12 +28,14 @@ const moduleUrls = (typeof window.getModuleUrls === 'function')
       ? {
           landing: 'http://localhost:4173',
           course: 'http://localhost:3002',
-          roadmap: 'http://localhost:5173'
+          roadmap: 'http://localhost:5173',
+          skillEval: 'http://localhost:3001'
         }
       : {
           landing: 'https://careersync-landing-oldo.onrender.com',
           course: 'https://careersync-course-gen-oldo.onrender.com',
-          roadmap: 'https://careersync-roadmap-oldo.onrender.com'
+          roadmap: 'https://careersync-roadmap-oldo.onrender.com',
+          skillEval: 'https://careersync-evaluator.onrender.com'
         });
 
 // Header HTML Template
@@ -98,7 +100,7 @@ const createHeaderHTML = (user, authenticated) => {
             padding-bottom: 4px;
             border-bottom: 2px solid transparent;
             transition: all 0.2s;
-          " onmouseover="this.style.color='#4F46E5'; this.style.borderBottomColor='#4F46E5'" 
+           " onmouseover="this.style.color='#4F46E5'; this.style.borderBottomColor='#4F46E5'"
              onmouseout="this.style.color='#374151'; this.style.borderBottomColor='transparent'">
             📚 Course Gen
           </a>
@@ -110,9 +112,21 @@ const createHeaderHTML = (user, authenticated) => {
             padding-bottom: 4px;
             border-bottom: 2px solid transparent;
             transition: all 0.2s;
-          " onmouseover="this.style.color='#4F46E5'; this.style.borderBottomColor='#4F46E5'" 
+          " onmouseover="this.style.color='#4F46E5'; this.style.borderBottomColor='#4F46E5'"
              onmouseout="this.style.color='#374151'; this.style.borderBottomColor='transparent'">
             🗺️ Roadmaps
+          </a>
+          <a href="${addAuthToUrl(moduleUrls.skillEval || 'http://localhost:3001')}" style="
+            text-decoration: none;
+            color: #374151;
+            font-weight: 500;
+            font-size: 14px;
+            padding-bottom: 4px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+          " onmouseover="this.style.color='#4F46E5'; this.style.borderBottomColor='#4F46E5'"
+             onmouseout="this.style.color='#374151'; this.style.borderBottomColor='transparent'">
+            🧠 Skill Evaluator
           </a>
         </nav>
 

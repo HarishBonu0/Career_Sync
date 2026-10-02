@@ -5,8 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "npm run start:backend",
-    "dev": "npm run start:backend",
+    "start": "npm run start:all",
+    "dev": "npm run start:all",
     "start:all": "node deploy.js",
     "start:backend": "cd backend/main-app/backend && npm start",
     "start:landing": "cd frontend/landing-page && npm run dev",

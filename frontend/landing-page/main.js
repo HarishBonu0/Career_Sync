@@ -14,13 +14,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     // UI Elements
     const navAuthContainer = document.getElementById('nav-auth-container');
 
+        function addAuthToUrl(url) {
+            const token = localStorage.getItem('careersync_token');
+            const user = localStorage.getItem('careersync_user');
+            if (!token || !user) return url;
+            const separator = url.includes('?') ? '&' : '?';
+            return `${url}${separator}auth_token=${encodeURIComponent(token)}&auth_user=${encodeURIComponent(user)}`;
+        }
+
     // Wire module launch buttons/links
     document.querySelectorAll('[data-module-target]').forEach((el) => {
         el.addEventListener('click', (e) => {
             e.preventDefault();
             const targetKey = el.getAttribute('data-module-target');
             const directUrl = el.getAttribute('data-module-url');
-            const url = (targetKey && MODULE_LINKS[targetKey]) || directUrl;
+            const url = addAuthToUrl((targetKey && MODULE_LINKS[targetKey]) || directUrl);
 
             if (url) {
                 // Open in new tab/window instead of redirecting

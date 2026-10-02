@@ -25,12 +25,14 @@ export default function Header() {
     ? {
         landing: 'https://careersync-landing-oldo.onrender.com',
         course: 'https://careersync-course-gen-oldo.onrender.com',
-        roadmap: 'https://careersync-roadmap-oldo.onrender.com'
+        roadmap: 'https://careersync-roadmap-oldo.onrender.com',
+        skillEval: 'https://careersync-evaluator.onrender.com'
       }
     : {
         landing: 'http://localhost:4173',
         course: 'http://localhost:3002',
-        roadmap: 'http://localhost:5173'
+        roadmap: 'http://localhost:5173',
+        skillEval: 'http://localhost:3001'
       }
 
   const handleLogout = async () => {
@@ -53,7 +55,7 @@ export default function Header() {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center gap-8">
-          <a 
+          <a
             href={addAuthToUrl(moduleUrls.course)}
             className="text-gray-700 font-medium text-sm hover:text-indigo-600 transition-colors pb-1 border-b-2 border-transparent hover:border-indigo-600 no-underline"
           >
@@ -64,6 +66,12 @@ export default function Header() {
             className="text-gray-700 font-medium text-sm hover:text-indigo-600 transition-colors pb-1 border-b-2 border-transparent hover:border-indigo-600 no-underline"
           >
             🗺️ Roadmaps
+          </a>
+          <a
+            href={addAuthToUrl(moduleUrls.skillEval)}
+            className="text-gray-700 font-medium text-sm hover:text-indigo-600 transition-colors pb-1 border-b-2 border-transparent hover:border-indigo-600 no-underline"
+          >
+            🧠 Skill Evaluator
           </a>
         </nav>
 

@@ -28,12 +28,14 @@ const moduleUrls = (typeof window.getModuleUrls === 'function')
       ? {
           landing: 'http://localhost:4173',
           course: 'http://localhost:3002',
-          roadmap: 'http://localhost:5173'
+          roadmap: 'http://localhost:5173',
+          skillEval: 'http://localhost:3001'
         }
       : {
           landing: 'https://careersync-landing-oldo.onrender.com',
           course: 'https://careersync-course-gen-oldo.onrender.com',
-          roadmap: 'https://careersync-roadmap-oldo.onrender.com'
+          roadmap: 'https://careersync-roadmap-oldo.onrender.com',
+          skillEval: 'https://career-sync-skill-evalutor.onrender.com'
         });
 
 // Header HTML Template
