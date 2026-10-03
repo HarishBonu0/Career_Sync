@@ -14,10 +14,12 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
 }
 
 function StudioGate({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, authStatus } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
+    if (authStatus === 'loading') return
+
     if (!isAuthenticated) {
       router.push('/login')
       return
@@ -26,7 +28,11 @@ function StudioGate({ children }: { children: React.ReactNode }) {
     if (user?.role !== 'educator' && user?.role !== 'admin') {
       router.push('/educators')
     }
-  }, [isAuthenticated, user, router])
+  }, [authStatus, isAuthenticated, user, router])
+
+  if (authStatus === 'loading') {
+    return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Checking your session…</div>
+  }
 
   if (!isAuthenticated || (user?.role !== 'educator' && user?.role !== 'admin')) {
     return null

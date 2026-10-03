@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Roadmap from '../models/Roadmap.js';
+import SkillProfile from '../models/SkillProfile.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { body, validationResult, param } from 'express-validator';
 import { withAuthenticatedUser } from '../utils/requestUser.js';
@@ -36,9 +37,10 @@ async function createRoadmapHandler(req, res) {
 
     const userObjectId = req.user?.id || (user && user !== 'guest' && mongoose.Types.ObjectId.isValid(user) ? user : null);
 
+    const normalizedStages = Array.isArray(stages) ? stages.length : Number(stages) || 0;
     const roadmap = await Roadmap.create({
-      user: userObjectId,
-      userId: userId || (userObjectId ? userObjectId.toString() : 'guest'),
+      user: req.user.id,
+      userId: req.user.id.toString(),
       userEmail: userEmail || null,
       title: title || `Roadmap to ${targetRole}`,
       description: description || '',
@@ -46,7 +48,7 @@ async function createRoadmapHandler(req, res) {
       targetRole: targetRole || '',
       timeline: timeline || '6 months',
       roadmapText: roadmapText || '',
-      stages: stages || 0,
+      stages: normalizedStages,
       milestones: milestones || [],
       status: status || 'draft'
     });
@@ -80,7 +82,8 @@ router.post(
 // Generate career roadmap and persist
 router.post(
   '/generate',
-  optionalAuth,
+  authenticate,
+  requireMongo,
   body('currentRole').isString().trim().isLength({ min: 1 }).withMessage('currentRole is required'),
   body('targetRole').isString().trim().isLength({ min: 1 }).withMessage('targetRole is required'),
   body('timeline').optional().isString().isLength({ max: 200 }),
@@ -88,8 +91,7 @@ router.post(
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const body = withAuthenticatedUser(req, req.body);
-    const { currentRole, targetRole, timeline, userId, userEmail } = body;
+    const { currentRole, targetRole, timeline } = req.body;
 
   if (!process.env.GEMINI_API_KEY) {
     return res.status(500).json({ error: 'GEMINI_API_KEY is not configured' });
@@ -154,14 +156,10 @@ Generate a detailed, actionable roadmap with specific tools, certifications, pro
     const result = await model.generateContent(prompt);
     const roadmapText = result.response.text();
 
-    const userObjectId =
-      req.user?.id ||
-      (userId && userId !== 'guest' && mongoose.Types.ObjectId.isValid(userId) ? userId : null);
-
     const roadmap = await Roadmap.create({
-      user: userObjectId,
-      userId: userId || (userObjectId ? userObjectId.toString() : 'guest'),
-      userEmail: userEmail || req.user?.email || null,
+      user: req.user.id,
+      userId: req.user.id.toString(),
+      userEmail: req.user.email,
       title: `Roadmap from ${currentRole} to ${targetRole}`,
       currentRole,
       targetRole,
@@ -196,7 +194,7 @@ router.get('/', authenticate, requireMongo, async (req, res) => {
 });
 
 // Get single roadmap by ID
-router.get('/:id', optionalAuth, requireMongo, async (req, res) => {
+router.get('/:id', authenticate, requireMongo, async (req, res) => {
   try {
     const roadmap = await Roadmap.findById(req.params.id);
     if (!roadmap) {
@@ -271,7 +269,10 @@ router.post(
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await model.generateContent(prompt);
+    const skillProfile = await SkillProfile.findOne({ user: req.user.id }).lean();
+    const persistedSkills = skillProfile?.skills?.map((skill) => `${skill.name}: ${skill.percentage}%`).join(', ') || 'No persisted assessments yet';
+    const enrichedPrompt = `${prompt}\n\nPersisted CareerOS skill profile for this authenticated user: ${persistedSkills}\nUse this profile as authoritative context where relevant.`;
+    const result = await model.generateContent(enrichedPrompt);
     const text = result?.response?.text?.() || '';
 
     res.json({ text });

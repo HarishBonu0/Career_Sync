@@ -6,8 +6,11 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 const services = [
-  { name: 'api', cwd: 'apps/api', command: 'npm', args: ['start'] },
-  { name: 'web', cwd: 'apps/web', command: 'npm', args: ['run', 'dev'] },
+  { name: 'api', cwd: 'backend/main-app/backend', command: 'npm', args: ['start'] },
+  { name: 'landing', cwd: 'frontend/landing-page', command: 'npm', args: ['run', 'dev'] },
+  { name: 'course', cwd: 'frontend/course-generation', command: 'npm', args: ['run', 'dev'] },
+  { name: 'roadmap', cwd: 'frontend/roadmap', command: 'npm', args: ['run', 'dev'] },
+  { name: 'evaluator', cwd: 'frontend/test-generation', command: 'npm', args: ['run', 'dev'] },
 ];
 
 const children = new Set();
@@ -48,5 +51,5 @@ function stopAll() {
 process.on('SIGINT', stopAll);
 process.on('SIGTERM', stopAll);
 
-console.log('Starting Career Sync: API 5000, Web 3002');
+console.log('Starting Career Sync: API 5000, Landing 4173, Course 3002, Roadmap 5173, Evaluator 3001');
 services.forEach(startService);

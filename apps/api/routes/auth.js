@@ -1,6 +1,8 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
+import crypto from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import { sendOtpEmail } from '../services/email.js';
 import { getDeviceInfo, generateSessionId } from '../utils/deviceDetector.js';
@@ -32,6 +34,32 @@ function generateOtp() {
 
 function setAuthCookie(res, token) {
   res.cookie('Career_Sync_token', token, COOKIE_OPTIONS);
+}
+
+const GOOGLE_STATE_COOKIE = 'Career_Sync_google_state';
+const GOOGLE_SCOPES = ['openid', 'email', 'profile'];
+
+function getGoogleConfig() {
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL } = process.env;
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_CALLBACK_URL) return null;
+  return { clientId: GOOGLE_CLIENT_ID, clientSecret: GOOGLE_CLIENT_SECRET, redirectUri: GOOGLE_CALLBACK_URL };
+}
+
+function getGoogleClient(config) {
+  return new OAuth2Client(config.clientId, config.clientSecret, config.redirectUri);
+}
+
+function getFrontendUrl() {
+  return (process.env.FRONTEND_URL || 'http://localhost:3002').replace(/\/$/, '');
+}
+
+function redirectToLogin(res, code) {
+  return res.redirect(`${getFrontendUrl()}/login?oauth_error=${encodeURIComponent(code)}`);
+}
+
+function statesMatch(expected, actual) {
+  if (!expected || !actual || expected.length !== actual.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(actual));
 }
 
 // Register
@@ -78,6 +106,9 @@ router.post(
       const { email, password, deviceInfo } = req.body;
       const user = await User.findOne({ email });
       if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+      if (!user.passwordHash || !user.authProviders?.includes('email')) {
+        return res.status(401).json({ error: 'This account uses Google sign-in' });
+      }
 
       const passwordMatch = await bcryptjs.compare(password, user.passwordHash);
       if (!passwordMatch) return res.status(401).json({ error: 'Invalid credentials' });
@@ -324,35 +355,91 @@ router.post('/logout-all-devices', authenticate, async (req, res) => {
   }
 });
 
-// Google Sign-In
-router.post(
-  '/google-signin',
-  body('credential').isString().withMessage('credential is required'),
-  body('email').isEmail().withMessage('Valid email is required'),
-  async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+// Begin the server-side Google OAuth authorization-code flow.
+router.get('/google', (req, res) => {
+  const config = getGoogleConfig();
+  if (!config) return redirectToLogin(res, 'not_configured');
 
-      const { credential, email, name, google_id, picture } = req.body;
-      if (!credential || !email) return res.status(400).json({ error: 'Invalid Google credential' });
-    let user = await User.findByEmail(email);
+  const state = crypto.randomBytes(32).toString('hex');
+  res.cookie(GOOGLE_STATE_COOKIE, state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 10 * 60 * 1000,
+    path: '/api/auth/google',
+  });
+
+  const client = getGoogleClient(config);
+  const authorizationUrl = client.generateAuthUrl({
+    access_type: 'online',
+    prompt: 'select_account',
+    scope: GOOGLE_SCOPES,
+    state,
+  });
+  return res.redirect(authorizationUrl);
+});
+
+router.get('/google/callback', async (req, res) => {
+  const config = getGoogleConfig();
+  if (!config) return redirectToLogin(res, 'not_configured');
+  if (req.query.error === 'access_denied') return redirectToLogin(res, 'cancelled');
+
+  const state = typeof req.query.state === 'string' ? req.query.state : '';
+  const expectedState = req.cookies?.[GOOGLE_STATE_COOKIE] || '';
+  res.clearCookie(GOOGLE_STATE_COOKIE, { path: '/api/auth/google' });
+  if (!statesMatch(expectedState, state)) return redirectToLogin(res, 'invalid_state');
+
+  const code = typeof req.query.code === 'string' ? req.query.code : '';
+  if (!code) return redirectToLogin(res, 'missing_code');
+
+  try {
+    const client = getGoogleClient(config);
+    const { tokens } = await client.getToken(code);
+    if (!tokens.id_token) return redirectToLogin(res, 'missing_identity');
+
+    const ticket = await client.verifyIdToken({ idToken: tokens.id_token, audience: config.clientId });
+    const payload = ticket.getPayload();
+    const googleId = payload?.sub;
+    const email = payload?.email?.toLowerCase();
+    if (!googleId || !email || payload.email_verified !== true) {
+      return redirectToLogin(res, 'unverified_account');
+    }
+
+    let user = await User.findOne({ googleId });
+    if (user && user.email !== email) return redirectToLogin(res, 'account_conflict');
+
+    if (!user) user = await User.findByEmail(email);
     if (!user) {
-      user = await User.create({ email, name: name || email.split('@')[0], provider: 'google', status: 'active', passwordHash: '', metadata: { google_id, picture, oauth: true } });
-    } else if (user.provider !== 'google') {
-      user.metadata = user.metadata || {};
-      user.metadata.google_id = google_id;
-      user.metadata.picture = picture;
+      user = await User.create({
+        email,
+        name: payload.name || email.split('@')[0],
+        avatar: payload.picture,
+        googleId,
+        provider: 'google',
+        authProviders: ['google'],
+        status: 'active',
+      });
+    } else {
+      user.googleId = googleId;
+      user.avatar = payload.picture || user.avatar;
+      user.authProviders = [...new Set([...(user.authProviders || []), 'google'])];
+      user.provider = user.authProviders.includes('email') ? 'both' : 'google';
       await user.save();
     }
+
     await user.recordLogin();
     const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
     setAuthCookie(res, token);
-    res.json({ message: 'Google Sign-In successful', user: user.toSafeObject() });
+    return res.redirect(`${getFrontendUrl()}/home`);
   } catch (error) {
-    console.error('Google Sign-In error:', error?.message || error);
-    res.status(500).json({ error: 'Google Sign-In failed: ' + (error?.message || '') });
+    console.error('Google OAuth callback failed:', error?.message || error);
+    return redirectToLogin(res, 'authentication_failed');
   }
+});
+
+// Retain the old route as an explicit rejection; browser-supplied identity is not trusted.
+router.post('/google-signin', (req, res) => {
+  res.status(410).json({ error: 'Google Sign-In moved to GET /api/auth/google' });
 });
 
 export default router;

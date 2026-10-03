@@ -111,30 +111,6 @@ export default function GeneratedCoursePage() {
 
   useEffect(() => {
     const loadCourse = async () => {
-      console.log('Loading course from localStorage...')
-      const courseData = typeof window !== 'undefined' ? localStorage.getItem('generatedCourse') : null
-      if (courseData) {
-        try {
-          let parsedCourse = JSON.parse(courseData)
-          if (parsedCourse && parsedCourse.title) {
-            // Ensure all modules have reading materials
-            if (parsedCourse.modules) {
-              parsedCourse.modules = ensureReadingMaterials(parsedCourse.modules)
-            }
-            console.log('📚 Course loaded. Modules:', parsedCourse.modules?.length)
-            console.log('📚 First module has reading materials:', !!parsedCourse.modules?.[0]?.readingMaterials)
-            console.log('📚 Reading materials count:', parsedCourse.modules?.[0]?.readingMaterials?.length || 0)
-            setCourse(parsedCourse)
-            trackCourseEnrollment(parsedCourse)
-            setLoading(false)
-            return
-          }
-        } catch (error) {
-          console.error('Error parsing course data:', error)
-        }
-      }
-
-      // Fallback: Try loading from MongoDB backend using API
       try {
         const courseId = params.id as string
         const courseResponse = await api.getCourse(courseId)
@@ -164,12 +140,27 @@ export default function GeneratedCoursePage() {
           }
 
           setCourse(assembled)
+          setLoading(false)
+          return
         }
       } catch (apiError) {
-        console.error('API load failure:', apiError)
-      } finally {
-        setLoading(false)
+        console.warn('Durable course load failed; checking temporary generation cache:', apiError)
       }
+
+      const courseData = typeof window !== 'undefined' ? localStorage.getItem('generatedCourse') : null
+      if (courseData) {
+        try {
+          const parsedCourse = JSON.parse(courseData)
+          if (parsedCourse?.title) {
+            parsedCourse.modules = ensureReadingMaterials(parsedCourse.modules || [])
+            setCourse(parsedCourse)
+            trackCourseEnrollment(parsedCourse)
+          }
+        } catch (error) {
+          console.error('Error parsing temporary course cache:', error)
+        }
+      }
+      setLoading(false)
     }
 
     const timer = setTimeout(loadCourse, 100)
@@ -182,14 +173,10 @@ export default function GeneratedCoursePage() {
     setSaving(true)
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-      const token = localStorage.getItem('careersync_token') || localStorage.getItem('Career_Sync_token')
 
       const saveResponse = await fetch(`${apiUrl}/courses/save`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           title: course.title,
@@ -206,6 +193,21 @@ export default function GeneratedCoursePage() {
       const saveData = await saveResponse.json()
       if (!saveResponse.ok) {
         throw new Error(saveData.error || 'Failed to save course')
+      }
+
+      const enrollmentResponse = await fetch(`${apiUrl}/profile/enroll/course`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          courseId: String(saveData.courseId),
+          courseTitle: course.title,
+          courseModuleCount: course.modules?.length || 0,
+        }),
+      })
+      const enrollmentData = await enrollmentResponse.json().catch(() => ({}))
+      if (!enrollmentResponse.ok) {
+        throw new Error(enrollmentData.error || 'Course saved but enrollment failed')
       }
 
       setSaved(true)
@@ -413,6 +415,7 @@ export default function GeneratedCoursePage() {
                         const moduleData = {
                           ...module,
                           courseTitle: course.title,
+                          courseTotalModules: course.modules?.length || 1,
                           moduleIndex: index,
                           courseId: courseIdValue
                         }
@@ -469,6 +472,7 @@ export default function GeneratedCoursePage() {
                     description: course.description,
                     content: course.rawContent || course.description,
                     courseTitle: course.title,
+                    courseTotalModules: course.modules?.length || 1,
                     moduleIndex: 0,
                     courseId: courseIdValue
                   }

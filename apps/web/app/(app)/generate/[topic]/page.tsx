@@ -149,13 +149,9 @@ export default function GenerateCoursePage() {
 
       let courseId: string | null = null
       try {
-        const token = localStorage.getItem('careersync_token') || localStorage.getItem('Career_Sync_token')
         const saveResponse = await fetch(`${API_BASE_URL}/courses/save`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({ course: data.course }),
         })

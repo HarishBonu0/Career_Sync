@@ -4,6 +4,7 @@ import { SimulationResult, FilterOptions } from '../../types/index';
 import StatsCard from './StatsCard';
 import PathwayCard from './PathwayCard';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SimulationResultsProps {
   result: SimulationResult;
@@ -15,21 +16,45 @@ export default function SimulationResults({ result }: SimulationResultsProps) {
     sort: 'Best Match',
   });
   const [displayCount, setDisplayCount] = useState(6);
+  const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const trackRoadmap = async () => {
       try {
-        const user = localStorage.getItem('Career Sync_user');
-        if (!user) return;
-        const userData = JSON.parse(user);
+        if (!isAuthenticated || !user) return;
         const savedRoadmaps = JSON.parse(localStorage.getItem('Career Sync_saved_roadmaps') || '[]');
+        const primaryPath = result.pathways?.[0];
+        const milestones = (primaryPath?.roadmap || []).map((step: any) => ({
+          title: step.title,
+          description: step.description,
+          resources: [],
+        }));
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${apiUrl}/roadmaps`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: result.input?.targetRole ? `${result.input.targetRole} Roadmap` : 'Career Roadmap',
+            currentRole: result.input?.currentRole || '',
+            targetRole: result.input?.targetRole || primaryPath?.role || '',
+            timeline: primaryPath?.timeline || '12 months',
+            stages: milestones.length,
+            milestones,
+            status: 'draft',
+          }),
+        });
+        const saved = await response.json().catch(() => ({}));
+        if (!response.ok || !saved.roadmapId) {
+          throw new Error(saved.error || 'Roadmap could not be saved');
+        }
 
         const roadmapRecord = {
-          id: `roadmap_${Date.now()}`,
+          id: saved.roadmapId,
           title: result.input?.targetRole ? `${result.input.targetRole} Roadmap` : 'Career Roadmap',
           createdAt: new Date().toISOString(),
-          stages: result.pathways?.length || 0,
-          userId: userData.id || userData.email,
+          stages: milestones.length,
+          userId: user.id,
           pathways: result.pathways?.length || 0,
         };
 
@@ -38,27 +63,6 @@ export default function SimulationResults({ result }: SimulationResultsProps) {
           savedRoadmaps.push(roadmapRecord);
           localStorage.setItem('Career Sync_saved_roadmaps', JSON.stringify(savedRoadmaps));
 
-          try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-            const token =
-              localStorage.getItem('careersync_token') ||
-              localStorage.getItem('Career_Sync_token');
-            await fetch(`${apiUrl}/profile/enroll/roadmap`, {
-              method: 'POST',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-              body: JSON.stringify({
-                roadmapId: roadmapRecord.id,
-                roadmapTitle: roadmapRecord.title,
-                roadmapStages: roadmapRecord.stages,
-              }),
-            });
-          } catch (apiError) {
-            console.log('Database sync failed, data saved locally');
-          }
         }
 
         const profileData = JSON.parse(localStorage.getItem('Career Sync_profile_data') || '{}');
@@ -73,11 +77,11 @@ export default function SimulationResults({ result }: SimulationResultsProps) {
           })
         );
       } catch (e) {
-        console.error('Error tracking roadmap:', e);
+        console.error('Roadmap persistence failed:', e)
       }
     };
     trackRoadmap();
-  }, [result]);
+  }, [isAuthenticated, result, user]);
 
   const handleFilterChange = (filterType: keyof FilterOptions, value: string) => {
     setFilters((prev) => ({ ...prev, [filterType]: value as any }));

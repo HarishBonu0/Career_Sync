@@ -27,5 +27,6 @@ const roadmapSchema = new mongoose.Schema({
 roadmapSchema.index({ user: 1, createdAt: -1 });
 roadmapSchema.index({ userId: 1, createdAt: -1 });
 roadmapSchema.index({ userEmail: 1, createdAt: -1 });
+roadmapSchema.index({ user: 1, status: 1, updatedAt: -1 });
 
 export default mongoose.model('Roadmap', roadmapSchema);

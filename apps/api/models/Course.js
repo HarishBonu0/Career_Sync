@@ -65,5 +65,6 @@ const courseSchema = new mongoose.Schema({
 courseSchema.index({ user: 1, createdAt: -1 });
 courseSchema.index({ userId: 1, createdAt: -1 });
 courseSchema.index({ userEmail: 1, createdAt: -1 });
+courseSchema.index({ user: 1, status: 1, updatedAt: -1 });
 
 export default mongoose.model('Course', courseSchema);

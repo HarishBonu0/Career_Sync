@@ -26,7 +26,7 @@ export default function Header() {
         landing: 'https://careersync-landing-oldo.onrender.com',
         course: 'https://careersync-course-gen-oldo.onrender.com',
         roadmap: 'https://careersync-roadmap-oldo.onrender.com',
-        skillEval: 'https://careersync-evaluator.onrender.com'
+        skillEval: 'https://career-sync-skill-evalutor.onrender.com'
       }
     : {
         landing: 'http://localhost:4173',

@@ -9,8 +9,10 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   passwordHash: { 
-    type: String, 
-    required: true 
+    type: String,
+    required() {
+      return !Array.isArray(this.authProviders) || this.authProviders.includes('email');
+    }
   },
   name: { 
     type: String, 
@@ -20,8 +22,22 @@ const userSchema = new mongoose.Schema({
     type: String, 
     trim: true 
   },
+  avatar: {
+    type: String,
+    trim: true
+  },
+  googleId: {
+    type: String,
+    trim: true,
+    sparse: true,
+    unique: true
+  },
+  authProviders: {
+    type: [{ type: String, enum: ['email', 'google'] }],
+    default: ['email']
+  },
   role: { 
-    type: String, 
+    type: String,
     enum: ['user', 'admin', 'learner', 'educator'], 
     default: 'user' 
   },
@@ -31,8 +47,9 @@ const userSchema = new mongoose.Schema({
     default: 'active' 
   },
   provider: { 
-    type: String, 
-    default: 'email' 
+    type: String,
+    enum: ['email', 'google', 'both'],
+    default: 'email'
   },
   lastLoginAt: { 
     type: Date 
@@ -188,6 +205,9 @@ userSchema.methods.toSafeObject = function() {
     id: this._id,
     email: this.email,
     name: this.name,
+    avatar: this.avatar,
+    provider: this.provider,
+    authProviders: this.authProviders,
     phone: this.phone,
     role: this.role,
     status: this.status,

@@ -3,15 +3,16 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Chrome } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-
 export default function SignupPage() {
   const router = useRouter()
+  const { register } = useAuth()
   const [name, setName] = React.useState('')
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
@@ -23,24 +24,12 @@ export default function SignupPage() {
     setError(null)
     setSubmitting(true)
     try {
-      const res = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ name, email, password }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(data.error || data.message || 'Sign up failed.')
+      const result = await register(name, email, password)
+      if (!result.ok) {
+        setError(result.error || 'Sign up failed.')
         return
       }
-      if (data.token) {
-        localStorage.setItem('careersync_token', data.token)
-      }
-      if (data.user) {
-        localStorage.setItem('careersync_user', JSON.stringify(data.user))
-      }
-      router.push('/dashboard')
+      router.push('/home')
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -89,6 +78,16 @@ export default function SignupPage() {
           <CardFooter className="flex flex-col gap-3">
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? 'Creating account…' : 'Create account'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={submitting}
+              onClick={() => { window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/google` }}
+            >
+              <Chrome className="mr-2 h-4 w-4" aria-hidden="true" />
+              Continue with Google
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{' '}

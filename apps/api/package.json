@@ -9,7 +9,10 @@
     "dev": "tsx watch --env-file=.env server.js",
     "test:services": "tsx test-services.js",
     "test:phase0": "node scripts/verify-phase0.mjs",
-    "test:phase1": "node scripts/verify-phase1.mjs"
+    "test:phase1": "node scripts/verify-phase1.mjs",
+    "test:phase2": "node scripts/verify-phase2.mjs",
+    "test:phase3": "node scripts/verify-phase3.mjs",
+    "inspect:phase3": "node scripts/inspect-phase3-data.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -17,12 +20,13 @@
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
-    "express-rate-limit": "^6.8.0",
-    "express-validator": "^7.0.1",
-    "helmet": "^7.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^6.8.0",
+    "express-validator": "^7.0.1",
+    "google-auth-library": "^11.1.0",
+    "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.21.0",
     "tsx": "^4.21.0",

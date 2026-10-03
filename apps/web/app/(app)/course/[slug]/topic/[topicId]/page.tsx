@@ -6,6 +6,7 @@ import { ArrowLeft, Play, CheckCircle2, Bookmark } from 'lucide-react'
 import Link from 'next/link'
 import { getYouTubeVideoForTopic } from '@/lib/youtube'
 import { YouTubeVideo } from '@/lib/youtube'
+import api from '@/lib/api'
 
 interface Topic {
   id: number
@@ -102,6 +103,12 @@ export default function TopicPage() {
         const extractedCourseId = parsed.courseId || null
         if (extractedCourseId) {
           setCourseId(extractedCourseId)
+          api.getCourse(extractedCourseId)
+            .then((courseResponse) => {
+              const serverCompletedModules = courseResponse.data?.completedModules || []
+              setCompleted(serverCompletedModules.includes(topicId))
+            })
+            .catch((error) => console.warn('Could not hydrate module progress from server:', error))
           console.log('✅ Course ID set successfully:', extractedCourseId)
           console.log('🔗 Will navigate to: /course-generated/' + extractedCourseId)
         } else {
@@ -205,54 +212,39 @@ export default function TopicPage() {
   const topic = moduleData || mockTopics[0]
 
   const markAsCompleted = async () => {
-    setCompleted(true)
     const completedTopics = JSON.parse(localStorage.getItem('completedTopics') || '[]')
-    if (!completedTopics.includes(topicId)) {
-      completedTopics.push(topicId)
-      localStorage.setItem('completedTopics', JSON.stringify(completedTopics))
-      
-      // Update progress in backend
-      try {
-        const userStr = localStorage.getItem('careeros_user')
-        const user = userStr ? JSON.parse(userStr) : null
-        const enrolledCourses = JSON.parse(localStorage.getItem('careeros_enrolled_courses') || '[]')
-        
-        if (user && enrolledCourses.length > 0) {
-          const generatedCourse = localStorage.getItem('generatedCourse')
-          const courseData = generatedCourse ? JSON.parse(generatedCourse) : null
-          
-          if (courseData) {
-            // Find the enrollment for this course
-            const enrollment = enrolledCourses.find((e: any) => e.title === courseData.title)
-            const totalModules = courseData.modules?.length || 1
-            const progress = Math.round((completedTopics.length / totalModules) * 100)
-            
-            // Update in backend
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-            const token =
-              localStorage.getItem('careersync_token') ||
-              localStorage.getItem('Career_Sync_token')
-            await fetch(`${apiUrl}/profile/progress/course/${enrollment?.id || 'new'}`, {
-              method: 'PUT',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-              body: JSON.stringify({
-                progress,
-                completed: progress === 100,
-                completedModules: completedTopics,
-              }),
-            })
-            
-            console.log('📊 Progress updated in backend:', progress + '%')
-          }
-        }
-      } catch (error) {
-        console.error('Failed to update progress in backend:', error)
-      }
+    if (completedTopics.includes(topicId)) {
+      setCompleted(true)
+      return
     }
+
+    if (!courseId) {
+      alert('This course has not been saved yet. Save the course before tracking progress.')
+      return
+    }
+
+    const nextCompletedTopics = [...completedTopics, topicId]
+    const totalModules = moduleData?.courseTotalModules || 1
+    const progress = Math.round((nextCompletedTopics.length / totalModules) * 100)
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+    const response = await fetch(`${apiUrl}/courses/${courseId}/progress`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        progress,
+        currentModule: topicId,
+        completedModules: nextCompletedTopics,
+      }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      alert(data.error || 'Progress could not be saved. Please try again.')
+      return
+    }
+
+    localStorage.setItem('completedTopics', JSON.stringify(nextCompletedTopics))
+    setCompleted(true)
   }
 
   const saveCourse = async () => {
@@ -267,13 +259,9 @@ export default function TopicPage() {
 
       const course = JSON.parse(courseData)
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-      const token = localStorage.getItem('careersync_token') || localStorage.getItem('Career_Sync_token')
       const response = await fetch(`${apiUrl}/courses/save`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ course }),
       })

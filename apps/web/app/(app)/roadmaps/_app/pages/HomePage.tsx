@@ -6,6 +6,7 @@ interface HomePageProps {
   onStartAssessment: (input: SimulationInput) => void;
   isLoading: boolean;
   errorMessage?: string;
+  savedRoadmaps?: any[];
 }
 
 const STEPS = [
@@ -15,7 +16,7 @@ const STEPS = [
   'Navigate insights, jobs, and roadmap tabs in one workspace.',
 ];
 
-export default function HomePage({ onStartAssessment, isLoading, errorMessage }: HomePageProps) {
+export default function HomePage({ onStartAssessment, isLoading, errorMessage, savedRoadmaps = [] }: HomePageProps) {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <Card className="overflow-hidden border-border">
@@ -53,6 +54,30 @@ export default function HomePage({ onStartAssessment, isLoading, errorMessage }:
         <div className="mx-auto max-w-2xl rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {errorMessage}
         </div>
+      )}
+
+      {savedRoadmaps.length > 0 && (
+        <Card className="border-border">
+          <CardContent className="p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold">Saved roadmaps</h2>
+                <p className="text-sm text-muted-foreground">Loaded from your CareerOS account.</p>
+              </div>
+              <span className="text-xs text-muted-foreground">{savedRoadmaps.length} saved</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {savedRoadmaps.slice(0, 6).map((roadmap) => (
+                <div key={roadmap._id} className="rounded-md border border-border p-4">
+                  <p className="font-medium">{roadmap.title || roadmap.targetRole || 'Career roadmap'}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {roadmap.currentRole || 'Current role'} to {roadmap.targetRole || 'Target role'} · {roadmap.progress || 0}% complete
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <SimulationForm onSubmit={onStartAssessment} isLoading={isLoading} />

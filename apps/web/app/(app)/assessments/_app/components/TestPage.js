@@ -68,7 +68,7 @@ const TestPage = () => {
       sessionStorage.setItem('testResult', JSON.stringify(result));
       sessionStorage.setItem('testQuestions', JSON.stringify(questions));
       sessionStorage.setItem('userAnswers', JSON.stringify(answers));
-      router.push(`/assessments/result/${courseId}`);
+      router.push(`/assessments/result/${courseId}?evaluationId=${encodeURIComponent(evaluationId)}`);
     } catch (err) {
       alert('Could not submit: ' + err.message);
       setSubmitted(false);
