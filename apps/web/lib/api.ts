@@ -10,16 +10,8 @@ class ApiClient {
 
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseUrl}${endpoint}`
-    const token =
-      typeof window !== 'undefined'
-        ? localStorage.getItem('careersync_token') ||
-          localStorage.getItem('Career_Sync_token') ||
-          localStorage.getItem('Career Sync_token')
-        : null
-
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     }
 
@@ -58,25 +50,10 @@ class ApiClient {
       body: JSON.stringify({ email, password }),
     })
 
-    // Persist token + basic user info for Authorization header fallback
-    try {
-      if (typeof window !== 'undefined' && data?.token) {
-        localStorage.setItem('careersync_token', data.token)
-        localStorage.setItem('Career_Sync_user', JSON.stringify(data.user || {}))
-      }
-    } catch (e) {
-      // ignore storage errors
-    }
-
     return data
   }
 
   async signOut() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('Career Sync_token')
-      localStorage.removeItem('Career Sync_user')
-      localStorage.removeItem('Career Sync_auth')
-    }
     return { success: true }
   }
 

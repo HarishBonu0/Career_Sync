@@ -20,6 +20,8 @@ const router = express.Router()
 import { generateCourse } from '../services/generationOrchestrator.ts'
 import CourseGeneration from '../models/CourseGeneration.js'
 import Course from '../models/Course.js'
+import { authenticate } from '../middleware/auth.js'
+import { requireMongo } from '../middleware/mongoCheck.js'
 
 /**
  * Extract difficulty level from user answers
@@ -76,6 +78,8 @@ function calculateModuleCount(timeline, difficulty) {
  */
 router.post(
   '/generate-course-v2',
+  authenticate,
+  requireMongo,
   body('topic').isString().trim().isLength({ min: 1, max: 200 }).withMessage('Topic is required and must be <=200 chars'),
   body('answers').optional().isObject().withMessage('Answers must be an object'),
   async (req, res) => {

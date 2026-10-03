@@ -59,9 +59,7 @@ export default function LoginOtpPage() {
         setError(data.error || 'Invalid or expired code.')
         return
       }
-      if (data.token) localStorage.setItem('careersync_token', data.token)
-      if (data.user) localStorage.setItem('careersync_user', JSON.stringify(data.user))
-      router.push('/dashboard')
+      router.push('/home')
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {

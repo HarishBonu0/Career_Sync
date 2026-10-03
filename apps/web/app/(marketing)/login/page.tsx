@@ -4,6 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { Chrome } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -16,6 +17,20 @@ export default function LoginPage() {
   const [password, setPassword] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
+
+  React.useEffect(() => {
+    const oauthError = new URLSearchParams(window.location.search).get('oauth_error')
+    if (!oauthError) return
+    const messages: Record<string, string> = {
+      cancelled: 'Google sign-in was cancelled.',
+      invalid_state: 'Google sign-in could not be verified. Please try again.',
+      account_conflict: 'This Google account is linked to a different CareerOS account.',
+      unverified_account: 'Google did not provide a verified email address.',
+      not_configured: 'Google sign-in is not configured yet.',
+    }
+    setError(messages[oauthError] || 'Google sign-in failed. Please try again.')
+    window.history.replaceState({}, document.title, '/login')
+  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -71,6 +86,16 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col gap-3">
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? 'Signing in…' : 'Sign in'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={submitting}
+              onClick={() => { window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/google` }}
+            >
+              <Chrome className="mr-2 h-4 w-4" aria-hidden="true" />
+              Continue with Google
             </Button>
             <div className="flex w-full justify-between text-sm text-muted-foreground">
               <Link href="/forgot-password" className="hover:text-foreground">

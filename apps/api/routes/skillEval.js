@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import SkillEvaluation from '../models/SkillEvaluation.js';
+import SkillProfile from '../models/SkillProfile.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { body, param, validationResult } from 'express-validator';
 import { withAuthenticatedUser } from '../utils/requestUser.js';
@@ -705,7 +706,8 @@ router.post(
 // Generate skill evaluation questions and persist
 router.post(
   '/evaluate',
-  optionalAuth,
+  authenticate,
+  requireMongo,
   body('skillName').isString().trim().isLength({ min: 1, max: 200 }).withMessage('skillName is required'),
   body('difficulty').optional().isIn(['beginner', 'intermediate', 'advanced']).withMessage('Invalid difficulty'),
   body('questionCount').optional().isInt({ min: 1, max: 200 }).withMessage('questionCount must be an integer between 1 and 200'),
@@ -714,7 +716,7 @@ router.post(
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { skillName, difficulty, questionCount, userId, userEmail, context } = withAuthenticatedUser(req, req.body);
+    const { skillName, difficulty, questionCount, context } = req.body;
 
   try {
     const qCount = questionCount || 20;
@@ -779,15 +781,11 @@ router.post(
       });
     }
 
-    const userObjectId =
-      req.user?.id ||
-      (userId && userId !== 'guest' && mongoose.Types.ObjectId.isValid(userId) ? userId : null);
-
     // Save evaluation to database
     const evalDoc = await SkillEvaluation.create({
-      user: userObjectId,
-      userId: userId || (userObjectId ? userObjectId.toString() : 'guest'),
-      userEmail: userEmail || req.user?.email || null,
+      user: req.user.id,
+      userId: req.user.id.toString(),
+      userEmail: req.user.email,
       skillName,
       title: `${skillName} Assessment (${diff})`,
       difficulty: diff,
@@ -880,13 +878,35 @@ router.post(
     evalDoc.completedAt = new Date();
     await evalDoc.save();
 
+    const profile = await SkillProfile.findOneAndUpdate(
+      { user: req.user.id },
+      { $setOnInsert: { user: req.user.id }, $set: { updatedAt: new Date() } },
+      { new: true, upsert: true }
+    );
+    const existingSkillIndex = profile.skills.findIndex(
+      (skill) => skill.name.toLowerCase() === evalDoc.skillName.toLowerCase()
+    );
+    const skillRecord = {
+      name: evalDoc.skillName,
+      score,
+      percentage,
+      difficulty: evalDoc.difficulty,
+      evaluationId: evalDoc._id,
+      evaluatedAt: evalDoc.completedAt,
+    };
+    if (existingSkillIndex >= 0) profile.skills[existingSkillIndex] = skillRecord;
+    else profile.skills.push(skillRecord);
+    profile.updatedAt = new Date();
+    await profile.save();
+
     res.json({
       evaluationId,
       score,
       percentage,
       correct,
       total: totalQuestions,
-      status: 'completed'
+      status: 'completed',
+      skillProfile: profile,
     });
   } catch (error) {
     console.error('Evaluation submission error:', error);
@@ -903,6 +923,17 @@ router.get('/', authenticate, requireMongo, async (req, res) => {
   } catch (error) {
     console.error('Evaluations fetch error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Latest derived skill state for the authenticated user.
+router.get('/profile/me', authenticate, requireMongo, async (req, res) => {
+  try {
+    const profile = await SkillProfile.findOne({ user: req.user.id }).lean();
+    res.json({ success: true, data: profile || { user: req.user.id, skills: [] } });
+  } catch (error) {
+    console.error('Skill profile fetch error:', error);
+    res.status(500).json({ error: 'Failed to load skill profile' });
   }
 });
 

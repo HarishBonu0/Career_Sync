@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle2, XCircle, RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const ResultPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [results, setResults] = useState([]);
   const [score, setScore] = useState(0);
@@ -15,56 +16,57 @@ const ResultPage = () => {
   const [weakAreas, setWeakAreas] = useState([]);
 
   useEffect(() => {
-    const testResult = JSON.parse(sessionStorage.getItem('testResult') || 'null');
-    const questions = JSON.parse(sessionStorage.getItem('testQuestions') || '[]');
-    const userAnswers = JSON.parse(sessionStorage.getItem('userAnswers') || '{}');
-
-    if (!testResult || !questions.length) {
-      router.push('/assessments');
-      return;
-    }
-
-    setScore(testResult.correctAnswers);
-
-    const resultData = questions.map((q) => {
-      const userAnswerLetter = userAnswers[q.id];
-      const userAnswerText = userAnswerLetter ? q.options[userAnswerLetter] : null;
-      let correctAnswerLetter = '';
-      Object.entries(q.options || {}).forEach(([letter, text]) => {
-        if (text === q.correctAnswer || testResult.weakTopics) {
-          correctAnswerLetter = letter;
+    const loadResult = async () => {
+      const evaluationId = searchParams.get('evaluationId') || sessionStorage.getItem('attemptId');
+      let evaluation = null;
+      if (evaluationId) {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+          const response = await fetch(`${apiUrl}/skills/${evaluationId}`, { credentials: 'include' });
+          if (response.ok) evaluation = (await response.json()).data;
+        } catch (error) {
+          console.warn('Could not load persisted evaluation:', error);
         }
+      }
+
+      const testResult = JSON.parse(sessionStorage.getItem('testResult') || 'null');
+      const questions = evaluation?.questions || JSON.parse(sessionStorage.getItem('testQuestions') || '[]');
+      const userAnswers = JSON.parse(sessionStorage.getItem('userAnswers') || '{}');
+      if (!questions.length || (!evaluation && !testResult)) {
+        router.push('/assessments');
+        return;
+      }
+
+      setScore(evaluation?.correctAnswers ?? testResult?.correctAnswers ?? testResult?.correct ?? 0);
+      const resultData = questions.map((q, index) => {
+        const answer = q.userAnswer ?? userAnswers[q.id] ?? userAnswers[index];
+        return {
+          question: q.question,
+          userAnswer: answer,
+          userAnswerText: answer,
+          correctAnswer: q.correctAnswer,
+          isCorrect: q.isCorrect ?? answer === q.correctAnswer,
+          topic: q.topic || q.mainTopic || q.sourceSkill || 'General',
+          options: q.options,
+        };
       });
-      return {
-        question: q.question,
-        userAnswer: userAnswerLetter,
-        userAnswerText,
-        correctAnswer: correctAnswerLetter,
-        isCorrect: userAnswerText === q.correctAnswer,
-        topic: q.topic || q.mainTopic,
-        options: q.options,
-      };
-    });
+      setResults(resultData);
 
-    setResults(resultData);
-
-    const topics = {};
-    resultData.forEach((result) => {
-      if (!topics[result.topic]) topics[result.topic] = { total: 0, correct: 0 };
-      topics[result.topic].total++;
-      if (result.isCorrect) topics[result.topic].correct++;
-    });
-    setTopicAnalysis(topics);
-
-    setWeakAreas(
-      Object.entries(topics)
-        .filter(([, stats]) => stats.correct / stats.total < 0.5)
-        .map(([topic, stats]) => ({
-          topic,
-          percentage: Math.round((stats.correct / stats.total) * 100),
-        }))
-    );
-  }, [router]);
+      const topics = {};
+      resultData.forEach((result) => {
+        if (!topics[result.topic]) topics[result.topic] = { total: 0, correct: 0 };
+        topics[result.topic].total++;
+        if (result.isCorrect) topics[result.topic].correct++;
+      });
+      setTopicAnalysis(topics);
+      setWeakAreas(
+        Object.entries(topics)
+          .filter(([, stats]) => stats.correct / stats.total < 0.5)
+          .map(([topic, stats]) => ({ topic, percentage: Math.round((stats.correct / stats.total) * 100) }))
+      );
+    };
+    loadResult();
+  }, [router, searchParams]);
 
   const total = results.length;
   const percentage = total > 0 ? Math.round((score / total) * 100) : 0;

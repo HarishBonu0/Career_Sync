@@ -427,16 +427,11 @@ function mergeDerivedSkills(
 
 async function analyzeProfileWithGemini(input: SimulationInput): Promise<ProfileAnalysisResponse | null> {
   try {
-    const token =
-      typeof window !== 'undefined'
-        ? localStorage.getItem('careersync_token') || localStorage.getItem('Career_Sync_token')
-        : null;
     const response = await fetch(`${getBackendBaseUrl()}/api/skills/analyze-profile`, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({
         currentRole: input.currentRole,

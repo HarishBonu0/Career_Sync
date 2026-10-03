@@ -124,7 +124,7 @@ const createHeaderHTML = (user, authenticated) => {
             padding-bottom: 4px;
             border-bottom: 2px solid transparent;
             transition: all 0.2s;
-          " onmouseover="this.style.color='#4F46E5'; this.style.borderBottomColor='#4F46E5'"
+          " onmouseover="this.style.color='#4F46E5'; this.style.borderBottomColor='#4F46E5'" 
              onmouseout="this.style.color='#374151'; this.style.borderBottomColor='transparent'">
             🧠 Skill Evaluator
           </a>

@@ -6,14 +6,21 @@ interface User {
   id: string
   name: string
   email: string
+  avatar?: string
+  provider?: 'email' | 'google' | 'both'
+  authProviders?: ('email' | 'google')[]
   role?: 'learner' | 'educator' | 'admin'
 }
+
+type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'error'
 
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<boolean>
+  register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   logout: () => void
   isAuthenticated: boolean
+  authStatus: AuthStatus
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -21,61 +28,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // API URL
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
-function setAuthCookie(token: string) {
-  if (typeof window === 'undefined') return
-  document.cookie = `Career_Sync_token=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 7}`
-}
-
-function clearAuthCookie() {
-  if (typeof window === 'undefined') return
-  document.cookie = 'Career_Sync_token=; path=/; max-age=0'
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('loading')
 
   useEffect(() => {
-    // Extract auth from URL parameters on mount (for cross-domain navigation)
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search)
-      const authToken = urlParams.get('auth_token')
-      const authUser = urlParams.get('auth_user')
-      
-      if (authToken && authUser) {
-        console.log('✅ Auth found in URL, storing in localStorage')
-        localStorage.setItem('careersync_token', authToken)
-        localStorage.setItem('careersync_user', authUser)
-        setAuthCookie(authToken)
-        
-        // Parse and set user
-        try {
-          const userData = JSON.parse(authUser)
-          setUser(userData)
-          setIsAuthenticated(true)
-        } catch (e) {
-          console.error('Error parsing auth_user from URL:', e)
-        }
-        
-        // Clean URL by removing auth parameters
-        const cleanUrl = window.location.pathname + 
-          (urlParams.toString() === '' ? '' : '?' + 
-           Array.from(urlParams.entries())
-                .filter(([key]) => !key.startsWith('auth_'))
-                .map(([key, val]) => `${key}=${val}`)
-                .join('&'))
-        window.history.replaceState({}, document.title, cleanUrl)
-
-        // In local development, URL bootstrap is authoritative so protected pages
-        // don't immediately fall back to the unauthenticated state while the API is unavailable.
-        return
-      }
-    }
-
-    // Check authentication on mount
     checkAuth()
 
-    // Poll auth status every 10 seconds
     const authCheckInterval = setInterval(checkAuth, 10000)
     
     return () => {
@@ -85,56 +44,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      // Get token from localStorage for cross-domain auth
-      const token = typeof window !== 'undefined' ? localStorage.getItem('careersync_token') : null
-      
-      const headers: HeadersInit = {}
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`
-      }
-      
-      // Try backend API first
       const response = await fetch(`${API_URL}/auth/me`, {
         credentials: 'include', // Include cookies
-        headers
       })
 
       if (response.ok) {
         const data = await response.json()
         const userData = data.user || data
         setUser(userData)
-        setIsAuthenticated(true)
-        // Store user data for other apps to access
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('careersync_user', JSON.stringify(userData))
-        }
+        setAuthStatus('authenticated')
         return
       }
-    } catch (error) {
-      console.log('Backend auth check failed, trying localStorage fallback:', error)
-    }
-
-    // Fallback to localStorage if backend fails
-    if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('careersync_user')
-      const storedToken = localStorage.getItem('careersync_token')
-      
-      if (storedUser) {
-        try {
-          const userData = JSON.parse(storedUser)
-          console.log('✅ Using localStorage auth:', userData)
-          setUser(userData)
-          setIsAuthenticated(true)
-          return
-        } catch (e) {
-          console.error('Error parsing stored user:', e)
-        }
+      if (response.status === 401) {
+        setUser(null)
+        setAuthStatus('unauthenticated')
+        return
       }
+      setUser(null)
+      setAuthStatus('error')
+    } catch (error) {
+      console.error('Backend auth check failed:', error)
+      setUser(null)
+      setAuthStatus('error')
     }
-
-    // No auth found
-    setUser(null)
-    setIsAuthenticated(false)
   }
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -151,28 +83,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const data = await response.json()
         const userData = data.user || data
-        
-        // Store token if provided
-        if (data.token && typeof window !== 'undefined') {
-          localStorage.setItem('careersync_token', data.token)
-          setAuthCookie(data.token)
-          console.log('✅ Token stored:', data.token.substring(0, 20) + '...')
-        }
-        
-        // Store user data
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('careersync_user', JSON.stringify(userData))
-          console.log('✅ User stored:', userData)
-        }
-        
         setUser(userData)
-        setIsAuthenticated(true)
+        setAuthStatus('authenticated')
         return true
       }
       
       return false
     } catch (error) {
       return false
+    }
+  }
+
+  const register = async (name: string, email: string, password: string) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name, email, password }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) return { ok: false, error: data.error || data.message || 'Sign up failed.' }
+      setUser(data.user || null)
+      setAuthStatus('authenticated')
+      return { ok: true }
+    } catch {
+      return { ok: false, error: 'Unable to reach the authentication server.' }
     }
   }
 
@@ -186,19 +122,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Logout error:', error)
     }
     
-    // Clear localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('careersync_token')
-      localStorage.removeItem('careersync_user')
-      clearAuthCookie()
-    }
-    
     setUser(null)
-    setIsAuthenticated(false)
+    setAuthStatus('unauthenticated')
   }
 
+  const isAuthenticated = authStatus === 'authenticated'
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated, authStatus }}>
       {children}
     </AuthContext.Provider>
   )

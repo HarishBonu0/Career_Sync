@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import Course from '../models/Course.js';
 import Roadmap from '../models/Roadmap.js';
 import SkillEvaluation from '../models/SkillEvaluation.js';
+import SkillProfile from '../models/SkillProfile.js';
 import { authenticate } from '../middleware/auth.js';
 import { userOwnsParam, withAuthenticatedUser } from '../utils/requestUser.js';
 import { body, param, validationResult } from 'express-validator';
@@ -19,20 +20,43 @@ router.post(
   requireMongo,
   body('courseTitle').isString().trim().isLength({ min: 1 }).withMessage('courseTitle is required'),
   body('courseId').optional().isString(),
-  body('courseModules').optional().isArray(),
+  body('courseModuleCount').optional().isInt({ min: 0 }),
+  body('courseModules').optional().custom((value) => Array.isArray(value) || Number.isInteger(value)).withMessage('courseModules must be an array or module count'),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     try {
-      const { courseId, courseTitle, courseModules } = req.body;
-      const { userId, userEmail, user } = withAuthenticatedUser(req, {});
+      const { courseId, courseTitle, courseModuleCount, courseModules } = req.body;
+      const { userId, userEmail } = withAuthenticatedUser(req, {});
+      const user = req.user.id;
+      let course = null;
+
+      if (courseId && mongoose.Types.ObjectId.isValid(courseId)) {
+        course = await Course.findById(courseId);
+        if (!course) return res.status(404).json({ error: 'Course not found' });
+        if (course.user && course.user.toString() !== user.toString()) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+      }
+
+      const moduleCount = Number.isInteger(courseModuleCount)
+        ? courseModuleCount
+        : Array.isArray(courseModules)
+          ? courseModules.length
+          : Number.isInteger(courseModules)
+            ? courseModules
+            : course?.modules?.length || 0;
 
     // Check if already enrolled
     const existing = await UserEnrollment.findOne({
       user,
-      courseTitle,
       type: 'course',
+      $or: [
+        ...(courseId ? [{ courseId }] : []),
+        ...(course ? [{ course: course._id }] : []),
+        { courseTitle },
+      ],
     });
 
     if (existing) {
@@ -47,9 +71,11 @@ router.post(
       user,
       userId,
       userEmail,
+      course: course?._id,
       courseId,
       courseTitle,
-      courseModules,
+      courseModules: Array.isArray(courseModules) ? courseModules : undefined,
+      courseModuleCount: moduleCount,
       courseProgress: 0,
       type: 'course',
     });
@@ -72,19 +98,39 @@ router.post(
   requireMongo,
   body('roadmapTitle').isString().trim().isLength({ min: 1 }).withMessage('roadmapTitle is required'),
   body('roadmapId').optional().isString(),
-  body('roadmapStages').optional().isArray(),
+  body('roadmapStages').optional().custom((value) => Array.isArray(value) || Number.isInteger(value)).withMessage('roadmapStages must be an array or stage count'),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     try {
       const { roadmapId, roadmapTitle, roadmapStages } = req.body;
-      const { userId, userEmail, user } = withAuthenticatedUser(req, {});
+      const { userId, userEmail } = withAuthenticatedUser(req, {});
+      const user = req.user.id;
+      let roadmap = null;
+
+      if (roadmapId && mongoose.Types.ObjectId.isValid(roadmapId)) {
+        roadmap = await Roadmap.findById(roadmapId);
+        if (!roadmap) return res.status(404).json({ error: 'Roadmap not found' });
+        if (roadmap.user && roadmap.user.toString() !== user.toString()) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+      }
+
+      const stageCount = Array.isArray(roadmapStages)
+        ? roadmapStages.length
+        : Number.isInteger(roadmapStages)
+          ? roadmapStages
+          : roadmap?.stages || 0;
 
     const existing = await UserEnrollment.findOne({
       user,
-      roadmapTitle,
       type: 'roadmap',
+      $or: [
+        ...(roadmapId ? [{ roadmapId }] : []),
+        ...(roadmap ? [{ roadmap: roadmap._id }] : []),
+        { roadmapTitle },
+      ],
     });
 
     if (existing) {
@@ -99,9 +145,10 @@ router.post(
       user,
       userId,
       userEmail,
+      roadmap: roadmap?._id,
       roadmapId,
       roadmapTitle,
-      roadmapStages,
+      roadmapStages: stageCount,
       roadmapCreatedAt: new Date(),
       type: 'roadmap',
     });
@@ -123,7 +170,8 @@ router.get('/:userId', authenticate, requireMongo, param('userId').isString().is
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
   try {
-    const { userId } = req.params;
+    const requestedUserId = req.params.userId === 'me' ? req.user.id.toString() : req.params.userId;
+    const userId = requestedUserId;
 
     if (!userOwnsParam(req, userId)) {
       return res.status(403).json({ error: 'Forbidden' });
@@ -164,13 +212,14 @@ router.get('/:userId', authenticate, requireMongo, param('userId').isString().is
     console.log('Data query:', JSON.stringify(dataQuery));
 
     // Get data from actual collections (not just enrollments)
-    const [courses, roadmaps, evaluations, enrollmentCourses, enrollmentRoadmaps, enrollmentEvaluations] = await Promise.all([
+    const [courses, roadmaps, evaluations, enrollmentCourses, enrollmentRoadmaps, enrollmentEvaluations, skillProfile] = await Promise.all([
       Course.find(dataQuery).sort({ createdAt: -1 }).lean(),
       Roadmap.find(dataQuery).sort({ createdAt: -1 }).lean(),
       SkillEvaluation.find(dataQuery).sort({ createdAt: -1 }).lean(),
       UserEnrollment.find({ ...dataQuery, type: 'course' }).sort({ createdAt: -1 }).lean(),
       UserEnrollment.find({ ...dataQuery, type: 'roadmap' }).sort({ createdAt: -1 }).lean(),
-      UserEnrollment.find({ ...dataQuery, type: 'evaluation' }).sort({ createdAt: -1 }).lean()
+      UserEnrollment.find({ ...dataQuery, type: 'evaluation' }).sort({ createdAt: -1 }).lean(),
+      SkillProfile.findOne({ user: req.user.id }).lean(),
     ]);
 
     console.log('Found:', { 
@@ -236,7 +285,7 @@ router.get('/:userId', authenticate, requireMongo, param('userId').isString().is
           duration: c.duration,
           modules: c.modules || c.totalModules,
           totalModules: c.totalModules || (Array.isArray(c.modules) ? c.modules.length : 0),
-          progress: c.progress || 0,
+          progress: c.progress ?? 0,
           enrolledAt: c.enrolledAt || c.createdAt,
           lastAccessed: c.lastAccessedAt || c.lastAccessed,
           completed: c.completed || c.status === 'completed',
@@ -265,7 +314,8 @@ router.get('/:userId', authenticate, requireMongo, param('userId').isString().is
           correctAnswers: e.correctAnswers,
           completedAt: e.completedAt,
           status: e.status
-        }))
+        })),
+        skillProfile: skillProfile || { user: req.user.id, skills: [] }
       }
     });
   } catch (error) {
@@ -295,8 +345,11 @@ router.put(
       {
         courseProgress: progress,
         courseCompleted: completed,
+        completedModules: completedModules || [],
+        currentModule: completedModules?.length || 0,
+        courseCompletedAt: completed ? new Date() : null,
         courseLastAccessed: new Date(),
-        'metadata.completedModules': completedModules,
+        'metadata.completedModules': completedModules || [],
       },
       { new: true }
     );

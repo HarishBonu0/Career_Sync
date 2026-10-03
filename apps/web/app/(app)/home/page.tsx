@@ -23,13 +23,8 @@ type ProfilePayload = {
 }
 
 async function fetchProfile(url: string): Promise<ProfilePayload> {
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('careersync_token') || localStorage.getItem('Career_Sync_token')
-      : null
   const res = await fetch(url, {
     credentials: 'include',
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   })
   if (!res.ok) throw new Error(`Profile fetch failed (${res.status})`)
   return res.json()

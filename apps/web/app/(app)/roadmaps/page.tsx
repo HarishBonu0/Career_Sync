@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import HomePage from './_app/pages/HomePage'
 import AssessmentPage from './_app/pages/AssessmentPage'
 import CareerWorkspacePage from './_app/pages/CareerWorkspacePage'
@@ -15,10 +15,14 @@ import {
   calculateAssessmentReport,
 } from './_app/services/assessmentService'
 import { simulatePathways } from './_app/services/simulationService'
+import { useAuth } from '@/contexts/AuthContext'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
 type Stage = 'form' | 'assessment' | 'workspace'
 
 export default function RoadmapsPage() {
+  const { isAuthenticated, authStatus } = useAuth()
   const [stage, setStage] = useState<Stage>('form')
   const [profileInput, setProfileInput] = useState<SimulationInput | null>(null)
   const [assessmentSession, setAssessmentSession] = useState<AssessmentSession | null>(null)
@@ -27,6 +31,18 @@ export default function RoadmapsPage() {
   const [isGeneratingAssessment, setIsGeneratingAssessment] = useState(false)
   const [isBuildingWorkspace, setIsBuildingWorkspace] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [savedRoadmaps, setSavedRoadmaps] = useState<any[]>([])
+
+  useEffect(() => {
+    if (authStatus !== 'authenticated' || !isAuthenticated) return
+    fetch(`${API_URL}/roadmaps`, { credentials: 'include' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Roadmap fetch failed (${response.status})`)
+        const data = await response.json()
+        setSavedRoadmaps(data.roadmaps || [])
+      })
+      .catch((error) => console.warn('Could not load saved roadmaps:', error))
+  }, [authStatus, isAuthenticated])
 
   const handleStartAssessment = async (input: SimulationInput) => {
     setIsGeneratingAssessment(true)
@@ -86,6 +102,7 @@ export default function RoadmapsPage() {
         <HomePage
           isLoading={isGeneratingAssessment}
           errorMessage={errorMessage}
+          savedRoadmaps={savedRoadmaps}
           onStartAssessment={handleStartAssessment}
         />
       )}

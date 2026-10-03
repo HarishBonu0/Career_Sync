@@ -1,0 +1,1672 @@
+# CareerOS — Phase 3: Unified Database, Data Ownership & Persistent User State
+
+You are continuing work on the CareerOS codebase after Phase 1 and Phase 2.
+
+## OBJECTIVE
+
+Complete **Phase 3: Unified Database & Persistence**.
+
+The goal is to make MongoDB Atlas the **single source of truth for all important CareerOS user data**.
+
+After this phase, a user must be able to:
+
+```text
+Register/Login
+      ↓
+Evaluate skills
+      ↓
+Refresh browser
+      ↓
+Skills still exist
+
+Generate roadmap
+      ↓
+Refresh browser
+      ↓
+Roadmap still exists
+
+Generate course
+      ↓
+Enroll
+      ↓
+Complete modules
+      ↓
+Refresh browser
+      ↓
+Progress still exists
+
+Logout
+      ↓
+Login again
+      ↓
+All user data still exists
+```
+
+The browser must no longer be responsible for permanently storing CareerOS application data.
+
+---
+
+# 1. IMPORTANT SAFETY RULES
+
+Before changing anything:
+
+1. Inspect Git status.
+2. Preserve all existing user changes.
+3. Create a Git checkpoint/branch if appropriate.
+4. Do not delete legacy applications yet.
+5. Do not perform destructive database migrations.
+6. Do not drop MongoDB collections.
+7. Do not delete existing user records.
+8. Do not rewrite working authentication from Phase 2.
+9. Do not change Google authentication unless required for persistence integration.
+10. Do not change AI providers unnecessarily.
+11. Do not redesign the UI yet.
+12. Do not deploy production changes during this phase.
+13. Do not remove localStorage/sessionStorage until equivalent server persistence is verified.
+14. Every migration must be reversible.
+
+---
+
+# 2. CURRENT PERSISTENCE PROBLEM
+
+Phase 1 identified that CareerOS currently mixes:
+
+```text
+MongoDB
+React state
+localStorage
+sessionStorage
+temporary API responses
+```
+
+Examples include:
+
+* assessment handoff in `sessionStorage`
+* course topic/module state in `localStorage`
+* roadmap snapshots in `localStorage`
+* authentication state previously stored in localStorage
+* React state containing generated content before persistence
+
+These browser stores must no longer be the source of truth for durable CareerOS data.
+
+The Phase 2 authentication work has already removed authentication state from localStorage. Preserve that architecture.
+
+---
+
+# 3. TARGET DATA ARCHITECTURE
+
+The target architecture is:
+
+```text
+                    CareerOS User
+                         │
+                         │ User._id
+                         ▼
+                 ┌───────────────┐
+                 │   MongoDB     │
+                 │    Atlas      │
+                 └───────┬───────┘
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+       Skills         Roadmaps        Courses
+          │              │              │
+          │              │              ▼
+          │              │         Enrollments
+          │              │              │
+          │              │              ▼
+          │              │           Progress
+          │              │
+          └──────────────┴──────────────┐
+                                       ▼
+                              CareerOS Dashboard
+```
+
+MongoDB must be the authoritative source for:
+
+* User profile
+* Skill evaluations
+* Skill profile
+* Roadmaps
+* Courses
+* Course enrollment
+* Course progress
+* Roadmap progress
+* Evaluation history
+* Completion state
+* Relevant generated artifacts
+
+---
+
+# 4. AUDIT ALL EXISTING MODELS FIRST
+
+Inspect:
+
+```text
+apps/api/models/
+```
+
+especially:
+
+```text
+User.js
+Course.js
+CourseGeneration.js
+Roadmap.js
+SkillEvaluation.js
+UserEnrollment.js
+```
+
+Do not immediately modify them.
+
+For each model document:
+
+* Primary identifier
+* User relationship
+* Required fields
+* Optional fields
+* Duplicate identity fields
+* Progress fields
+* Status fields
+* Timestamps
+* Indexes
+* Unique constraints
+* References to other models
+
+Produce a before/after schema plan before implementing structural changes.
+
+---
+
+# 5. STANDARDIZE USER OWNERSHIP
+
+The canonical ownership identifier is:
+
+```text
+User._id
+```
+
+Use the authenticated user from Phase 2:
+
+```text
+req.user.id
+```
+
+or the project's equivalent.
+
+Do not trust browser-supplied:
+
+```text
+userId
+userEmail
+```
+
+when the authenticated request already identifies the user.
+
+For every user-owned document, establish a reliable relationship:
+
+```text
+document.user → User._id
+```
+
+---
+
+# 6. COMPATIBILITY FIELDS
+
+Existing documents may contain:
+
+```text
+user
+userId
+userEmail
+```
+
+Do not immediately delete compatibility fields.
+
+Instead:
+
+1. Identify which records use which fields.
+2. Determine whether they can be mapped to `User._id`.
+3. Create a safe migration strategy.
+4. Update application logic to prefer canonical ownership.
+5. Keep compatibility fields temporarily if necessary.
+6. Remove them only in a later cleanup phase after migration verification.
+
+Do not lose existing user data.
+
+---
+
+# 7. USER PROFILE
+
+Ensure the User model contains the information required by the unified platform.
+
+Potential areas:
+
+```text
+identity
+profile
+education
+career goals
+preferences
+skills
+authentication metadata
+```
+
+Do not duplicate entire course/roadmap/evaluation objects inside the User document unless there is a strong architectural reason.
+
+Prefer references:
+
+```text
+User
+ ↓
+Course documents
+Roadmap documents
+SkillEvaluation documents
+Enrollment documents
+```
+
+Avoid creating an oversized User document.
+
+---
+
+# 8. COURSE DATA MODEL
+
+Audit:
+
+```text
+Course
+CourseGeneration
+UserEnrollment
+```
+
+Determine the exact purpose of each.
+
+The target conceptual relationship should be:
+
+```text
+User
+ │
+ ├──── CourseGeneration
+ │
+ ├──── Course
+ │
+ └──── UserEnrollment
+              │
+              └──── Course
+```
+
+A generated course must have:
+
+* owner
+* stable ID
+* title
+* description
+* modules
+* metadata
+* status
+* timestamps
+
+Enrollment must have:
+
+* user
+* course
+* enrollment status
+* progress
+* completed modules
+* startedAt
+* completedAt where applicable
+* updatedAt
+
+---
+
+# 9. FIX THE COURSE ENROLLMENT CONTRACT
+
+Phase 1 discovered a real contract mismatch:
+
+```text
+profile.js
+```
+
+expects:
+
+```text
+courseModules: array
+```
+
+while:
+
+```text
+UserEnrollment
+```
+
+uses:
+
+```text
+courseModules: Number
+```
+
+and the Phase 0 verification sends:
+
+```json
+{
+  "courseModules": 3
+}
+```
+
+The Phase 1 report explicitly identifies this as a real implementation/schema mismatch.
+
+Resolve this deliberately.
+
+First determine what the application actually needs:
+
+### If it needs a count:
+
+Use:
+
+```text
+courseModuleCount: Number
+```
+
+### If it needs the actual module records:
+
+Use an appropriate array/reference structure.
+
+Do NOT simply modify the validator until the test passes.
+
+Update:
+
+* Model
+* Validation
+* API
+* Frontend
+* Tests
+* Existing data handling
+
+so the contract is consistent everywhere.
+
+---
+
+# 10. COURSE GENERATION PERSISTENCE
+
+When a user generates a course:
+
+```text
+User
+ ↓
+Generate
+ ↓
+Validate generated response
+ ↓
+Create persistent CourseGeneration
+ ↓
+Create/update Course
+ ↓
+Return persistent Course ID
+```
+
+The frontend must receive a durable identifier.
+
+Do not rely on generated content remaining in React state.
+
+After generation:
+
+```text
+GET /courses/:id
+```
+
+must be sufficient to reconstruct the course page.
+
+---
+
+# 11. COURSE ENROLLMENT
+
+Implement a reliable flow:
+
+```text
+User
+ ↓
+Select course
+ ↓
+Enroll
+ ↓
+UserEnrollment created
+ ↓
+Dashboard displays enrollment
+```
+
+Prevent duplicate enrollment.
+
+Use a suitable unique constraint or idempotent server-side logic.
+
+Repeated:
+
+```text
+POST /profile/enroll/course
+```
+
+must not create unlimited duplicate enrollment records.
+
+---
+
+# 12. COURSE PROGRESS
+
+Course progress must be persisted server-side.
+
+For example:
+
+```text
+CourseEnrollment
+├── progress
+├── completedModules
+├── currentModule
+├── startedAt
+├── completedAt
+└── updatedAt
+```
+
+The exact schema should follow the existing application requirements.
+
+When the user completes a module:
+
+```text
+Browser
+ ↓
+API
+ ↓
+MongoDB
+```
+
+not:
+
+```text
+Browser
+ ↓
+localStorage
+```
+
+---
+
+# 13. COURSE RESUME
+
+After:
+
+```text
+logout
+login
+refresh
+new browser session
+```
+
+the user should be able to open:
+
+```text
+My Courses
+```
+
+and resume exactly where they left off.
+
+The server must return:
+
+* enrolled courses
+* progress
+* current module
+* completion status
+
+---
+
+# 14. ROADMAP DATA MODEL
+
+Audit the current:
+
+```text
+Roadmap
+UserEnrollment
+roadmap services
+simulation services
+```
+
+The roadmap should be persistently associated with the authenticated user.
+
+Minimum conceptual structure:
+
+```text
+Roadmap
+├── user
+├── targetRole
+├── timeline
+├── stages
+├── milestones
+├── status
+├── progress
+├── createdAt
+└── updatedAt
+```
+
+Use the actual existing schema where appropriate.
+
+Do not invent fields unnecessarily.
+
+---
+
+# 15. ROADMAP GENERATION PERSISTENCE
+
+When a user generates a roadmap:
+
+```text
+Authenticated User
+        ↓
+Generate
+        ↓
+Validate response
+        ↓
+Save Roadmap
+        ↓
+Return Roadmap ID
+        ↓
+Frontend navigates to /roadmaps/:id
+```
+
+The generated roadmap must survive:
+
+* refresh
+* logout
+* login
+* browser restart
+
+---
+
+# 16. ROADMAP PROGRESS
+
+Persist:
+
+* current stage
+* completed milestones
+* overall progress
+* status
+* timestamps
+
+Do not depend on:
+
+```text
+localStorage
+sessionStorage
+React state
+```
+
+for durable progress.
+
+---
+
+# 17. REMOVE ROADMAP SNAPSHOT AS SOURCE OF TRUTH
+
+The Phase 1 report identified roadmap snapshots in localStorage.
+
+Replace the persistence dependency with MongoDB.
+
+localStorage may temporarily be used as a performance/UI cache if necessary.
+
+But:
+
+```text
+MongoDB = source of truth
+localStorage = optional cache
+```
+
+If cache and server disagree:
+
+```text
+Server wins.
+```
+
+---
+
+# 18. SKILL EVALUATION DATA MODEL
+
+Audit:
+
+```text
+SkillEvaluation
+skills
+assessment routes
+profile analysis
+evaluation history
+```
+
+The evaluation lifecycle should be:
+
+```text
+Created
+   ↓
+Questions generated
+   ↓
+User answers
+   ↓
+Submitted
+   ↓
+Scored
+   ↓
+Result persisted
+   ↓
+Skill profile updated
+```
+
+Every important step must have a durable representation where appropriate.
+
+---
+
+# 19. SKILL EVALUATION PERSISTENCE
+
+When an evaluation is submitted:
+
+```text
+POST /api/skills/submit
+        ↓
+Validate authenticated user
+        ↓
+Score evaluation
+        ↓
+Save evaluation
+        ↓
+Update skill profile
+        ↓
+Return persistent result
+```
+
+The result must remain available after refresh and re-login.
+
+---
+
+# 20. SKILL HISTORY
+
+Do not overwrite historical evaluations unnecessarily.
+
+A user should be able to have:
+
+```text
+Skill Evaluation #1
+Skill Evaluation #2
+Skill Evaluation #3
+```
+
+where appropriate.
+
+Preserve:
+
+* score
+* skill
+* difficulty
+* date
+* status
+* feedback
+
+This enables future skill progression.
+
+---
+
+# 21. SKILL PROFILE
+
+Determine whether the current system has a dedicated skill profile or derives it from evaluations.
+
+Choose one clear source of truth.
+
+Prefer:
+
+```text
+Evaluation History
+       ↓
+Skill Profile
+```
+
+where the skill profile represents the latest/derived state.
+
+Avoid conflicting values such as:
+
+```text
+localStorage skill score
+MongoDB skill score
+React skill score
+```
+
+---
+
+# 22. CONNECT SKILLS → ROADMAP
+
+Once skill evaluation data is persisted:
+
+```text
+Skill Profile
+      ↓
+Roadmap Generator
+```
+
+The roadmap generator should use the authenticated user's persisted skill information where the product requires personalization.
+
+Do not rely on the frontend passing a manually fabricated user profile.
+
+---
+
+# 23. CONNECT SKILLS → COURSES
+
+Likewise:
+
+```text
+Skill Profile
+      ↓
+Course recommendations/generation
+```
+
+where supported by the existing product design.
+
+The authenticated user's persisted data should be available to the course generation layer.
+
+Do not duplicate entire user profiles unnecessarily.
+
+---
+
+# 24. PROFILE ENROLLMENT APIs
+
+Audit:
+
+```text
+POST /profile/enroll/course
+POST /profile/enroll/roadmap
+GET /profile/:userId
+PUT /profile/progress/course/:courseId
+PUT /profile/progress/roadmap/:roadmapId
+POST /profile/sync
+```
+
+The Phase 1 report confirms these are the existing persistence-related routes.
+
+For every endpoint:
+
+* derive user from authentication
+* validate ownership
+* prevent cross-user access
+* make writes idempotent where appropriate
+* return consistent responses
+* handle missing records correctly
+
+---
+
+# 25. PROFILE API SECURITY
+
+Avoid relying on:
+
+```text
+GET /profile/:userId
+```
+
+with arbitrary browser-supplied IDs for normal user access.
+
+If the endpoint is user-self-service:
+
+```text
+GET /profile/me
+```
+
+is preferable.
+
+If retaining `/profile/:userId` for compatibility:
+
+* authenticate
+* authorize
+* verify the requested ID belongs to the current user
+* reject unauthorized access
+
+Do not expose another user's profile.
+
+---
+
+# 26. DASHBOARD DATA
+
+The dashboard must become database-driven.
+
+It should retrieve:
+
+```text
+Current user
+Enrolled courses
+Course progress
+Completed courses
+Current roadmap
+Roadmap progress
+Skill evaluations
+Current skill profile
+```
+
+Do not reconstruct dashboard state primarily from localStorage.
+
+---
+
+# 27. REFRESH TEST
+
+For every major feature:
+
+### Course
+
+```text
+Generate
+→ Refresh
+→ Data remains
+```
+
+### Enrollment
+
+```text
+Enroll
+→ Refresh
+→ Enrollment remains
+```
+
+### Course progress
+
+```text
+Complete module
+→ Refresh
+→ Progress remains
+```
+
+### Roadmap
+
+```text
+Generate
+→ Refresh
+→ Roadmap remains
+```
+
+### Roadmap progress
+
+```text
+Complete milestone
+→ Refresh
+→ Progress remains
+```
+
+### Skill evaluation
+
+```text
+Submit
+→ Refresh
+→ Result remains
+```
+
+---
+
+# 28. LOGOUT/LOGIN PERSISTENCE TEST
+
+This is mandatory.
+
+For every data type:
+
+```text
+Login
+ ↓
+Create data
+ ↓
+Logout
+ ↓
+Login
+ ↓
+Retrieve data
+```
+
+Verify:
+
+```text
+same User._id
+same Course ownership
+same Enrollment
+same Roadmap ownership
+same Evaluation ownership
+same Progress
+```
+
+---
+
+# 29. GOOGLE USER PERSISTENCE
+
+Use the Google-authenticated user exactly like an email-authenticated user.
+
+Test:
+
+```text
+Continue with Google
+ ↓
+User created/found
+ ↓
+Generate course
+ ↓
+Generate roadmap
+ ↓
+Evaluate skill
+ ↓
+Enroll
+ ↓
+Logout
+ ↓
+Google login again
+ ↓
+Everything remains
+```
+
+Do not create separate persistence logic for Google users.
+
+---
+
+# 30. MULTI-USER ISOLATION
+
+Create two test users:
+
+```text
+User A
+User B
+```
+
+User A creates:
+
+* Course
+* Enrollment
+* Roadmap
+* Evaluation
+* Progress
+
+Then login as User B.
+
+User B must NOT see User A's data.
+
+Test direct API access as well as UI access.
+
+---
+
+# 31. DATABASE INDEXES
+
+Audit indexes for:
+
+```text
+User
+Course
+CourseGeneration
+Roadmap
+SkillEvaluation
+UserEnrollment
+```
+
+Potential areas:
+
+```text
+user
+user + course
+user + roadmap
+user + evaluation
+googleId
+email
+```
+
+Do not blindly add indexes.
+
+Use the actual query patterns.
+
+Avoid duplicate or conflicting indexes.
+
+---
+
+# 32. DUPLICATE RECORD PREVENTION
+
+Ensure repeated requests don't create duplicate records.
+
+Examples:
+
+```text
+Repeated enrollment
+Repeated save
+Repeated progress update
+Repeated roadmap generation
+Repeated evaluation submission
+```
+
+Use appropriate idempotency or unique constraints where needed.
+
+Do not prevent legitimate separate evaluations or separate generated roadmaps.
+
+---
+
+# 33. TRANSACTION/ATOMICITY REVIEW
+
+Identify operations involving multiple database writes.
+
+For example:
+
+```text
+Create course
++
+Create enrollment
+```
+
+or:
+
+```text
+Submit evaluation
++
+Update skill profile
+```
+
+Determine whether MongoDB transactions are appropriate.
+
+Do not add transactions everywhere.
+
+Use them where partial writes could create inconsistent application state.
+
+---
+
+# 34. BROWSER STORAGE AUDIT
+
+Search the entire active application for:
+
+```text
+localStorage
+sessionStorage
+```
+
+Classify every usage:
+
+### Authentication
+
+Must already be removed/rejected.
+
+### Durable application data
+
+Move to MongoDB.
+
+### Temporary UI state
+
+May remain.
+
+### Cache
+
+May remain if server remains source of truth.
+
+### Legacy code
+
+Mark for later removal.
+
+Do not blindly delete every localStorage usage.
+
+---
+
+# 35. API RESPONSE CONTRACTS
+
+Standardize important persistence responses.
+
+For example:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "...",
+    "..."
+  }
+}
+```
+
+Use the project's existing conventions if they are already established.
+
+Avoid creating multiple incompatible response formats.
+
+---
+
+# 36. ERROR HANDLING
+
+Handle:
+
+```text
+401 Unauthorized
+403 Forbidden
+404 Not Found
+409 Conflict
+422 Validation Error
+500 Server Error
+```
+
+appropriately.
+
+Examples:
+
+* Course doesn't belong to user → 403/404 according to security design
+* Duplicate enrollment → 409 or idempotent success
+* Invalid course → 422
+* Missing roadmap → 404
+* Missing authentication → 401
+
+Do not return sensitive database errors to users.
+
+---
+
+# 37. DATABASE FAILURE HANDLING
+
+Test what happens when MongoDB is temporarily unavailable.
+
+The UI must not:
+
+```text
+pretend a save succeeded
+```
+
+if the database write failed.
+
+For example:
+
+```text
+User completes course module
+ ↓
+MongoDB write fails
+ ↓
+UI must know save failed
+ ↓
+Show retry/error state
+```
+
+Do not silently discard failed writes.
+
+---
+
+# 38. OFFLINE / NETWORK FAILURE
+
+Determine the intended behavior when:
+
+```text
+network unavailable
+API unavailable
+MongoDB unavailable
+```
+
+For critical persistence:
+
+```text
+Save failed
+```
+
+must be distinguishable from:
+
+```text
+Save successful
+```
+
+If local caching is used, clearly mark unsynchronized data.
+
+Do not falsely display persisted progress.
+
+---
+
+# 39. DATA VALIDATION
+
+Validate server-side:
+
+* Course IDs
+* Roadmap IDs
+* Evaluation IDs
+* User ownership
+* Progress ranges
+* Module indexes
+* Status values
+* Required fields
+* MongoDB ObjectIds
+
+Never rely solely on frontend validation.
+
+---
+
+# 40. EXISTING DATA MIGRATION
+
+Before changing schemas:
+
+1. Inspect existing records.
+2. Count records by ownership format.
+3. Identify orphaned records.
+4. Identify duplicate records.
+5. Identify records with missing user references.
+6. Identify inconsistent course/module structures.
+7. Identify invalid progress values.
+
+Do NOT modify production data automatically.
+
+If migration is needed:
+
+* create a migration script
+* make it idempotent
+* support dry-run mode
+* output statistics
+* provide rollback strategy
+* test against a copy/local environment first
+
+---
+
+# 41. ORPHAN DATA
+
+Find records such as:
+
+```text
+Course without valid User
+Roadmap without valid User
+Evaluation without valid User
+Enrollment without valid User
+Enrollment referencing missing Course
+```
+
+Do not delete them automatically.
+
+Classify:
+
+```text
+recoverable
+ambiguous
+safe to archive
+```
+
+and report them.
+
+---
+
+# 42. TEST SUITE
+
+Add or update tests for:
+
+### Users
+
+* user creation
+* identity resolution
+* ownership
+
+### Courses
+
+* creation
+* retrieval
+* ownership
+* enrollment
+* progress
+
+### Roadmaps
+
+* creation
+* retrieval
+* ownership
+* progress
+
+### Skills
+
+* evaluation creation
+* submission
+* result retrieval
+* history
+
+### Persistence
+
+* refresh-equivalent retrieval
+* logout/login retrieval
+
+### Security
+
+* cross-user access
+* invalid IDs
+* unauthorized access
+
+---
+
+# 43. END-TO-END TEST
+
+Create one complete test journey:
+
+```text
+Create/Login User
+        ↓
+Evaluate Skill
+        ↓
+Verify evaluation persisted
+        ↓
+Generate Roadmap
+        ↓
+Verify roadmap persisted
+        ↓
+Generate Course
+        ↓
+Verify course persisted
+        ↓
+Enroll
+        ↓
+Verify enrollment persisted
+        ↓
+Update course progress
+        ↓
+Update roadmap progress
+        ↓
+Logout
+        ↓
+Login again
+        ↓
+Retrieve dashboard
+        ↓
+Verify everything exists
+```
+
+Repeat with a second user to verify isolation.
+
+---
+
+# 44. FRONTEND BEHAVIOR
+
+The frontend should follow:
+
+```text
+API → MongoDB → response → UI
+```
+
+not:
+
+```text
+UI → localStorage → pretend persistence
+```
+
+After successful writes:
+
+* update UI
+* invalidate/refetch relevant data
+* show success state
+
+After failed writes:
+
+* show error
+* preserve unsaved UI state where useful
+* allow retry
+
+---
+
+# 45. DATA FETCHING
+
+Audit SWR and existing API clients.
+
+Use the existing data-fetching architecture where possible.
+
+Ensure:
+
+* authenticated requests include credentials
+* stale data is revalidated
+* mutations invalidate relevant queries
+* errors are handled
+* duplicate requests are avoided
+
+Do not introduce a new state-management library unless necessary.
+
+---
+
+# 46. CACHE POLICY
+
+If localStorage/sessionStorage is retained as cache:
+
+```text
+MongoDB
+  ↓
+API
+  ↓
+Frontend cache
+```
+
+Never:
+
+```text
+Frontend cache
+  ↓
+overwrite authoritative server data
+```
+
+unless explicitly performing a valid mutation.
+
+Server data wins on conflict.
+
+---
+
+# 47. PERFORMANCE
+
+Do not load all historical data unnecessarily.
+
+For dashboard queries:
+
+* return only required fields
+* paginate large histories
+* use appropriate indexes
+* avoid N+1 queries
+* use aggregation/population carefully
+
+Do not sacrifice correctness for premature optimization.
+
+---
+
+# 48. PHASE 3 MUST NOT REDESIGN THE UI
+
+Do not perform major UI redesign in this phase.
+
+Only change UI when necessary to:
+
+* consume the new persistence API
+* display saved data
+* display loading states
+* display save failures
+* display empty states
+* support correct user flows
+
+Full UI redesign belongs to Phase 7.
+
+---
+
+# 49. PRODUCTION DATA SAFETY
+
+The production database must not be modified until:
+
+```text
+Local tests pass
+Schema migration tested
+Migration dry run completed
+Rollback strategy exists
+```
+
+If the current environment is connected to production MongoDB, do not run destructive scripts.
+
+Confirm the database environment before executing migrations.
+
+---
+
+# 50. FINAL VERIFICATION
+
+Run:
+
+```text
+Backend tests
+Phase 0 verification
+Phase 1 verification
+Phase 2 verification
+Phase 3 verification
+Frontend build
+MongoDB connectivity
+API health
+```
+
+Fix the Phase 0 course enrollment contract mismatch as part of this phase if it belongs to the persistence contract.
+
+Do not simply suppress the failing test.
+
+---
+
+# 51. REQUIRED PHASE 3 TEST MATRIX
+
+Report:
+
+```text
+User persistence: PASS/FAIL
+Course persistence: PASS/FAIL
+Course enrollment: PASS/FAIL
+Course progress: PASS/FAIL
+Course resume: PASS/FAIL
+
+Roadmap persistence: PASS/FAIL
+Roadmap progress: PASS/FAIL
+Roadmap resume: PASS/FAIL
+
+Skill evaluation persistence: PASS/FAIL
+Skill history: PASS/FAIL
+Skill profile persistence: PASS/FAIL
+
+Dashboard persistence: PASS/FAIL
+
+Refresh persistence: PASS/FAIL
+Logout/login persistence: PASS/FAIL
+Google-user persistence: PASS/FAIL
+Multi-user isolation: PASS/FAIL
+
+Duplicate enrollment protection: PASS/FAIL
+Cross-user protection: PASS/FAIL
+Database error handling: PASS/FAIL
+API validation: PASS/FAIL
+
+Phase 0 verification: PASS/FAIL
+Phase 1 verification: PASS/FAIL
+Phase 2 verification: PASS/FAIL
+Phase 3 verification: PASS/FAIL
+
+Frontend build: PASS/FAIL
+Backend health: PASS/FAIL
+```
+
+---
+
+# 52. REQUIRED FINAL REPORT
+
+At the end provide:
+
+## A. Database Changes
+
+List every model/schema modification.
+
+## B. API Changes
+
+List every modified/created endpoint.
+
+## C. Persistence Changes
+
+Explain what is now persisted.
+
+## D. Browser Storage Changes
+
+List every localStorage/sessionStorage usage that was:
+
+* removed
+* retained
+* converted to cache
+* marked for later cleanup
+
+## E. Migration
+
+Report:
+
+* existing data inspected
+* migration required/not required
+* migration executed/not executed
+* records affected
+* orphan records
+* duplicate records
+
+## F. Security
+
+Report:
+
+* ownership checks
+* cross-user protection
+* authenticated user resolution
+* validation
+
+## G. Tests
+
+Provide the complete test matrix.
+
+## H. Files Changed
+
+List exact files changed.
+
+## I. Files Preserved
+
+List important existing files deliberately preserved.
+
+## J. Remaining Issues
+
+List anything that must be addressed in later phases.
+
+---
+
+# 53. FINAL SUCCESS CRITERIA
+
+Phase 3 is COMPLETE only when:
+
+* MongoDB is the source of truth for durable CareerOS data.
+* Every user-owned resource has reliable ownership.
+* Courses persist.
+* Course enrollment persists.
+* Course progress persists.
+* Roadmaps persist.
+* Roadmap progress persists.
+* Skill evaluations persist.
+* Skill history persists.
+* Skill profile persists.
+* Dashboard data persists.
+* Data survives browser refresh.
+* Data survives logout/login.
+* Google-authenticated users have exactly the same persistence behavior as email users.
+* Two users cannot access each other's data.
+* Duplicate enrollments are prevented.
+* Browser storage is no longer the source of truth.
+* Failed database writes are not falsely reported as successful.
+* The course enrollment contract mismatch is resolved correctly.
+* Existing data is protected.
+* Existing authentication continues working.
+* Phase 0/1/2 functionality does not regress.
+* Frontend production build succeeds.
+* Backend health succeeds.
+* All critical persistence tests pass.
+
+At the end output exactly:
+
+```text
+PHASE 3 STATUS: COMPLETE / BLOCKED
+
+User persistence: YES/NO
+Course persistence: YES/NO
+Course enrollment: YES/NO
+Course progress: YES/NO
+Roadmap persistence: YES/NO
+Roadmap progress: YES/NO
+Skill evaluation persistence: YES/NO
+Skill history: YES/NO
+Skill profile persistence: YES/NO
+Dashboard persistence: YES/NO
+
+Refresh persistence: YES/NO
+Logout/login persistence: YES/NO
+Google-user persistence: YES/NO
+Multi-user isolation: YES/NO
+
+Browser storage source-of-truth removed: YES/NO
+Course enrollment contract fixed: YES/NO
+Cross-user protection: YES/NO
+Database error handling: YES/NO
+
+Phase 0 verification: PASS/FAIL
+Phase 1 verification: PASS/FAIL
+Phase 2 verification: PASS/FAIL
+Phase 3 verification: PASS/FAIL
+
+Frontend build: PASS/FAIL
+Backend health: PASS/FAIL
+
+Ready for Phase 4: YES/NO
+```
+
+Do not proceed to Phase 4 automatically.
+
+Stop after Phase 3 and provide the complete implementation and verification report.

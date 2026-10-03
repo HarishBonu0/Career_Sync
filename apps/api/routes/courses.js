@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import CourseGeneration from '../models/CourseGeneration.js';
 import Course from '../models/Course.js';
+import UserEnrollment from '../models/UserEnrollment.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { body, param, validationResult } from 'express-validator';
 import { withAuthenticatedUser } from '../utils/requestUser.js';
@@ -84,7 +85,8 @@ function normalizeModules(modules) {
 // Generate course curriculum and persist
 router.post(
   '/generate',
-  optionalAuth,
+  authenticate,
+  requireMongo,
   body('courseName').isString().trim().isLength({ min: 1, max: 200 }).withMessage('courseName is required'),
   body('duration').optional().isString().isLength({ max: 100 }),
   body('level').optional().isIn(['beginner', 'intermediate', 'advanced']),
@@ -801,6 +803,93 @@ router.post(
 });
 
 // List courses for authenticated user
+router.get('/enrollments/my', authenticate, requireMongo, async (req, res) => {
+  try {
+    const enrollments = await UserEnrollment.find({ user: req.user.id, type: 'course' })
+      .sort({ updatedAt: -1 })
+      .lean();
+    const courseIds = enrollments.map((item) => item.courseId).filter((id) => mongoose.Types.ObjectId.isValid(id));
+    const courses = await Course.find({ _id: { $in: courseIds }, user: req.user.id }).lean();
+    const courseMap = new Map(courses.map((course) => [course._id.toString(), course]));
+    const data = enrollments.map((enrollment) => {
+      const course = courseMap.get(enrollment.courseId) || null;
+      return {
+        id: enrollment._id,
+        courseId: enrollment.courseId,
+        title: course?.title || enrollment.courseTitle,
+        description: course?.description || '',
+        slug: enrollment.courseId,
+        enrolled_at: enrollment.courseEnrolledAt || enrollment.createdAt,
+        progress: enrollment.courseProgress ?? course?.progress ?? 0,
+        completed_at: enrollment.courseCompletedAt || null,
+        status: course?.status || (enrollment.courseCompleted ? 'completed' : 'in-progress'),
+        completedModules: enrollment.completedModules || course?.completedModules || [],
+        currentModule: enrollment.currentModule || 0,
+      };
+    });
+    res.json({ success: true, data, count: data.length });
+  } catch (error) {
+    console.error('Enrollment list error:', error);
+    res.status(500).json({ error: 'Failed to load course enrollments' });
+  }
+});
+
+// Persist course progress for both the course and its enrollment.
+router.put(
+  '/:id/progress',
+  authenticate,
+  requireMongo,
+  param('id').isMongoId().withMessage('Invalid course id'),
+  body('progress').isNumeric().custom((value) => value >= 0 && value <= 100).withMessage('progress must be 0-100'),
+  body('completedModules').optional().isArray(),
+  body('currentModule').optional().isInt({ min: 0 }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+
+    try {
+      const progress = Number(req.body.progress);
+      const completedModules = req.body.completedModules || [];
+      const currentModule = Number.isInteger(req.body.currentModule)
+        ? req.body.currentModule
+        : completedModules.length;
+      const completed = progress >= 100;
+      const course = await Course.findOneAndUpdate(
+        { _id: req.params.id, user: req.user.id },
+        {
+          progress,
+          completedModules,
+          status: completed ? 'completed' : 'in-progress',
+        },
+        { new: true }
+      );
+      if (!course) return res.status(404).json({ error: 'Course not found' });
+
+      const enrollment = await UserEnrollment.findOneAndUpdate(
+        { user: req.user.id, type: 'course', $or: [{ course: course._id }, { courseId: course._id.toString() }] },
+        {
+          course: course._id,
+          courseId: course._id.toString(),
+          courseTitle: course.title,
+          courseModuleCount: course.totalModules || course.modules?.length || 0,
+          courseProgress: progress,
+          completedModules,
+          currentModule,
+          courseCompleted: completed,
+          courseCompletedAt: completed ? new Date() : null,
+          courseLastAccessed: new Date(),
+        },
+        { new: true }
+      );
+
+      res.json({ success: true, data: { course, enrollment } });
+    } catch (error) {
+      console.error('Course progress error:', error);
+      res.status(500).json({ error: 'Failed to save course progress' });
+    }
+  }
+);
+
 router.get('/', authenticate, requireMongo, async (req, res) => {
   try {
     const filter = ownerFilter(req.user);

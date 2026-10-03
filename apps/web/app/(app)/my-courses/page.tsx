@@ -12,24 +12,28 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
 interface Enrollment {
   id: string
+  courseId: string
   title: string
   slug: string
   description: string
-  thumbnail_url: string | null
   enrolled_at: string
   progress: number
   completed_at: string | null
-  creator_name: string
+  status: string
+  completedModules: number[]
+  currentModule: number
 }
 
 export default function MyCoursesPage() {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, authStatus } = useAuth()
   const router = useRouter()
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (authStatus === 'loading') return
+
     if (!isAuthenticated) {
       router.push('/login')
       return
@@ -37,10 +41,7 @@ export default function MyCoursesPage() {
 
     const fetchEnrollments = async () => {
       try {
-        const token = localStorage.getItem('token')
-        const response = await axios.get(`${API_URL}/courses/enrollments/my`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
+        const response = await axios.get(`${API_URL}/courses/enrollments/my`, { withCredentials: true })
 
         if (response.data.success) {
           setEnrollments(response.data.data)
@@ -54,7 +55,7 @@ export default function MyCoursesPage() {
     }
 
     fetchEnrollments()
-  }, [isAuthenticated, router])
+  }, [authStatus, isAuthenticated, router])
 
   if (loading) {
     return (
@@ -105,20 +106,12 @@ export default function MyCoursesPage() {
             {enrollments.map((enrollment) => (
               <Link
                 key={enrollment.id}
-                href={`/course/${enrollment.slug}`}
+                href={`/course-generated/${enrollment.courseId}`}
                 className="card hover:shadow-lg transition-shadow group"
               >
                 {/* Thumbnail */}
                 <div className="aspect-video bg-gradient-to-br from-primary-500 to-purple-600 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-                  {enrollment.thumbnail_url ? (
-                    <img
-                      src={enrollment.thumbnail_url}
-                      alt={enrollment.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <BookOpen className="w-16 h-16 text-white/80" />
-                  )}
+                  <BookOpen className="w-16 h-16 text-white/80" />
                 </div>
 
                 {/* Content */}
@@ -159,11 +152,6 @@ export default function MyCoursesPage() {
                   )}
                 </div>
 
-                {enrollment.creator_name && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    by {enrollment.creator_name}
-                  </div>
-                )}
               </Link>
             ))}
           </div>

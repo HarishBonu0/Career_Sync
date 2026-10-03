@@ -5,12 +5,8 @@ const AUTH_COOKIE = 'Career_Sync_token'
 
 export function middleware(req: NextRequest) {
   const hasToken = Boolean(req.cookies.get(AUTH_COOKIE)?.value)
-  const allowUrlAuthBypass = process.env.ENABLE_URL_AUTH_BYPASS === 'true'
 
-  // Optional local-dev bypass. Keep disabled by default.
-  const urlHasAuthToken = allowUrlAuthBypass && Boolean(req.nextUrl.searchParams.get('auth_token'))
-
-  if (!hasToken && !urlHasAuthToken) {
+  if (!hasToken) {
     const loginUrl = new URL('/login', req.url)
     loginUrl.searchParams.set('next', req.nextUrl.pathname + req.nextUrl.search)
     return NextResponse.redirect(loginUrl)
