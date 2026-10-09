@@ -1,1672 +1,2425 @@
-# CareerOS — Phase 3: Unified Database, Data Ownership & Persistent User State
+# CareerOS — Phase 4: Unified Intelligent Course Generator
 
-You are continuing work on the CareerOS codebase after Phase 1 and Phase 2.
+## ROLE
 
-## OBJECTIVE
+You are acting as a **senior full-stack architect and engineer** implementing Phase 4 of CareerOS.
 
-Complete **Phase 3: Unified Database & Persistence**.
+Phase 1 established the architecture.
+Phase 2 unified authentication.
+Phase 3 unified MongoDB persistence and ownership.
 
-The goal is to make MongoDB Atlas the **single source of truth for all important CareerOS user data**.
+Phase 4 is now specifically about:
 
-After this phase, a user must be able to:
+> **Consolidating and upgrading the Course Generator into one coherent, production-quality, intelligent learning-course generation system.**
 
-```text
-Register/Login
-      ↓
-Evaluate skills
-      ↓
-Refresh browser
-      ↓
-Skills still exist
+The existing repository contains multiple Course Generator implementations. Do NOT blindly rewrite everything.
 
-Generate roadmap
-      ↓
-Refresh browser
-      ↓
-Roadmap still exists
+The goal is to:
 
-Generate course
-      ↓
-Enroll
-      ↓
-Complete modules
-      ↓
-Refresh browser
-      ↓
-Progress still exists
-
-Logout
-      ↓
-Login again
-      ↓
-All user data still exists
-```
-
-The browser must no longer be responsible for permanently storing CareerOS application data.
+1. Preserve working functionality.
+2. Reuse the strongest existing components.
+3. Remove architectural duplication only after the canonical path works.
+4. Implement the intended Course Generator workflow described below.
+5. Keep MongoDB as the durable source of truth.
+6. Keep Phase 2 authentication unchanged.
+7. Keep Phase 3 ownership/persistence contracts compatible.
+8. Produce a reliable, explainable, high-quality generated course.
 
 ---
 
-# 1. IMPORTANT SAFETY RULES
+# 1. IMPORTANT — READ BEFORE MODIFYING ANYTHING
 
-Before changing anything:
+Before changing code:
 
-1. Inspect Git status.
-2. Preserve all existing user changes.
-3. Create a Git checkpoint/branch if appropriate.
-4. Do not delete legacy applications yet.
-5. Do not perform destructive database migrations.
-6. Do not drop MongoDB collections.
-7. Do not delete existing user records.
-8. Do not rewrite working authentication from Phase 2.
-9. Do not change Google authentication unless required for persistence integration.
-10. Do not change AI providers unnecessarily.
-11. Do not redesign the UI yet.
-12. Do not deploy production changes during this phase.
-13. Do not remove localStorage/sessionStorage until equivalent server persistence is verified.
-14. Every migration must be reversible.
+1. Read the existing Phase 4 discovery report:
+
+```text
+PHASE_4_COURSE_GENERATOR_DISCOVERY_REPORT.md
+```
+
+2. Reconfirm the actual current architecture from source code.
+
+3. Identify all existing Course Generator implementations.
+
+Known implementations include:
+
+```text
+apps/web/app/api/generate-course/route.ts
+
+apps/api/routes/courses.js
+  POST /api/courses/generate
+
+apps/api/routes/course-generation-v2.js
+  POST /api/generate-course-v2
+```
+
+Also inspect:
+
+```text
+apps/api/services/
+apps/web/lib/
+frontend/course-generation/
+```
+
+and search the entire repository for other generation-related code.
 
 ---
 
-# 2. CURRENT PERSISTENCE PROBLEM
-
-Phase 1 identified that CareerOS currently mixes:
-
-```text
-MongoDB
-React state
-localStorage
-sessionStorage
-temporary API responses
-```
-
-Examples include:
-
-* assessment handoff in `sessionStorage`
-* course topic/module state in `localStorage`
-* roadmap snapshots in `localStorage`
-* authentication state previously stored in localStorage
-* React state containing generated content before persistence
-
-These browser stores must no longer be the source of truth for durable CareerOS data.
-
-The Phase 2 authentication work has already removed authentication state from localStorage. Preserve that architecture.
-
----
-
-# 3. TARGET DATA ARCHITECTURE
-
-The target architecture is:
-
-```text
-                    CareerOS User
-                         │
-                         │ User._id
-                         ▼
-                 ┌───────────────┐
-                 │   MongoDB     │
-                 │    Atlas      │
-                 └───────┬───────┘
-                         │
-          ┌──────────────┼──────────────┐
-          ▼              ▼              ▼
-       Skills         Roadmaps        Courses
-          │              │              │
-          │              │              ▼
-          │              │         Enrollments
-          │              │              │
-          │              │              ▼
-          │              │           Progress
-          │              │
-          └──────────────┴──────────────┐
-                                       ▼
-                              CareerOS Dashboard
-```
-
-MongoDB must be the authoritative source for:
-
-* User profile
-* Skill evaluations
-* Skill profile
-* Roadmaps
-* Courses
-* Course enrollment
-* Course progress
-* Roadmap progress
-* Evaluation history
-* Completion state
-* Relevant generated artifacts
-
----
-
-# 4. AUDIT ALL EXISTING MODELS FIRST
-
-Inspect:
-
-```text
-apps/api/models/
-```
-
-especially:
-
-```text
-User.js
-Course.js
-CourseGeneration.js
-Roadmap.js
-SkillEvaluation.js
-UserEnrollment.js
-```
-
-Do not immediately modify them.
-
-For each model document:
-
-* Primary identifier
-* User relationship
-* Required fields
-* Optional fields
-* Duplicate identity fields
-* Progress fields
-* Status fields
-* Timestamps
-* Indexes
-* Unique constraints
-* References to other models
-
-Produce a before/after schema plan before implementing structural changes.
-
----
-
-# 5. STANDARDIZE USER OWNERSHIP
-
-The canonical ownership identifier is:
-
-```text
-User._id
-```
-
-Use the authenticated user from Phase 2:
-
-```text
-req.user.id
-```
-
-or the project's equivalent.
-
-Do not trust browser-supplied:
-
-```text
-userId
-userEmail
-```
-
-when the authenticated request already identifies the user.
-
-For every user-owned document, establish a reliable relationship:
-
-```text
-document.user → User._id
-```
-
----
-
-# 6. COMPATIBILITY FIELDS
-
-Existing documents may contain:
-
-```text
-user
-userId
-userEmail
-```
-
-Do not immediately delete compatibility fields.
-
-Instead:
-
-1. Identify which records use which fields.
-2. Determine whether they can be mapped to `User._id`.
-3. Create a safe migration strategy.
-4. Update application logic to prefer canonical ownership.
-5. Keep compatibility fields temporarily if necessary.
-6. Remove them only in a later cleanup phase after migration verification.
-
-Do not lose existing user data.
-
----
-
-# 7. USER PROFILE
-
-Ensure the User model contains the information required by the unified platform.
-
-Potential areas:
-
-```text
-identity
-profile
-education
-career goals
-preferences
-skills
-authentication metadata
-```
-
-Do not duplicate entire course/roadmap/evaluation objects inside the User document unless there is a strong architectural reason.
-
-Prefer references:
-
-```text
-User
- ↓
-Course documents
-Roadmap documents
-SkillEvaluation documents
-Enrollment documents
-```
-
-Avoid creating an oversized User document.
-
----
-
-# 8. COURSE DATA MODEL
-
-Audit:
-
-```text
-Course
-CourseGeneration
-UserEnrollment
-```
-
-Determine the exact purpose of each.
-
-The target conceptual relationship should be:
-
-```text
-User
- │
- ├──── CourseGeneration
- │
- ├──── Course
- │
- └──── UserEnrollment
-              │
-              └──── Course
-```
-
-A generated course must have:
-
-* owner
-* stable ID
-* title
-* description
-* modules
-* metadata
-* status
-* timestamps
-
-Enrollment must have:
-
-* user
-* course
-* enrollment status
-* progress
-* completed modules
-* startedAt
-* completedAt where applicable
-* updatedAt
-
----
-
-# 9. FIX THE COURSE ENROLLMENT CONTRACT
-
-Phase 1 discovered a real contract mismatch:
-
-```text
-profile.js
-```
-
-expects:
-
-```text
-courseModules: array
-```
-
-while:
-
-```text
-UserEnrollment
-```
-
-uses:
-
-```text
-courseModules: Number
-```
-
-and the Phase 0 verification sends:
-
-```json
-{
-  "courseModules": 3
-}
-```
-
-The Phase 1 report explicitly identifies this as a real implementation/schema mismatch.
-
-Resolve this deliberately.
-
-First determine what the application actually needs:
-
-### If it needs a count:
-
-Use:
-
-```text
-courseModuleCount: Number
-```
-
-### If it needs the actual module records:
-
-Use an appropriate array/reference structure.
-
-Do NOT simply modify the validator until the test passes.
-
-Update:
-
-* Model
-* Validation
-* API
-* Frontend
-* Tests
-* Existing data handling
-
-so the contract is consistent everywhere.
-
----
-
-# 10. COURSE GENERATION PERSISTENCE
-
-When a user generates a course:
-
-```text
-User
- ↓
-Generate
- ↓
-Validate generated response
- ↓
-Create persistent CourseGeneration
- ↓
-Create/update Course
- ↓
-Return persistent Course ID
-```
-
-The frontend must receive a durable identifier.
-
-Do not rely on generated content remaining in React state.
-
-After generation:
-
-```text
-GET /courses/:id
-```
-
-must be sufficient to reconstruct the course page.
-
----
-
-# 11. COURSE ENROLLMENT
-
-Implement a reliable flow:
-
-```text
-User
- ↓
-Select course
- ↓
-Enroll
- ↓
-UserEnrollment created
- ↓
-Dashboard displays enrollment
-```
-
-Prevent duplicate enrollment.
-
-Use a suitable unique constraint or idempotent server-side logic.
-
-Repeated:
-
-```text
-POST /profile/enroll/course
-```
-
-must not create unlimited duplicate enrollment records.
-
----
-
-# 12. COURSE PROGRESS
-
-Course progress must be persisted server-side.
-
-For example:
-
-```text
-CourseEnrollment
-├── progress
-├── completedModules
-├── currentModule
-├── startedAt
-├── completedAt
-└── updatedAt
-```
-
-The exact schema should follow the existing application requirements.
-
-When the user completes a module:
-
-```text
-Browser
- ↓
-API
- ↓
-MongoDB
-```
-
-not:
-
-```text
-Browser
- ↓
-localStorage
-```
-
----
-
-# 13. COURSE RESUME
-
-After:
-
-```text
-logout
-login
-refresh
-new browser session
-```
-
-the user should be able to open:
-
-```text
-My Courses
-```
-
-and resume exactly where they left off.
-
-The server must return:
-
-* enrolled courses
-* progress
-* current module
-* completion status
-
----
-
-# 14. ROADMAP DATA MODEL
-
-Audit the current:
-
-```text
-Roadmap
-UserEnrollment
-roadmap services
-simulation services
-```
-
-The roadmap should be persistently associated with the authenticated user.
-
-Minimum conceptual structure:
-
-```text
-Roadmap
-├── user
-├── targetRole
-├── timeline
-├── stages
-├── milestones
-├── status
-├── progress
-├── createdAt
-└── updatedAt
-```
-
-Use the actual existing schema where appropriate.
-
-Do not invent fields unnecessarily.
-
----
-
-# 15. ROADMAP GENERATION PERSISTENCE
-
-When a user generates a roadmap:
-
-```text
-Authenticated User
-        ↓
-Generate
-        ↓
-Validate response
-        ↓
-Save Roadmap
-        ↓
-Return Roadmap ID
-        ↓
-Frontend navigates to /roadmaps/:id
-```
-
-The generated roadmap must survive:
-
-* refresh
-* logout
-* login
-* browser restart
-
----
-
-# 16. ROADMAP PROGRESS
-
-Persist:
-
-* current stage
-* completed milestones
-* overall progress
-* status
-* timestamps
-
-Do not depend on:
-
-```text
-localStorage
-sessionStorage
-React state
-```
-
-for durable progress.
-
----
-
-# 17. REMOVE ROADMAP SNAPSHOT AS SOURCE OF TRUTH
-
-The Phase 1 report identified roadmap snapshots in localStorage.
-
-Replace the persistence dependency with MongoDB.
-
-localStorage may temporarily be used as a performance/UI cache if necessary.
-
-But:
-
-```text
-MongoDB = source of truth
-localStorage = optional cache
-```
-
-If cache and server disagree:
-
-```text
-Server wins.
-```
-
----
-
-# 18. SKILL EVALUATION DATA MODEL
-
-Audit:
-
-```text
-SkillEvaluation
-skills
-assessment routes
-profile analysis
-evaluation history
-```
-
-The evaluation lifecycle should be:
-
-```text
-Created
-   ↓
-Questions generated
-   ↓
-User answers
-   ↓
-Submitted
-   ↓
-Scored
-   ↓
-Result persisted
-   ↓
-Skill profile updated
-```
-
-Every important step must have a durable representation where appropriate.
-
----
-
-# 19. SKILL EVALUATION PERSISTENCE
-
-When an evaluation is submitted:
-
-```text
-POST /api/skills/submit
-        ↓
-Validate authenticated user
-        ↓
-Score evaluation
-        ↓
-Save evaluation
-        ↓
-Update skill profile
-        ↓
-Return persistent result
-```
-
-The result must remain available after refresh and re-login.
-
----
-
-# 20. SKILL HISTORY
-
-Do not overwrite historical evaluations unnecessarily.
-
-A user should be able to have:
-
-```text
-Skill Evaluation #1
-Skill Evaluation #2
-Skill Evaluation #3
-```
-
-where appropriate.
+# 2. DO NOT DESTROY EXISTING WORKING FUNCTIONALITY
+
+The current codebase contains useful functionality that MUST be evaluated and reused where appropriate.
+
+Potential reusable components include:
+
+### From the current Next.js generator
+
+* current course-generation UX
+* personalized question flow
+* OpenRouter integration
+* structured course generation
+* JSON repair
+* resource generation
+* video intelligence
+* current rich course output
+
+### From Express V2
+
+* generation orchestrator
+* module title generation
+* curriculum validation
+* similarity detection
+* duplicate module prevention
+* module expansion
+* module sanitation
+* output validation
+* deterministic fallback handling
+* CourseGeneration persistence concepts
+* modular service architecture
+
+### From Phase 3
 
 Preserve:
 
-* score
-* skill
-* difficulty
-* date
-* status
-* feedback
+* MongoDB
+* Course model
+* User model
+* UserEnrollment
+* Course progress
+* `req.user.id`
+* ownership checks
+* `/api/courses/:id/progress`
+* `/api/courses/enrollments/my`
+* server-side source of truth
+* authentication middleware
+* existing Google/email authentication
 
-This enables future skill progression.
+Do not redesign authentication.
 
----
+Do not replace MongoDB.
 
-# 21. SKILL PROFILE
-
-Determine whether the current system has a dedicated skill profile or derives it from evaluations.
-
-Choose one clear source of truth.
-
-Prefer:
-
-```text
-Evaluation History
-       ↓
-Skill Profile
-```
-
-where the skill profile represents the latest/derived state.
-
-Avoid conflicting values such as:
-
-```text
-localStorage skill score
-MongoDB skill score
-React skill score
-```
+Do not introduce a second database.
 
 ---
 
-# 22. CONNECT SKILLS → ROADMAP
+# 3. TARGET PRODUCT EXPERIENCE
 
-Once skill evaluation data is persisted:
-
-```text
-Skill Profile
-      ↓
-Roadmap Generator
-```
-
-The roadmap generator should use the authenticated user's persisted skill information where the product requires personalization.
-
-Do not rely on the frontend passing a manually fabricated user profile.
-
----
-
-# 23. CONNECT SKILLS → COURSES
-
-Likewise:
-
-```text
-Skill Profile
-      ↓
-Course recommendations/generation
-```
-
-where supported by the existing product design.
-
-The authenticated user's persisted data should be available to the course generation layer.
-
-Do not duplicate entire user profiles unnecessarily.
-
----
-
-# 24. PROFILE ENROLLMENT APIs
-
-Audit:
-
-```text
-POST /profile/enroll/course
-POST /profile/enroll/roadmap
-GET /profile/:userId
-PUT /profile/progress/course/:courseId
-PUT /profile/progress/roadmap/:roadmapId
-POST /profile/sync
-```
-
-The Phase 1 report confirms these are the existing persistence-related routes.
-
-For every endpoint:
-
-* derive user from authentication
-* validate ownership
-* prevent cross-user access
-* make writes idempotent where appropriate
-* return consistent responses
-* handle missing records correctly
-
----
-
-# 25. PROFILE API SECURITY
-
-Avoid relying on:
-
-```text
-GET /profile/:userId
-```
-
-with arbitrary browser-supplied IDs for normal user access.
-
-If the endpoint is user-self-service:
-
-```text
-GET /profile/me
-```
-
-is preferable.
-
-If retaining `/profile/:userId` for compatibility:
-
-* authenticate
-* authorize
-* verify the requested ID belongs to the current user
-* reject unauthorized access
-
-Do not expose another user's profile.
-
----
-
-# 26. DASHBOARD DATA
-
-The dashboard must become database-driven.
-
-It should retrieve:
-
-```text
-Current user
-Enrolled courses
-Course progress
-Completed courses
-Current roadmap
-Roadmap progress
-Skill evaluations
-Current skill profile
-```
-
-Do not reconstruct dashboard state primarily from localStorage.
-
----
-
-# 27. REFRESH TEST
-
-For every major feature:
-
-### Course
-
-```text
-Generate
-→ Refresh
-→ Data remains
-```
-
-### Enrollment
-
-```text
-Enroll
-→ Refresh
-→ Enrollment remains
-```
-
-### Course progress
-
-```text
-Complete module
-→ Refresh
-→ Progress remains
-```
-
-### Roadmap
-
-```text
-Generate
-→ Refresh
-→ Roadmap remains
-```
-
-### Roadmap progress
-
-```text
-Complete milestone
-→ Refresh
-→ Progress remains
-```
-
-### Skill evaluation
-
-```text
-Submit
-→ Refresh
-→ Result remains
-```
-
----
-
-# 28. LOGOUT/LOGIN PERSISTENCE TEST
-
-This is mandatory.
-
-For every data type:
-
-```text
-Login
- ↓
-Create data
- ↓
-Logout
- ↓
-Login
- ↓
-Retrieve data
-```
-
-Verify:
-
-```text
-same User._id
-same Course ownership
-same Enrollment
-same Roadmap ownership
-same Evaluation ownership
-same Progress
-```
-
----
-
-# 29. GOOGLE USER PERSISTENCE
-
-Use the Google-authenticated user exactly like an email-authenticated user.
-
-Test:
-
-```text
-Continue with Google
- ↓
-User created/found
- ↓
-Generate course
- ↓
-Generate roadmap
- ↓
-Evaluate skill
- ↓
-Enroll
- ↓
-Logout
- ↓
-Google login again
- ↓
-Everything remains
-```
-
-Do not create separate persistence logic for Google users.
-
----
-
-# 30. MULTI-USER ISOLATION
-
-Create two test users:
-
-```text
-User A
-User B
-```
-
-User A creates:
-
-* Course
-* Enrollment
-* Roadmap
-* Evaluation
-* Progress
-
-Then login as User B.
-
-User B must NOT see User A's data.
-
-Test direct API access as well as UI access.
-
----
-
-# 31. DATABASE INDEXES
-
-Audit indexes for:
+The Course Generator should ultimately behave like this:
 
 ```text
 User
-Course
-CourseGeneration
-Roadmap
-SkillEvaluation
-UserEnrollment
+ ↓
+Enter Course Name
+ ↓
+CareerOS generates personalized questions
+ ↓
+User answers questions
+ ↓
+CareerOS summarizes/shows the interpreted requirements
+ ↓
+User reviews the answers
+ ↓
+Generate Course
+ ↓
+AI Course Generation Pipeline
+ ↓
+Course Preview
+ ↓
+User reviews complete course
+ ↓
+ ┌──────────────────────┐
+ │ Save Course           │
+ └──────────────────────┘
+ ↓
+MongoDB
+ ↓
+My Courses
+ ↓
+Learn
+ ↓
+Progress tracking
+ ↓
+Resume from where user stopped
 ```
 
-Potential areas:
+The generated course should NOT automatically become a durable saved course merely because the AI finished generating it.
 
-```text
-user
-user + course
-user + roadmap
-user + evaluation
-googleId
-email
-```
+The intended product behavior is:
 
-Do not blindly add indexes.
+> **Generate → Preview → User decides → Save → Persist**
 
-Use the actual query patterns.
-
-Avoid duplicate or conflicting indexes.
+Unless an existing technical constraint makes this impossible, implement this behavior.
 
 ---
 
-# 32. DUPLICATE RECORD PREVENTION
+# 4. COURSE GENERATION INPUT
 
-Ensure repeated requests don't create duplicate records.
+The user starts by entering a course/topic name.
 
-Examples:
-
-```text
-Repeated enrollment
-Repeated save
-Repeated progress update
-Repeated roadmap generation
-Repeated evaluation submission
-```
-
-Use appropriate idempotency or unique constraints where needed.
-
-Do not prevent legitimate separate evaluations or separate generated roadmaps.
-
----
-
-# 33. TRANSACTION/ATOMICITY REVIEW
-
-Identify operations involving multiple database writes.
-
-For example:
+Example:
 
 ```text
-Create course
-+
-Create enrollment
+Python for Data Science
 ```
 
 or:
 
 ```text
-Submit evaluation
-+
-Update skill profile
+Machine Learning
 ```
 
-Determine whether MongoDB transactions are appropriate.
-
-Do not add transactions everywhere.
-
-Use them where partial writes could create inconsistent application state.
-
----
-
-# 34. BROWSER STORAGE AUDIT
-
-Search the entire active application for:
+or:
 
 ```text
-localStorage
-sessionStorage
+Full Stack Web Development
 ```
 
-Classify every usage:
-
-### Authentication
-
-Must already be removed/rejected.
-
-### Durable application data
-
-Move to MongoDB.
-
-### Temporary UI state
-
-May remain.
-
-### Cache
-
-May remain if server remains source of truth.
-
-### Legacy code
-
-Mark for later removal.
-
-Do not blindly delete every localStorage usage.
+The system then generates questions specific to the user's requested course.
 
 ---
 
-# 35. API RESPONSE CONTRACTS
+# 5. PERSONALIZED QUESTION GENERATION
 
-Standardize important persistence responses.
+Preserve the existing dynamic question system where possible.
 
-For example:
+Questions should help understand the user's learning requirements.
 
-```json
+Relevant dimensions include:
+
+* current experience
+* goals
+* desired outcome
+* available time
+* timeline
+* learning style
+* preferred focus areas
+* practical/project requirements
+* existing knowledge
+* depth required
+
+Do not hard-code unnecessary questions if the existing system can dynamically produce them.
+
+The question-generation endpoint should remain compatible with the current frontend unless there is a strong architectural reason to change it.
+
+---
+
+# 6. SHOW THE USER WHAT CAREEROS UNDERSTOOD
+
+Before generating the course, provide a review step.
+
+Example:
+
+```text
+Course:
+Machine Learning
+
+Career Goal:
+Placement preparation
+
+Current Level:
+Beginner
+
+Available Time:
+2 hours/day
+
+Timeline:
+3 months
+
+Learning Preference:
+Videos + practical projects
+
+Focus:
+Machine Learning + Deep Learning
+
+Learning Goal:
+Become interview and project ready
+```
+
+The user should be able to verify that CareerOS understood their answers.
+
+If the user wants to modify an answer, they should be able to go back.
+
+Do not generate the expensive AI course until the user confirms the requirements.
+
+---
+
+# 7. CREATE A CANONICAL GENERATION CONTRACT
+
+Create one authoritative internal request structure.
+
+Conceptually:
+
+```ts
 {
-  "success": true,
-  "data": {
-    "id": "...",
-    "..."
+  topic: string,
+
+  answers: {
+    [questionId: string]: string | string[]
+  },
+
+  userContext?: {
+    experience?: string,
+    goal?: string,
+    timeline?: string,
+    timeCommitment?: string,
+    learningStyle?: string,
+    focusAreas?: string[],
+    requirements?: string
   }
 }
 ```
 
-Use the project's existing conventions if they are already established.
+Use the actual project conventions where appropriate.
 
-Avoid creating multiple incompatible response formats.
+Do not create unnecessary duplicate representations.
 
----
-
-# 36. ERROR HANDLING
-
-Handle:
-
-```text
-401 Unauthorized
-403 Forbidden
-404 Not Found
-409 Conflict
-422 Validation Error
-500 Server Error
-```
-
-appropriately.
-
-Examples:
-
-* Course doesn't belong to user → 403/404 according to security design
-* Duplicate enrollment → 409 or idempotent success
-* Invalid course → 422
-* Missing roadmap → 404
-* Missing authentication → 401
-
-Do not return sensitive database errors to users.
+Normalize the question answers once before passing them into generation.
 
 ---
 
-# 37. DATABASE FAILURE HANDLING
+# 8. AUTHENTICATION REQUIREMENT
 
-Test what happens when MongoDB is temporarily unavailable.
+Course generation is a user-facing CareerOS capability.
 
-The UI must not:
+The canonical generation endpoint MUST require the authenticated CareerOS session before consuming AI resources.
+
+Use the existing:
 
 ```text
-pretend a save succeeded
+req.user.id
 ```
 
-if the database write failed.
+Do NOT trust:
+
+```text
+userId
+userEmail
+```
+
+from the client for ownership.
+
+Do not modify Phase 2 authentication.
+
+Do not introduce another authentication mechanism.
+
+---
+
+# 9. AI GENERATION ARCHITECTURE
+
+The final architecture should have ONE canonical Course Generator.
+
+Do not leave the system with three competing production generation implementations.
+
+The desired conceptual architecture is:
+
+```text
+Frontend
+   ↓
+Canonical Course Generation API
+   ↓
+Input normalization
+   ↓
+Generation Orchestrator
+   ├── Context builder
+   ├── System prompt
+   ├── AI provider
+   ├── Output parser
+   ├── Curriculum validator
+   ├── Duplicate detection
+   ├── Module validation
+   ├── Resource retrieval
+   ├── YouTube retrieval
+   └── Course assembly
+   ↓
+Course Preview
+   ↓
+User Save
+   ↓
+MongoDB
+```
+
+Choose the actual implementation location based on the existing architecture.
+
+Prefer the architecture that keeps the generation logic centralized and reusable rather than duplicating it between Next.js and Express.
+
+---
+
+# 10. IMPORTANT — GEMINI + OPENROUTER DECISION
+
+The desired product should use the strongest existing AI architecture.
+
+Do NOT automatically introduce an additional Gemini generation call merely because the previous product idea mentioned Gemini.
+
+First inspect the current Gemini and OpenRouter implementations.
+
+Determine whether Gemini is actually needed for:
+
+* prompt generation
+* question generation
+* course planning
+* validation
+* enrichment
+
+If an additional Gemini call provides no measurable architectural benefit, do not add it.
+
+If the existing Gemini logic is useful, reuse it appropriately.
+
+The canonical course-generation model currently uses OpenRouter/Mistral.
+
+Preserve this unless there is a documented technical reason to change it.
+
+Do not expose API keys.
+
+---
+
+# 11. SYSTEM PROMPT ENGINEERING
+
+Create one strong, centralized Course Generator system prompt.
+
+The system prompt should instruct the model to act as an expert curriculum architect.
+
+It should consider:
+
+```text
+Course name
++
+User answers
++
+Experience level
++
+Goal
++
+Timeline
++
+Available learning time
++
+Learning preferences
++
+Focus areas
++
+Required practical outcomes
+```
+
+The prompt must instruct the AI to generate a course that is:
+
+* logically structured
+* progressive
+* non-redundant
+* realistic for the timeline
+* appropriate for the user's experience
+* aligned with the user's goal
+* practical
+* project-oriented where appropriate
+* internally consistent
+* achievable within the available time
+* specific rather than generic
+
+Do not hard-code the user's current example.
+
+The prompt must work for arbitrary courses.
+
+---
+
+# 12. COURSE STRUCTURE
+
+The canonical generated Course should support the existing CareerOS Course model.
+
+At minimum, preserve compatibility with:
+
+```text
+Course
+├── title
+├── description
+├── level/difficulty
+├── duration
+├── totalModules
+├── objectives[]
+├── modules[]
+│   ├── id
+│   ├── title
+│   ├── description
+│   ├── duration
+│   ├── objectives[]
+│   ├── topics[]
+│   ├── activities[]
+│   ├── project
+│   ├── assessment
+│   ├── readingMaterials[]
+│   ├── youtubeLinks[]
+│   └── metadata
+├── finalProject
+├── resources[]
+└── metadata
+```
+
+Use the actual Mongoose schema as the source of truth.
+
+Do not break existing fields without migration planning.
+
+---
+
+# 13. MODULE DESIGN REQUIREMENTS
+
+The AI must produce modules that form a logical progression.
 
 For example:
 
 ```text
-User completes course module
+Module 1 → Foundations
+Module 2 → Core Concepts
+Module 3 → Intermediate Concepts
+Module 4 → Advanced Concepts
+Module 5 → Practical Application
+Module 6 → Project
+```
+
+This is only an example.
+
+The actual structure must depend on the requested course.
+
+Do not force every course into the same template.
+
+---
+
+# 14. PREVENT DUPLICATE OR OVERLAPPING MODULES
+
+Reuse the strongest existing V2 curriculum validation logic.
+
+The system must inspect generated module titles and concepts.
+
+Detect:
+
+* identical modules
+* highly similar modules
+* overlapping objectives
+* redundant topics
+* repeated concepts
+
+If meaningful duplication exists:
+
+```text
+Generate
  ↓
-MongoDB write fails
+Validate
  ↓
-UI must know save failed
+Detect overlap
  ↓
-Show retry/error state
+Regenerate/revise duplicate
+ ↓
+Validate again
 ```
 
-Do not silently discard failed writes.
+Do not simply rename:
+
+```text
+Python Basics
+Python Fundamentals
+Python Introduction
+```
+
+and pretend they are different.
+
+The actual learning scope should be distinct.
+
+Use semantic similarity logic where already available.
+
+Do not create unnecessary AI calls if deterministic validation can resolve the issue.
 
 ---
 
-# 38. OFFLINE / NETWORK FAILURE
+# 15. MODULE CONTENT QUALITY
 
-Determine the intended behavior when:
+Each module should contain useful learning information rather than only titles.
+
+Where appropriate include:
+
+* explanation
+* learning objectives
+* topics
+* practical activities
+* exercises
+* project
+* assessment
+* estimated duration
+* resources
+
+Content should match:
 
 ```text
-network unavailable
-API unavailable
-MongoDB unavailable
+user level
++
+timeline
++
+module objective
 ```
 
-For critical persistence:
-
-```text
-Save failed
-```
-
-must be distinguishable from:
-
-```text
-Save successful
-```
-
-If local caching is used, clearly mark unsynchronized data.
-
-Do not falsely display persisted progress.
+Avoid irrelevant content.
 
 ---
 
-# 39. DATA VALIDATION
+# 16. RESOURCE DISCOVERY
 
-Validate server-side:
+This is a critical part of Phase 4.
 
-* Course IDs
-* Roadmap IDs
-* Evaluation IDs
-* User ownership
-* Progress ranges
-* Module indexes
-* Status values
-* Required fields
-* MongoDB ObjectIds
+AI-generated URLs must NOT simply be trusted.
 
-Never rely solely on frontend validation.
-
----
-
-# 40. EXISTING DATA MIGRATION
-
-Before changing schemas:
-
-1. Inspect existing records.
-2. Count records by ownership format.
-3. Identify orphaned records.
-4. Identify duplicate records.
-5. Identify records with missing user references.
-6. Identify inconsistent course/module structures.
-7. Identify invalid progress values.
-
-Do NOT modify production data automatically.
-
-If migration is needed:
-
-* create a migration script
-* make it idempotent
-* support dry-run mode
-* output statistics
-* provide rollback strategy
-* test against a copy/local environment first
-
----
-
-# 41. ORPHAN DATA
-
-Find records such as:
+The system should distinguish:
 
 ```text
-Course without valid User
-Roadmap without valid User
-Evaluation without valid User
-Enrollment without valid User
-Enrollment referencing missing Course
+AI recommendation
 ```
 
-Do not delete them automatically.
-
-Classify:
+from:
 
 ```text
-recoverable
-ambiguous
-safe to archive
+Verified external resource
 ```
 
-and report them.
+The target flow is:
+
+```text
+Module
+ ↓
+Determine required learning resource
+ ↓
+Search/retrieve candidate resource
+ ↓
+Check relevance
+ ↓
+Validate URL
+ ↓
+Store/display verified resource
+```
 
 ---
 
-# 42. TEST SUITE
+# 17. PDF / DOCUMENTATION RESOURCES
 
-Add or update tests for:
+For each module, where useful, provide relevant documentation or PDF resources.
 
-### Users
+Each resource should ideally include:
 
-* user creation
-* identity resolution
-* ownership
+```text
+title
+url
+type
+source
+description
+relevance
+```
 
-### Courses
+Example:
 
-* creation
-* retrieval
-* ownership
-* enrollment
+```text
+Python Functions
+
+Documentation:
+Python Official Documentation
+https://...
+
+Reference:
+Functions Guide
+https://...
+```
+
+The system should:
+
+* verify URLs where technically possible
+* reject obviously broken links
+* avoid fabricated URLs
+* avoid irrelevant documents
+* avoid duplicate resources
+* prefer authoritative sources
+* prefer direct document URLs when appropriate
+
+Do not claim a resource is verified if it was not actually checked.
+
+---
+
+# 18. YOUTUBE RESOURCE DISCOVERY
+
+For modules requiring video learning, use the existing YouTube/API capability where available.
+
+The desired workflow:
+
+```text
+Module
+ ↓
+Generate/search relevant video query
+ ↓
+YouTube API
+ ↓
+Find candidates
+ ↓
+Rank relevance
+ ↓
+Select suitable video(s)
+ ↓
+Store video metadata
+ ↓
+Display inside module
+```
+
+Avoid relying purely on AI-generated YouTube URLs.
+
+Prefer actual YouTube API results when available.
+
+---
+
+# 19. EMBED YOUTUBE INSIDE THE MODULE
+
+The user should be able to watch the selected video without leaving CareerOS.
+
+The module should contain an embedded player.
+
+Conceptually:
+
+```text
+Module 3 — Python Functions
+
+Explanation
+...
+
+Topics
+...
+
+Video
+
+┌─────────────────────────────┐
+│                             │
+│       YouTube Player        │
+│                             │
+│           ▶                 │
+│                             │
+└─────────────────────────────┘
+
+Documentation
+📄 Python Functions Guide
+```
+
+Use a safe YouTube embed strategy.
+
+Do not inject arbitrary iframe URLs.
+
+Validate/normalize YouTube video IDs or approved embed URLs.
+
+---
+
+# 20. COURSE-LEVEL LEARNING RESOURCES
+
+After all modules, provide a dedicated:
+
+```text
+Complete Course Resources
+```
+
+section.
+
+This is different from module resources.
+
+The system should try to find useful complete-course resources such as:
+
+### Complete-course video
+
+```text
+Full Python Course — 10 hours
+```
+
+### Complete documentation
+
+```text
+Official Python Documentation
+```
+
+### Primary learning source
+
+Where possible, identify a coherent instructor/channel/documentation source that covers a large portion of the course.
+
+---
+
+# 21. "LEARN FROM ONE SOURCE" EXPERIENCE
+
+Support users who prefer one instructor or one documentation source.
+
+For example:
+
+```text
+Recommended Primary Learning Source
+
+Instructor:
+XYZ
+
+Why:
+Covers most of the generated curriculum.
+
+Coverage:
+Module 1 ✓
+Module 2 ✓
+Module 3 ✓
+Module 4 ✓
+Module 5 ✓
+```
+
+Do not fabricate coverage.
+
+Only show coverage when it can be reasonably verified from available metadata/content.
+
+If no coherent source exists, provide the best module-specific resources instead.
+
+---
+
+# 22. COURSE PREVIEW
+
+After generation completes:
+
+**DO NOT immediately create the durable saved Course unless the product flow explicitly requires it.**
+
+Instead show:
+
+```text
+Course Preview
+```
+
+The user should see:
+
+### Course overview
+
+* title
+* description
+* difficulty
+* estimated duration
+* objectives
+* number of modules
+
+### Modules
+
+Each module should show:
+
+* title
+* description
+* duration
+* objectives
+* topics
+* activities
+* project
+* resources
+* embedded video
+
+### Complete-course resources
+
+At the bottom.
+
+---
+
+# 23. SAVE COURSE
+
+Provide a clear:
+
+```text
+Save Course
+```
+
+button.
+
+When the user clicks Save:
+
+```text
+Course Preview
+ ↓
+Authenticated save request
+ ↓
+Server validates ownership
+ ↓
+Course persisted to MongoDB
+ ↓
+Enrollment created according to final product contract
+ ↓
+Durable course ID returned
+ ↓
+Course appears in My Courses
+```
+
+Do not save the same course multiple times due to repeated clicks.
+
+Use an idempotency strategy.
+
+Repeated save attempts should return the existing saved Course when they represent the same save intent.
+
+---
+
+# 24. DO NOT CREATE DUPLICATE COURSES
+
+The discovery phase identified a real risk:
+
+```text
+Wizard saves Course
+        +
+Course detail page saves Course again
+```
+
+Eliminate this behavior.
+
+The final architecture should have:
+
+```text
+Generate = preview only
+
+Save = durable persistence
+```
+
+Once saved:
+
+```text
+Course ID
+```
+
+becomes the canonical identity.
+
+Do not create a second Course because the user refreshes the page or clicks Save twice.
+
+---
+
+# 25. COURSEGENERATION MODEL
+
+Decide how `CourseGeneration` should participate in the final architecture.
+
+Prefer a coherent relationship such as:
+
+```text
+CourseGeneration
+      ↓
+Generated output / metadata
+      ↓
+Course
+```
+
+The final implementation should document:
+
+* what CourseGeneration represents
+* whether it stores the generation request
+* model/provider
+* prompt/version metadata
+* generation status
+* timestamps
+* output metadata
+* relationship to Course
+
+Do not store secrets.
+
+Do not blindly store enormous raw AI responses if unnecessary.
+
+Preserve compatibility with existing MongoDB records.
+
+---
+
+# 26. GENERATION FAILURE HANDLING
+
+Define predictable behavior.
+
+### AI provider failure
+
+Use bounded retry where appropriate.
+
+### Malformed JSON
+
+Use existing JSON repair/validation mechanisms where appropriate.
+
+### Invalid course structure
+
+Reject or regenerate.
+
+### Duplicate modules
+
+Regenerate/revise.
+
+### Resource failure
+
+Do not fail the entire course unnecessarily.
+
+### YouTube failure
+
+Course should still be usable.
+
+### PDF/resource failure
+
+Course should still be usable.
+
+### MongoDB failure
+
+Do not claim that the Course was saved.
+
+The user should clearly know:
+
+```text
+Course generated successfully.
+Saving failed.
+Please retry.
+```
+
+Do not silently pretend persistence succeeded.
+
+---
+
+# 27. FALLBACK CONTENT
+
+The existing implementations contain deterministic fallback behavior.
+
+Do NOT automatically preserve fallback behavior simply because it already exists.
+
+Evaluate each fallback.
+
+Fallback content should only be shown to users if it is genuinely useful and product-approved.
+
+Otherwise:
+
+```text
+AI generation failed
+ ↓
+Clear user error
+ ↓
+Retry
+```
+
+Avoid silently giving users low-quality placeholder courses.
+
+---
+
+# 28. GENERATION TIME / UX
+
+Generation may involve:
+
+* AI generation
+* module validation
+* similarity checks
+* resource retrieval
+* YouTube search
+* document verification
+
+The UI should clearly communicate progress.
+
+For example:
+
+```text
+Creating your learning plan...
+✓ Understanding your goals
+✓ Designing curriculum
+✓ Checking module uniqueness
+✓ Building learning resources
+✓ Finding relevant videos
+✓ Preparing your course
+```
+
+Do not fake progress.
+
+Only show stages corresponding to actual backend operations.
+
+---
+
+# 29. DO NOT MAKE GENERATION UNNECESSARILY EXPENSIVE
+
+Avoid:
+
+```text
+AI call
+→ AI call
+→ AI call
+→ AI call
+→ AI call
+```
+
+when deterministic logic can handle a task.
+
+Reuse:
+
+* existing validators
+* existing similarity utilities
+* existing resource resolvers
+* existing video logic
+
+Measure/inspect the number of AI calls.
+
+Document the expected generation pipeline.
+
+---
+
+# 30. MODULE GENERATION STRATEGY
+
+Do not blindly choose between:
+
+### Entire course in one AI request
+
+or
+
+### One AI call per module.
+
+Use the existing implementation evidence and product requirements.
+
+The final system should optimize:
+
+* quality
+* consistency
+* latency
+* cost
+* reliability
+
+If a hybrid architecture is better, use it.
+
+For example:
+
+```text
+AI call 1
+ ↓
+Course architecture
+ ↓
+Validation
+ ↓
+Module generation/expansion
+ ↓
+Resource retrieval
+```
+
+But avoid unnecessary calls.
+
+---
+
+# 31. LESSON GENERATION
+
+The current database supports lessons, but discovery found no complete durable lesson-generation workflow.
+
+Do not pretend that one exists.
+
+For Phase 4:
+
+* preserve lesson compatibility
+* do not break existing lesson fields
+* decide whether lessons are part of initial generation or future lazy generation
+* if not implementing durable lesson generation now, document it clearly
+
+Do not create a half-finished lesson architecture.
+
+---
+
+# 32. COURSE PROGRESS
+
+After saving, the user should be able to learn through the course.
+
+Progress must be server-backed.
+
+Conceptually:
+
+```text
+Course
+ ↓
+Module
+ ↓
+Learning activity
+ ↓
+Completion
+ ↓
+API
+ ↓
+MongoDB
+```
+
+Persist:
+
+* current module
+* completed modules
+* progress percentage
+* enrollment status
+* relevant completion metadata
+
+Use the existing Phase 3 progress contract.
+
+Do not create another progress system.
+
+---
+
+# 33. CONTINUE WHERE USER LEFT OFF
+
+The user should be able to:
+
+```text
+Leave course
+ ↓
+Return tomorrow
+ ↓
+Open My Courses
+ ↓
+Click course
+ ↓
+Resume
+```
+
+The system should identify the appropriate:
+
+```text
+current module
+```
+
+from server state.
+
+Do not make localStorage the authoritative source.
+
+---
+
+# 34. REMOVE DURABLE DEPENDENCY ON MODULE LOCALSTORAGE
+
+The discovery report identified:
+
+```text
+module_<number>
+```
+
+as a temporary module-navigation mechanism.
+
+Replace durable dependence on this with a server-backed course/module route or equivalent.
+
+The target should be conceptually:
+
+```text
+/course-generated/:courseId/module/:moduleId
+```
+
+or another clean equivalent.
+
+Refreshing the page should still work.
+
+Opening a course from My Courses should still work.
+
+---
+
+# 35. BEHAVIORAL LEARNING ANALYTICS
+
+Do not confuse behavioral analytics with completion.
+
+Track explicit completion separately from behavioral signals.
+
+Potential future/Phase 4-compatible signals include:
+
+```text
+module opened
+video started
+video completed
+resource opened
+time spent
+activity completed
+quiz completed
+module completed
+```
+
+But:
+
+> Opening a module must NOT automatically mean the module is completed.
+
+Use explicit completion criteria.
+
+If analytics infrastructure does not already exist, do not build an enormous analytics system unnecessarily.
+
+At minimum ensure durable course progress works correctly.
+
+---
+
+# 36. DASHBOARD / MY COURSES
+
+After Save:
+
+```text
+My Courses
+```
+
+must show the newly saved course.
+
+It should display useful information such as:
+
+* title
+* progress
+* current module
+* completion percentage
+* last activity
+* status
+
+Use MongoDB/API data.
+
+Do not use mock courses for this generated-course workflow.
+
+---
+
+# 37. COURSE ROUTING
+
+The durable generated course should have one canonical route.
+
+Prefer the existing:
+
+```text
+/course-generated/:id
+```
+
+if compatible.
+
+Do not leave multiple competing generated-course detail paths.
+
+Investigate the existing:
+
+```text
+/course/[slug]
+```
+
+mock-oriented route.
+
+Do not delete it blindly.
+
+Determine whether it should be:
+
+* converted
+* redirected
+* deprecated
+* preserved for another purpose
+
+Make the smallest safe change.
+
+---
+
+# 38. DATA CONTRACT
+
+Create one canonical generated-course contract.
+
+Frontend, backend, validation and MongoDB should agree on:
+
+* course ID
+* title
+* description
+* difficulty
+* duration
+* module count
+* modules
+* resources
+* videos
+* final project
 * progress
 
-### Roadmaps
+Do not allow three different shapes for the same concept.
 
-* creation
-* retrieval
-* ownership
-* progress
+Legacy compatibility fields may remain where necessary.
 
-### Skills
+---
 
-* evaluation creation
-* submission
-* result retrieval
-* history
+# 39. IDEMPOTENCY
+
+Generation and saving can involve retries.
+
+Implement safe idempotency for:
+
+### Save Course
+
+Repeated Save should not create duplicates.
+
+### Enrollment
+
+Use existing Phase 3 behavior.
+
+### Generation
+
+If appropriate, support a generation request ID so browser retries do not unintentionally trigger multiple expensive AI generations.
+
+Do not create duplicate AI generations merely because the network request was retried.
+
+---
+
+# 40. SECURITY
+
+Verify:
+
+* generation requires authentication
+* ownership comes from `req.user.id`
+* users cannot save courses for other users
+* users cannot access another user's course
+* users cannot modify another user's progress
+* AI-generated URLs are safely handled
+* YouTube embeds are restricted to approved origins
+* user answers are validated
+* topic length is bounded
+* prompt size is bounded
+* malicious input cannot break the course UI
+* generated content is safely rendered
+
+Do not expose API keys.
+
+---
+
+# 41. RESOURCE SECURITY
+
+Do not blindly render:
+
+```text
+<iframe src={AI_GENERATED_URL}>
+```
+
+or equivalent.
+
+Normalize and validate URLs.
+
+For YouTube:
+
+* validate video ID
+* use approved YouTube embed origin
+
+For documents:
+
+* validate HTTP/HTTPS
+* reject dangerous schemes
+* avoid unsafe HTML injection
+* sanitize displayed titles/descriptions
+
+---
+
+# 42. LEGACY IMPLEMENTATIONS
+
+Do NOT immediately delete:
+
+```text
+/api/generate-course
+/api/courses/generate
+/api/generate-course-v2
+frontend/course-generation
+```
+
+First establish the new canonical path.
+
+Then:
+
+1. update active frontend
+2. test canonical flow
+3. verify no internal dependencies
+4. preserve compatibility where needed
+5. mark old paths deprecated
+6. remove only when safe
+
+Do not break external users without evidence.
+
+---
+
+# 43. TESTING REQUIREMENTS
+
+Create tests for the canonical generator.
+
+At minimum:
+
+### Input
+
+* valid course name
+* invalid course name
+* oversized input
+* invalid answers
+* missing answers
+
+### Authentication
+
+* unauthenticated generation rejected
+* authenticated generation succeeds
+
+### Generation
+
+* structured output validation
+* malformed AI JSON
+* duplicate modules
+* missing module
+* invalid resource
+* provider failure
+* timeout
 
 ### Persistence
 
-* refresh-equivalent retrieval
-* logout/login retrieval
+* preview does NOT create saved Course
+* Save creates Course
+* Save creates correct ownership
+* duplicate Save does not create duplicate Course
+* refresh retrieves saved Course
 
 ### Security
 
-* cross-user access
-* invalid IDs
-* unauthorized access
+User A cannot:
+
+* access User B course
+* modify User B progress
+* save as User B
+* enroll into User B's private course
+
+### Progress
+
+* complete module
+* refresh
+* reopen course
+* progress remains
+* current module remains
+
+### Resources
+
+* invalid YouTube URL rejected
+* valid YouTube video embedded
+* invalid document link handled safely
 
 ---
 
-# 43. END-TO-END TEST
+# 44. TEST THE ACTUAL USER JOURNEY
 
-Create one complete test journey:
+Where safe, test:
 
 ```text
-Create/Login User
-        ↓
-Evaluate Skill
-        ↓
-Verify evaluation persisted
-        ↓
-Generate Roadmap
-        ↓
-Verify roadmap persisted
-        ↓
-Generate Course
-        ↓
-Verify course persisted
-        ↓
-Enroll
-        ↓
-Verify enrollment persisted
-        ↓
-Update course progress
-        ↓
-Update roadmap progress
-        ↓
-Logout
-        ↓
-Login again
-        ↓
-Retrieve dashboard
-        ↓
-Verify everything exists
+Login
+ ↓
+Courses
+ ↓
+Select topic
+ ↓
+Question generation
+ ↓
+Answer questions
+ ↓
+Review answers
+ ↓
+Generate course
+ ↓
+Course preview
+ ↓
+Review modules
+ ↓
+Review resources
+ ↓
+Save Course
+ ↓
+My Courses
+ ↓
+Open Course
+ ↓
+Complete module
+ ↓
+Leave
+ ↓
+Return
+ ↓
+Resume
 ```
 
-Repeat with a second user to verify isolation.
+If live AI generation would consume provider credits, use mocked/fixed AI fixtures for automated tests.
+
+A real live generation test may be performed separately only when explicitly approved.
 
 ---
 
-# 44. FRONTEND BEHAVIOR
+# 45. GOLDEN COURSE FIXTURES
 
-The frontend should follow:
+Before changing prompts or moving generation logic, create deterministic test fixtures representing valid generated courses.
+
+At minimum include:
 
 ```text
-API → MongoDB → response → UI
+beginner course
+intermediate course
+advanced course
+short timeline course
+long timeline course
+course with many modules
+course with resource failures
+course with duplicate module candidates
 ```
 
-not:
+These fixtures should test the validation pipeline without calling external AI APIs.
+
+---
+
+# 46. DO NOT BREAK PHASE 2
+
+Do not modify:
+
+* Google OAuth
+* email/password authentication
+* OTP authentication
+* JWT cookie architecture
+* authentication middleware
+
+Unless a Course Generator integration bug absolutely requires a minimal compatibility change.
+
+If such a change is necessary, stop and report it before modifying auth.
+
+---
+
+# 47. DO NOT BREAK PHASE 3
+
+Do not remove:
+
+* User ownership
+* Course ownership
+* UserEnrollment
+* Course progress
+* SkillProfile
+* Roadmap persistence
+* profile aggregation
+
+The Course Generator should integrate with them.
+
+---
+
+# 48. DO NOT CHANGE UNRELATED SYSTEMS
+
+Do not modify:
+
+* roadmap generation
+* skill evaluator
+* unrelated dashboard features
+* unrelated UI
+* deployment architecture
+* authentication
+* database connection
+* Google OAuth
+
+unless required for Course Generator integration.
+
+Keep Phase 4 focused.
+
+---
+
+# 49. IMPLEMENTATION ORDER
+
+Implement in this order:
+
+## Step 1 — Canonical contracts
+
+Define:
+
+* generation request
+* normalized answers
+* generated course output
+* generation metadata
+* save request
+
+## Step 2 — Canonical generation service
+
+Create/reuse a single orchestrator.
+
+## Step 3 — AI prompt
+
+Centralize and improve system prompt.
+
+## Step 4 — Course generation
+
+Generate structured course.
+
+## Step 5 — Curriculum validation
+
+Check:
+
+* module uniqueness
+* progression
+* consistency
+* timeline
+
+## Step 6 — Resource retrieval
+
+Add:
+
+* documentation/PDF
+* YouTube
+
+## Step 7 — Course-level resources
+
+Add:
+
+* complete-course video
+* complete documentation
+* coherent primary learning source where possible
+
+## Step 8 — Preview
+
+Show the complete generated course before persistence.
+
+## Step 9 — Save
+
+Persist only after explicit user action.
+
+## Step 10 — Enrollment
+
+Integrate with existing Phase 3 enrollment system.
+
+## Step 11 — Progress
+
+Use existing server-backed progress.
+
+## Step 12 — Resume
+
+Remove durable dependency on localStorage module handoff.
+
+## Step 13 — My Courses
+
+Ensure saved course appears correctly.
+
+## Step 14 — Tests
+
+Run full relevant test suite.
+
+## Step 15 — Legacy cleanup
+
+Only after canonical path is verified.
+
+---
+
+# 50. UI REQUIREMENTS
+
+Do not redesign the entire CareerOS UI.
+
+Keep the current design language.
+
+Improve only the Course Generator flow where needed.
+
+The flow should visually communicate:
+
+### Step 1
 
 ```text
-UI → localStorage → pretend persistence
+What do you want to learn?
 ```
 
-After successful writes:
-
-* update UI
-* invalidate/refetch relevant data
-* show success state
-
-After failed writes:
-
-* show error
-* preserve unsaved UI state where useful
-* allow retry
-
----
-
-# 45. DATA FETCHING
-
-Audit SWR and existing API clients.
-
-Use the existing data-fetching architecture where possible.
-
-Ensure:
-
-* authenticated requests include credentials
-* stale data is revalidated
-* mutations invalidate relevant queries
-* errors are handled
-* duplicate requests are avoided
-
-Do not introduce a new state-management library unless necessary.
-
----
-
-# 46. CACHE POLICY
-
-If localStorage/sessionStorage is retained as cache:
+### Step 2
 
 ```text
-MongoDB
-  ↓
-API
-  ↓
-Frontend cache
+Let's understand your learning goals.
 ```
 
-Never:
+### Step 3
 
 ```text
-Frontend cache
-  ↓
-overwrite authoritative server data
+Here's what we understood.
 ```
 
-unless explicitly performing a valid mutation.
-
-Server data wins on conflict.
-
----
-
-# 47. PERFORMANCE
-
-Do not load all historical data unnecessarily.
-
-For dashboard queries:
-
-* return only required fields
-* paginate large histories
-* use appropriate indexes
-* avoid N+1 queries
-* use aggregation/population carefully
-
-Do not sacrifice correctness for premature optimization.
-
----
-
-# 48. PHASE 3 MUST NOT REDESIGN THE UI
-
-Do not perform major UI redesign in this phase.
-
-Only change UI when necessary to:
-
-* consume the new persistence API
-* display saved data
-* display loading states
-* display save failures
-* display empty states
-* support correct user flows
-
-Full UI redesign belongs to Phase 7.
-
----
-
-# 49. PRODUCTION DATA SAFETY
-
-The production database must not be modified until:
+### Step 4
 
 ```text
-Local tests pass
-Schema migration tested
-Migration dry run completed
-Rollback strategy exists
+Creating your personalized course...
 ```
 
-If the current environment is connected to production MongoDB, do not run destructive scripts.
-
-Confirm the database environment before executing migrations.
-
----
-
-# 50. FINAL VERIFICATION
-
-Run:
+### Step 5
 
 ```text
-Backend tests
-Phase 0 verification
-Phase 1 verification
-Phase 2 verification
-Phase 3 verification
-Frontend build
-MongoDB connectivity
-API health
+Your course is ready.
 ```
 
-Fix the Phase 0 course enrollment contract mismatch as part of this phase if it belongs to the persistence contract.
-
-Do not simply suppress the failing test.
-
----
-
-# 51. REQUIRED PHASE 3 TEST MATRIX
-
-Report:
+### Step 6
 
 ```text
-User persistence: PASS/FAIL
-Course persistence: PASS/FAIL
-Course enrollment: PASS/FAIL
-Course progress: PASS/FAIL
-Course resume: PASS/FAIL
-
-Roadmap persistence: PASS/FAIL
-Roadmap progress: PASS/FAIL
-Roadmap resume: PASS/FAIL
-
-Skill evaluation persistence: PASS/FAIL
-Skill history: PASS/FAIL
-Skill profile persistence: PASS/FAIL
-
-Dashboard persistence: PASS/FAIL
-
-Refresh persistence: PASS/FAIL
-Logout/login persistence: PASS/FAIL
-Google-user persistence: PASS/FAIL
-Multi-user isolation: PASS/FAIL
-
-Duplicate enrollment protection: PASS/FAIL
-Cross-user protection: PASS/FAIL
-Database error handling: PASS/FAIL
-API validation: PASS/FAIL
-
-Phase 0 verification: PASS/FAIL
-Phase 1 verification: PASS/FAIL
-Phase 2 verification: PASS/FAIL
-Phase 3 verification: PASS/FAIL
-
-Frontend build: PASS/FAIL
-Backend health: PASS/FAIL
+Review → Save Course
 ```
 
----
-
-# 52. REQUIRED FINAL REPORT
-
-At the end provide:
-
-## A. Database Changes
-
-List every model/schema modification.
-
-## B. API Changes
-
-List every modified/created endpoint.
-
-## C. Persistence Changes
-
-Explain what is now persisted.
-
-## D. Browser Storage Changes
-
-List every localStorage/sessionStorage usage that was:
-
-* removed
-* retained
-* converted to cache
-* marked for later cleanup
-
-## E. Migration
-
-Report:
-
-* existing data inspected
-* migration required/not required
-* migration executed/not executed
-* records affected
-* orphan records
-* duplicate records
-
-## F. Security
-
-Report:
-
-* ownership checks
-* cross-user protection
-* authenticated user resolution
-* validation
-
-## G. Tests
-
-Provide the complete test matrix.
-
-## H. Files Changed
-
-List exact files changed.
-
-## I. Files Preserved
-
-List important existing files deliberately preserved.
-
-## J. Remaining Issues
-
-List anything that must be addressed in later phases.
+Do not overwhelm the user.
 
 ---
 
-# 53. FINAL SUCCESS CRITERIA
+# 51. COURSE PREVIEW INFORMATION ARCHITECTURE
 
-Phase 3 is COMPLETE only when:
-
-* MongoDB is the source of truth for durable CareerOS data.
-* Every user-owned resource has reliable ownership.
-* Courses persist.
-* Course enrollment persists.
-* Course progress persists.
-* Roadmaps persist.
-* Roadmap progress persists.
-* Skill evaluations persist.
-* Skill history persists.
-* Skill profile persists.
-* Dashboard data persists.
-* Data survives browser refresh.
-* Data survives logout/login.
-* Google-authenticated users have exactly the same persistence behavior as email users.
-* Two users cannot access each other's data.
-* Duplicate enrollments are prevented.
-* Browser storage is no longer the source of truth.
-* Failed database writes are not falsely reported as successful.
-* The course enrollment contract mismatch is resolved correctly.
-* Existing data is protected.
-* Existing authentication continues working.
-* Phase 0/1/2 functionality does not regress.
-* Frontend production build succeeds.
-* Backend health succeeds.
-* All critical persistence tests pass.
-
-At the end output exactly:
+The generated-course page should roughly contain:
 
 ```text
-PHASE 3 STATUS: COMPLETE / BLOCKED
+COURSE TITLE
 
-User persistence: YES/NO
-Course persistence: YES/NO
-Course enrollment: YES/NO
-Course progress: YES/NO
-Roadmap persistence: YES/NO
-Roadmap progress: YES/NO
-Skill evaluation persistence: YES/NO
-Skill history: YES/NO
-Skill profile persistence: YES/NO
-Dashboard persistence: YES/NO
+Description
 
-Refresh persistence: YES/NO
-Logout/login persistence: YES/NO
-Google-user persistence: YES/NO
-Multi-user isolation: YES/NO
+Difficulty | Duration | Modules
 
-Browser storage source-of-truth removed: YES/NO
-Course enrollment contract fixed: YES/NO
-Cross-user protection: YES/NO
-Database error handling: YES/NO
+Learning Objectives
 
-Phase 0 verification: PASS/FAIL
-Phase 1 verification: PASS/FAIL
-Phase 2 verification: PASS/FAIL
-Phase 3 verification: PASS/FAIL
+━━━━━━━━━━━━━━━━━━
 
-Frontend build: PASS/FAIL
-Backend health: PASS/FAIL
+MODULE 1
+Title
+Description
+Objectives
+Topics
+Activities
 
-Ready for Phase 4: YES/NO
+🎥 Video
+📄 Documentation
+📚 Resources
+
+━━━━━━━━━━━━━━━━━━
+
+MODULE 2
+...
+
+━━━━━━━━━━━━━━━━━━
+
+MODULE N
+...
+
+━━━━━━━━━━━━━━━━━━
+
+COMPLETE COURSE RESOURCES
+
+🎥 Complete Course Video
+
+📚 Complete Documentation
+
+🎓 Primary Learning Source
+
+━━━━━━━━━━━━━━━━━━
+
+[ Save Course ]
 ```
 
-Do not proceed to Phase 4 automatically.
+The exact UI should follow the existing CareerOS design system.
 
-Stop after Phase 3 and provide the complete implementation and verification report.
+---
+
+# 52. RESOURCE QUALITY RULES
+
+For each resource, prioritize:
+
+1. Relevance
+2. Authority
+3. Accessibility
+4. Working URL
+5. Specificity
+6. Recency when relevant
+
+Do not fill the page with many low-quality links.
+
+Quality is more important than quantity.
+
+---
+
+# 53. COURSE QUALITY RULES
+
+The AI must not generate generic courses merely because the topic is broad.
+
+Example:
+
+If user enters:
+
+```text
+Python for Data Science
+```
+
+and says:
+
+```text
+Beginner
+2 hours/day
+3 months
+Placement preparation
+Project focused
+```
+
+the generated course should reflect those constraints.
+
+It should not produce a generic "Learn Python" curriculum.
+
+---
+
+# 54. TIMELINE-AWARE GENERATION
+
+The course must respect the user's timeline.
+
+If:
+
+```text
+2 weeks
+```
+
+do not generate an unrealistic 40-module curriculum.
+
+If:
+
+```text
+6 months
+```
+
+the curriculum can be more comprehensive.
+
+Use:
+
+```text
+available time
++
+timeline
++
+difficulty
++
+scope
+```
+
+to determine reasonable module count and duration.
+
+---
+
+# 55. PERSONALIZATION
+
+The same topic should produce different courses for different users.
+
+Example:
+
+### User A
+
+```text
+Beginner
+Career change
+1 hour/day
+2 months
+```
+
+### User B
+
+```text
+Intermediate
+Interview preparation
+3 hours/day
+1 month
+```
+
+These should not produce identical curricula.
+
+---
+
+# 56. MODEL CONFIGURATION
+
+Preserve the current OpenRouter/Mistral configuration where practical.
+
+But move model/provider configuration into a centralized configuration layer.
+
+Do not hard-code provider-specific logic throughout the application.
+
+The system should make future provider/model changes possible without rewriting the entire generator.
+
+Never commit API keys.
+
+---
+
+# 57. OBSERVABILITY
+
+Add useful structured logging around:
+
+```text
+generation started
+generation completed
+generation failed
+validation failed
+duplicate modules detected
+resource retrieval
+YouTube retrieval
+course preview created
+course saved
+```
+
+Never log:
+
+* API keys
+* JWTs
+* cookies
+* sensitive user information
+* full private prompts unnecessarily
+
+---
+
+# 58. PERFORMANCE
+
+Measure or document:
+
+* number of AI calls
+* average generation stages
+* sequential vs parallel calls
+* resource retrieval calls
+* YouTube calls
+* expected latency
+* timeout values
+
+Avoid unnecessary sequential operations.
+
+Where operations are independent, consider safe parallelism.
+
+Do not sacrifice quality or reliability for premature optimization.
+
+---
+
+# 59. FINAL CANONICAL WORKFLOW
+
+After implementation, the intended final workflow should be:
+
+```text
+USER
+ ↓
+Enter Course Name
+ ↓
+Generate Personalized Questions
+ ↓
+Answer Questions
+ ↓
+Review Answers
+ ↓
+Confirm Requirements
+ ↓
+Authenticated Course Generation
+ ↓
+Generation Orchestrator
+ ↓
+Build User Context
+ ↓
+Build System Prompt
+ ↓
+OpenRouter / Mistral
+ ↓
+Parse Structured Course
+ ↓
+Validate Course
+ ↓
+Detect Duplicate Modules
+ ↓
+Fix/Regenerate Duplicates
+ ↓
+Validate Timeline
+ ↓
+Retrieve Relevant Documents
+ ↓
+Validate Documents
+ ↓
+Retrieve Relevant YouTube Videos
+ ↓
+Validate Videos
+ ↓
+Find Complete-Course Resources
+ ↓
+Assemble Course Preview
+ ↓
+USER REVIEWS COURSE
+ ↓
+       ┌───────────────┐
+       │ Save Course   │
+       └───────┬───────┘
+               ↓
+        MongoDB Course
+               ↓
+        UserEnrollment
+               ↓
+          My Courses
+               ↓
+         Start Learning
+               ↓
+       Module Completion
+               ↓
+          Progress API
+               ↓
+            MongoDB
+               ↓
+        Resume Later
+```
+
+This is the target behavior.
+
+---
+
+# 60. FINAL IMPLEMENTATION SAFETY RULE
+
+Do NOT consider Phase 4 complete merely because:
+
+```text
+AI generated a course
+```
+
+Phase 4 is complete only when the entire user journey works:
+
+```text
+Question generation
+→ answer review
+→ course generation
+→ module validation
+→ resource retrieval
+→ YouTube integration
+→ course preview
+→ explicit save
+→ MongoDB persistence
+→ My Courses
+→ course learning
+→ progress
+→ resume
+```
+
+---
+
+# 61. FINAL VERIFICATION
+
+Before declaring completion, verify:
+
+```text
+Authentication still works                 PASS/FAIL
+Google login still works                   PASS/FAIL
+Existing users still work                  PASS/FAIL
+
+Question generation                        PASS/FAIL
+Answer review                              PASS/FAIL
+Course generation                          PASS/FAIL
+AI output validation                       PASS/FAIL
+Duplicate module detection                 PASS/FAIL
+Timeline personalization                   PASS/FAIL
+
+PDF/document resources                     PASS/FAIL
+Resource URL validation                    PASS/FAIL
+YouTube retrieval                          PASS/FAIL
+YouTube embedding                          PASS/FAIL
+Complete-course resources                  PASS/FAIL
+
+Preview before save                        PASS/FAIL
+Explicit Save                              PASS/FAIL
+Duplicate Save protection                  PASS/FAIL
+Course ownership                           PASS/FAIL
+Enrollment                                 PASS/FAIL
+My Courses                                 PASS/FAIL
+
+Module progress                            PASS/FAIL
+Resume after refresh                       PASS/FAIL
+Resume after logout/login                  PASS/FAIL
+
+Cross-user protection                      PASS/FAIL
+Frontend build                             PASS/FAIL
+Backend tests                              PASS/FAIL
+Relevant integration tests                 PASS/FAIL
+```
+
+---
+
+# 62. FINAL REPORT
+
+Create:
+
+```text
+PHASE_4_COURSE_GENERATOR_IMPLEMENTATION_REPORT.md
+```
+
+The report must contain:
+
+```text
+1. Executive Summary
+
+2. Previous Architecture
+
+3. Final Architecture
+
+4. Canonical Generation Flow
+
+5. Question Generation
+
+6. Answer Review
+
+7. AI Prompt Architecture
+
+8. AI Model/Provider
+
+9. Course Generation
+
+10. Curriculum Validation
+
+11. Duplicate Module Detection
+
+12. Resource Retrieval
+
+13. PDF/Documentation Validation
+
+14. YouTube Retrieval
+
+15. YouTube Embedding
+
+16. Complete-Course Resources
+
+17. Course Preview
+
+18. Save Course
+
+19. CourseGeneration
+
+20. Course Persistence
+
+21. Enrollment
+
+22. Progress
+
+23. Resume
+
+24. Browser Storage Changes
+
+25. Security
+
+26. Idempotency
+
+27. Error Handling
+
+28. Performance
+
+29. Tests
+
+30. Legacy Implementations
+
+31. Files Created/Modified
+
+32. Remaining Issues
+
+33. Future Improvements
+```
+
+---
+
+# 63. FILE CHANGE REPORT
+
+At the end list:
+
+```text
+Created:
+- ...
+
+Modified:
+- ...
+
+Deprecated:
+- ...
+
+Deleted:
+- ...
+
+Not modified:
+- Authentication
+- Google OAuth
+- Roadmap
+- Skill evaluator
+- unrelated systems
+```
+
+For every deleted file or route, provide a reason.
+
+Do not delete something merely because it appears unused.
+
+---
+
+# 64. DATABASE SAFETY
+
+Before database changes:
+
+* inspect existing data
+* preserve existing Courses
+* preserve existing Enrollments
+* preserve existing Users
+* preserve existing Roadmaps
+* preserve existing Evaluations
+
+Do not:
+
+* drop collections
+* delete user data
+* reset database
+* overwrite existing production courses
+* run destructive migrations
+
+If schema migration is required:
+
+1. create additive migration
+2. document it
+3. test it
+4. do not delete legacy fields until compatibility is confirmed
+
+---
+
+# 65. IMPORTANT: DO NOT BREAK EXISTING COURSES
+
+Existing saved Courses must continue to open.
+
+Existing progress must continue to work.
+
+Existing enrollments must continue to work.
+
+Existing dashboard data must continue to work.
+
+Phase 4 is an enhancement/consolidation, not a database reset.
+
+---
+
+# 66. IMPORTANT: DO NOT USE MOCK DATA FOR THE FINAL FLOW
+
+The final Course Generator must use:
+
+```text
+real authenticated user
+real API
+real generation service
+real MongoDB persistence
+real Course IDs
+real progress
+```
+
+Tests may use fixtures/mocks.
+
+The production path must not silently use mock courses.
+
+---
+
+# 67. IMPLEMENTATION PRINCIPLE
+
+When deciding between:
+
+```text
+rewrite
+```
+
+and:
+
+```text
+reuse
+```
+
+prefer:
+
+> **Reuse existing proven functionality and consolidate it behind a clean canonical architecture.**
+
+Do not rewrite working AI/resource/validation logic just for stylistic reasons.
+
+---
+
+# 68. STOP CONDITIONS
+
+Stop and report before proceeding if you discover:
+
+* destructive migration required
+* authentication redesign required
+* database reset required
+* major unrelated architectural dependency
+* external API contract that may break unknown clients
+* inability to preserve existing Courses
+* provider credentials/configuration missing
+* a decision that fundamentally changes product behavior and cannot safely be inferred
+
+Do not guess.
+
+---
+
+# 69. FINAL STATUS FORMAT
+
+End the report with:
+
+```text
+========================================
+CAREEROS PHASE 4 STATUS
+========================================
+
+Course Generator:
+    PASS / PARTIAL / FAIL
+
+Personalized Questions:
+    PASS / PARTIAL / FAIL
+
+Answer Review:
+    PASS / PARTIAL / FAIL
+
+AI Generation:
+    PASS / PARTIAL / FAIL
+
+Curriculum Validation:
+    PASS / PARTIAL / FAIL
+
+Duplicate Module Detection:
+    PASS / PARTIAL / FAIL
+
+Timeline Personalization:
+    PASS / PARTIAL / FAIL
+
+Document/PDF Resources:
+    PASS / PARTIAL / FAIL
+
+YouTube Resources:
+    PASS / PARTIAL / FAIL
+
+YouTube Embedding:
+    PASS / PARTIAL / FAIL
+
+Complete Course Resources:
+    PASS / PARTIAL / FAIL
+
+Preview Before Save:
+    PASS / PARTIAL / FAIL
+
+Course Persistence:
+    PASS / PARTIAL / FAIL
+
+Enrollment:
+    PASS / PARTIAL / FAIL
+
+Progress:
+    PASS / PARTIAL / FAIL
+
+Resume:
+    PASS / PARTIAL / FAIL
+
+My Courses:
+    PASS / PARTIAL / FAIL
+
+Cross-user Security:
+    PASS / PARTIAL / FAIL
+
+Authentication:
+    PASS / PARTIAL / FAIL
+
+Phase 3 Compatibility:
+    PASS / PARTIAL / FAIL
+
+Frontend Build:
+    PASS / FAIL
+
+Backend Tests:
+    PASS / FAIL
+
+Integration Tests:
+    PASS / FAIL
+
+Legacy Paths:
+    RESOLVED / DEPRECATED / REMAINING
+
+========================================
+```
+
+Then provide:
+
+```text
+KNOWN LIMITATIONS
+
+OPEN QUESTIONS
+
+FUTURE IMPROVEMENTS
+```
+
+---
+
+# 70. MOST IMPORTANT FINAL INSTRUCTION
+
+Do not optimize for "making the code look cleaner."
+
+Optimize for this user experience:
+
+> **A user tells CareerOS what they want to learn, CareerOS understands their goals and constraints, generates a genuinely personalized and logically structured course, validates that the modules are distinct, attaches useful verified learning resources and embedded videos, provides complete-course learning sources, lets the user review the course before saving it, persists it safely, and allows the user to return later and continue exactly where they stopped.**
+
+That is the definition of success for Phase 4.
+
+Do not start Phase 5.
+
+Do not redesign unrelated CareerOS systems.
+
+Complete Phase 4, verify it thoroughly, produce the implementation report, and stop.

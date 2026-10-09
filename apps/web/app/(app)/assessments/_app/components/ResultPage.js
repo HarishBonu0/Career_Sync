@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CheckCircle2, XCircle, RefreshCcw } from 'lucide-react';
+import { CheckCircle2, XCircle, RefreshCcw, Target, TrendingUp, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 const ResultPage = () => {
   const router = useRouter();
@@ -77,135 +77,164 @@ const ResultPage = () => {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-6 py-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Assessment results</h1>
-        <p className="text-sm text-muted-foreground">Score, breakdown, and areas to focus on.</p>
+    <div className="mx-auto max-w-4xl space-y-8 px-6 py-12">
+      <div className="space-y-4">
+        <div className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-3 py-1 text-xs font-bold uppercase tracking-widest text-accent shadow-sm">
+          <Target className="h-3.5 w-3.5" />
+          Intelligence Report
+        </div>
+        <h1 className="text-4xl font-bold tracking-tight text-primary">Assessment results</h1>
+        <p className="text-lg text-secondary-foreground font-medium">Score, breakdown, and targeted areas for improvement.</p>
       </div>
 
-      <Card>
-        <CardContent className="flex items-center gap-6 p-6">
-          <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full border-4 border-foreground/10 bg-muted">
-            <span className="text-xl font-semibold tabular-nums">{percentage}%</span>
-            <span className="text-xs text-muted-foreground">
-              {score}/{total}
+      <Card className="rounded-[2rem] border border-border/80 bg-white shadow-elevated overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-radial from-accent/5 to-transparent blur-2xl opacity-60 pointer-events-none" />
+        <CardContent className="flex flex-col sm:flex-row items-center gap-8 p-10 relative z-10">
+          <div className="flex h-36 w-36 shrink-0 flex-col items-center justify-center rounded-full border-[6px] border-accent/20 bg-accent/5 shadow-[0_0_30px_rgba(184,121,36,0.15)] relative">
+            <svg className="absolute inset-0 w-full h-full -rotate-90">
+              <circle cx="66" cy="66" r="60" fill="none" stroke="currentColor" strokeWidth="6" className="text-border/50" />
+              <circle cx="66" cy="66" r="60" fill="none" stroke="currentColor" strokeWidth="6" strokeDasharray="377" strokeDashoffset={377 - (377 * percentage) / 100} className="text-accent transition-all duration-1000 ease-out" strokeLinecap="round" />
+            </svg>
+            <span className="text-3xl font-bold tabular-nums text-primary relative z-10">{percentage}%</span>
+            <span className="text-sm font-semibold text-accent relative z-10 mt-1">
+              {score} / {total}
             </span>
           </div>
-          <div className="flex-1">
-            <p className="text-base font-medium">
+          <div className="flex-1 text-center sm:text-left space-y-3">
+            <h3 className="text-2xl font-bold text-primary">
               {percentage >= 80
-                ? 'Strong performance.'
+                ? 'Exceptional performance.'
                 : percentage >= 50
-                  ? 'Solid baseline.'
-                  : 'Room to grow.'}
-            </p>
-            <p className="text-sm text-muted-foreground">
+                  ? 'Solid baseline established.'
+                  : 'Targeted growth required.'}
+            </h3>
+            <p className="text-base text-secondary-foreground font-medium">
               {weakAreas.length === 0
-                ? 'No clear weak topics — keep going.'
-                : `${weakAreas.length} topic${weakAreas.length === 1 ? '' : 's'} below 50%.`}
+                ? 'You demonstrated comprehensive mastery across all tested domains.'
+                : `${weakAreas.length} core topic${weakAreas.length === 1 ? '' : 's'} identified for strategic improvement.`}
             </p>
           </div>
-          <Button variant="outline" onClick={handleRetake}>
+          <Button variant="outline" onClick={handleRetake} className="shrink-0 h-12 rounded-full px-6 font-bold border-border/80 hover:bg-accent/5 hover:text-accent hover:border-accent/40 transition-all">
             <RefreshCcw className="mr-2 h-4 w-4" />
             New assessment
           </Button>
         </CardContent>
       </Card>
 
-      {Object.keys(topicAnalysis).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Performance by topic</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {Object.entries(topicAnalysis).map(([topic, stats]) => {
-              const pct = Math.round((stats.correct / stats.total) * 100);
-              return (
-                <div key={topic} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{topic}</span>
-                    <span className="text-muted-foreground">
-                      {stats.correct}/{stats.total} ({pct}%)
-                    </span>
+      <div className="grid gap-8 md:grid-cols-2">
+        {Object.keys(topicAnalysis).length > 0 && (
+          <Card className="rounded-[1.5rem] border border-border/80 bg-white shadow-sm">
+            <CardHeader className="p-6 border-b border-border/50 bg-background/50">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-primary">
+                <TrendingUp className="h-5 w-5 text-accent" />
+                Performance by topic
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6 p-6">
+              {Object.entries(topicAnalysis).map(([topic, stats]) => {
+                const pct = Math.round((stats.correct / stats.total) * 100);
+                return (
+                  <div key={topic} className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-semibold text-primary">{topic}</span>
+                      <span className="text-secondary-foreground font-medium">
+                        {stats.correct}/{stats.total} <span className="font-bold text-primary ml-1">({pct}%)</span>
+                      </span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted border border-border/50">
+                      <div
+                        className="h-full transition-all duration-1000 ease-out rounded-full"
+                        style={{
+                          width: `${pct}%`,
+                          background: pct >= 50 ? 'hsl(var(--accent))' : 'hsl(var(--destructive))',
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full transition-all"
-                      style={{
-                        width: `${pct}%`,
-                        background: pct >= 50 ? 'hsl(142 71% 45%)' : 'hsl(0 84% 60%)',
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Detailed answers</CardTitle>
+        {weakAreas.length > 0 && (
+          <Card className="rounded-[1.5rem] border border-destructive/20 bg-destructive/5 shadow-sm">
+            <CardHeader className="p-6 border-b border-destructive/10 bg-white/50">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-5 w-5" />
+                Strategic focus areas
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <ul className="space-y-4 text-sm">
+                {weakAreas.map(({ topic, percentage }) => (
+                  <li key={topic} className="flex items-start gap-3 bg-white p-4 rounded-xl border border-destructive/10 shadow-sm">
+                    <div className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive font-bold text-xs">
+                      !
+                    </div>
+                    <div className="space-y-1">
+                      <span className="font-bold text-primary block">{topic}</span>
+                      <span className="text-secondary-foreground font-medium leading-relaxed block">
+                        Currently at <span className="font-bold text-destructive">{percentage}%</span> proficiency. Recommend dedicated study in this domain.
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <Card className="rounded-[1.5rem] border border-border/80 bg-white shadow-sm overflow-hidden">
+        <CardHeader className="p-8 border-b border-border/50 bg-background/50">
+          <CardTitle className="text-xl font-bold text-primary">Detailed analysis</CardTitle>
+          <CardDescription className="text-base font-medium text-secondary-foreground">Review your responses against the verified answers.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-6 p-8">
           {results.map((r, idx) => (
-            <div key={idx} className="rounded-md border border-border p-4">
-              <div className="flex items-start gap-2">
+            <div key={idx} className={`rounded-xl border p-6 transition-all ${r.isCorrect ? 'border-border/80 bg-white hover:border-accent/30' : 'border-destructive/30 bg-destructive/5'}`}>
+              <div className="flex items-start gap-4">
                 {r.isCorrect ? (
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent mt-0.5">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
                 ) : (
-                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive mt-0.5">
+                    <XCircle className="h-5 w-5" />
+                  </div>
                 )}
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">
-                    {idx + 1}. {r.question}
+                <div className="space-y-3 flex-1">
+                  <p className="text-base font-semibold leading-relaxed text-primary">
+                    <span className="text-muted-foreground mr-2">{idx + 1}.</span> {r.question}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    Your answer:{' '}
-                    {r.userAnswer ? (
-                      <span className="font-medium text-foreground">
-                        {r.userAnswer}. {r.options?.[r.userAnswer]}
-                      </span>
-                    ) : (
-                      <span className="italic">Not answered</span>
-                    )}
-                  </p>
-                  {!r.isCorrect && r.correctAnswer && (
-                    <p className="text-xs text-muted-foreground">
-                      Correct:{' '}
-                      <span className="font-medium text-foreground">
-                        {r.correctAnswer}. {r.options?.[r.correctAnswer]}
-                      </span>
+                  
+                  <div className="space-y-2 mt-4 bg-muted/50 p-4 rounded-lg">
+                    <p className="text-sm font-medium text-secondary-foreground">
+                      Your answer:{' '}
+                      {r.userAnswer ? (
+                        <span className={`font-bold ${r.isCorrect ? 'text-primary' : 'text-destructive'}`}>
+                          {r.userAnswer}. {r.options?.[r.userAnswer]}
+                        </span>
+                      ) : (
+                        <span className="italic">Not answered</span>
+                      )}
                     </p>
-                  )}
+                    {!r.isCorrect && r.correctAnswer && (
+                      <p className="text-sm font-medium text-secondary-foreground">
+                        Correct answer:{' '}
+                        <span className="font-bold text-accent">
+                          {r.correctAnswer}. {r.options?.[r.correctAnswer]}
+                        </span>
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           ))}
         </CardContent>
       </Card>
-
-      {weakAreas.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Areas to improve</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm">
-              {weakAreas.map(({ topic, percentage }) => (
-                <li key={topic} className="flex items-start gap-2">
-                  <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-destructive" />
-                  <span>
-                    <span className="font-medium">{topic}</span>{' '}
-                    <span className="text-muted-foreground">— {percentage}%. Review core concepts and run focused practice.</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

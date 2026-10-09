@@ -56,7 +56,7 @@ async function createRoadmapHandler(req, res) {
     res.status(201).json({ success: true, roadmapId: roadmap._id, roadmap, data: roadmap });
   } catch (error) {
     console.error('Roadmap creation error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 }
 
@@ -79,6 +79,42 @@ router.post(
   createRoadmapHandler
 );
 
+/**
+ * @route POST /api/roadmaps/personalized
+ * @desc Generate deterministic personalized roadmap based on Phase 5 inputs
+ * @access Private
+ */
+router.post(
+  '/personalized',
+  authenticate,
+  requireMongo,
+  body('targetRole').isString().trim().notEmpty().withMessage('targetRole is required'),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+
+      const { targetRole } = req.body;
+      const userId = req.user.id;
+      const userEmail = req.user.email;
+
+      // Use dynamic import for the service
+      const { constructPersonalizedRoadmap } = await import('../services/personalizedRoadmapService.js');
+      
+      const roadmap = await constructPersonalizedRoadmap(userId, targetRole, userEmail);
+
+      return res.status(200).json({
+        success: true,
+        data: roadmap
+      });
+    } catch (error) {
+      console.error('Personalized Roadmap Generation Error:', error);
+      res.status(error.message.includes('not found') || error.message.includes('Unknown') ? 400 : 500)
+         .json({ success: false, message: error.message || 'Server Error' });
+    }
+  }
+);
+
 // Generate career roadmap and persist
 router.post(
   '/generate',
@@ -99,7 +135,7 @@ router.post(
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
     const prompt = `You are an expert Career Roadmap Architect.
 
 Your job is to generate a REALISTIC, ROLE-SPECIFIC, INDUSTRY-CORRECT career roadmap.
@@ -177,7 +213,7 @@ Generate a detailed, actionable roadmap with specific tools, certifications, pro
     });
   } catch (error) {
     console.error('Roadmap generation error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -189,7 +225,7 @@ router.get('/', authenticate, requireMongo, async (req, res) => {
     res.json({ success: true, roadmaps, count: roadmaps.length });
   } catch (error) {
     console.error('Roadmap fetch error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -206,7 +242,7 @@ router.get('/:id', authenticate, requireMongo, async (req, res) => {
     res.json({ success: true, data: roadmap });
   } catch (error) {
     console.error('Roadmap fetch error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -241,7 +277,7 @@ router.put(
       res.json({ success: true, data: roadmap });
     } catch (error) {
       console.error('Roadmap update error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
     }
   }
 );
@@ -268,7 +304,7 @@ router.post(
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
     const skillProfile = await SkillProfile.findOne({ user: req.user.id }).lean();
     const persistedSkills = skillProfile?.skills?.map((skill) => `${skill.name}: ${skill.percentage}%`).join(', ') || 'No persisted assessments yet';
     const enrichedPrompt = `${prompt}\n\nPersisted CareerOS skill profile for this authenticated user: ${persistedSkills}\nUse this profile as authoritative context where relevant.`;

@@ -16,7 +16,7 @@ export async function connectMongo() {
     console.info('🔄 Connecting to MongoDB Atlas...');
     await mongoose.connect(uri, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
     console.info(`✅ MongoDB connected successfully!`);
@@ -38,10 +38,8 @@ export async function connectMongo() {
     return true;
   } catch (err) {
     console.error('❌ MongoDB connection error:', err.message);
-    console.error('💡 Make sure your IP is whitelisted in MongoDB Atlas');
-    console.error('💡 Check your connection string and credentials');
+    console.error('💡 Make sure your IP is whitelisted in MongoDB Atlas or college LAN is not blocking it.');
     console.error('⚠️  Server will continue running with limited functionality (localStorage only)');
-    console.error('🔧 To fix: Update MongoDB credentials or whitelist IP: https://cloud.mongodb.com/');
     mongoose.set('bufferCommands', false);
     return false;
   }

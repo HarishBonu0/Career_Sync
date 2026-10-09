@@ -98,6 +98,17 @@ class ApiClient {
     })
   }
 
+  async getMyEnrollments() {
+    return this.request('/courses/enrollments/my')
+  }
+
+  async updateCourseProgress(courseId: string, progressData: { progress: number, currentModule: number, completedModules: number[] }) {
+    return this.request(`/courses/${courseId}/progress`, {
+      method: 'PUT',
+      body: JSON.stringify(progressData),
+    })
+  }
+
   // Roadmap endpoints
   async getRoadmaps(userId?: string) {
     const query = userId ? `?userId=${userId}` : ''

@@ -4,6 +4,11 @@ import type { NextRequest } from 'next/server'
 const AUTH_COOKIE = 'Career_Sync_token'
 
 export function middleware(req: NextRequest) {
+  // BYPASS_AUTH to let users test locally without DB
+  if (process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true' || process.env.NODE_ENV === 'development') {
+    return NextResponse.next()
+  }
+
   const hasToken = Boolean(req.cookies.get(AUTH_COOKIE)?.value)
 
   if (!hasToken) {

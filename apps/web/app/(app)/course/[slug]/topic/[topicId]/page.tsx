@@ -4,7 +4,6 @@ import { useParams, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { ArrowLeft, Play, CheckCircle2, Bookmark } from 'lucide-react'
 import Link from 'next/link'
-import { getYouTubeVideoForTopic } from '@/lib/youtube'
 import { YouTubeVideo } from '@/lib/youtube'
 import api from '@/lib/api'
 
@@ -78,6 +77,7 @@ export default function TopicPage() {
   const topicId = parseInt(params.topicId as string)
   
   const [completed, setCompleted] = useState(false)
+  const [completedModules, setCompletedModules] = useState<number[]>([])
   const [moduleData, setModuleData] = useState<any>(null)
   const [courseId, setCourseId] = useState<string | null>(null)
   const [youtubeVideo, setYoutubeVideo] = useState<YouTubeVideo | null>(null)
@@ -88,197 +88,113 @@ export default function TopicPage() {
   const [selectedResource, setSelectedResource] = useState<any>(null)
   
   useEffect(() => {
-    // Load module data from localStorage with proper error handling
-    const storedModule = localStorage.getItem(`module_${topicId}`)
-    console.log('📦 Looking for module data:', `module_${topicId}`)
-    
-    if (storedModule) {
-      try {
-        const parsed = JSON.parse(storedModule)
-        console.log('📦 Module data found:', parsed)
-        console.log('📚 Reading materials in module:', parsed.readingMaterials?.length || 0)
-        setModuleData(parsed)
-        
-        // Ensure courseId is properly extracted and set
-        const extractedCourseId = parsed.courseId || null
-        if (extractedCourseId) {
-          setCourseId(extractedCourseId)
-          api.getCourse(extractedCourseId)
-            .then((courseResponse) => {
-              const serverCompletedModules = courseResponse.data?.completedModules || []
-              setCompleted(serverCompletedModules.includes(topicId))
-            })
-            .catch((error) => console.warn('Could not hydrate module progress from server:', error))
-          console.log('✅ Course ID set successfully:', extractedCourseId)
-          console.log('🔗 Will navigate to: /course-generated/' + extractedCourseId)
-        } else {
-          console.warn('⚠️ No courseId found in module data')
-          // Fallback: try to get courseId from generatedCourse in localStorage
-          const generatedCourse = localStorage.getItem('generatedCourse')
-          if (generatedCourse) {
-            try {
-              const courseData = JSON.parse(generatedCourse)
-              if (courseData.id || courseData.courseId) {
-                const fallbackId = courseData.id || courseData.courseId
-                setCourseId(fallbackId)
-                console.log('✅ Course ID extracted from generatedCourse:', fallbackId)
-              }
-            } catch (e) {
-              console.error('Failed to parse generatedCourse')
-            }
-          }
+    if (courseSlug === 'preview') {
+      const storedCourse = typeof window !== 'undefined' ? sessionStorage.getItem('coursePreview') : null
+      if (storedCourse) {
+        try {
+          const parsed = JSON.parse(storedCourse)
+          setCourseId('preview')
+          setModuleData({
+            ...parsed.modules[topicId - 1],
+            courseTitle: parsed.title,
+            courseTotalModules: parsed.modules.length,
+          })
+          setIsSaved(false)
+        } catch (error) {
+          console.error('❌ Error parsing preview data:', error)
         }
-      } catch (error) {
-        console.error('❌ Error parsing module data:', error)
       }
+      setLoading(false)
     } else {
-      console.warn('⚠️ No stored module found for topic:', topicId)
+      setCourseId(courseSlug)
+      api.getCourse(courseSlug)
+        .then((courseResponse) => {
+          const course = courseResponse.data
+          if (course && course.modules) {
+             setModuleData({
+                ...course.modules[topicId - 1],
+                courseTitle: course.title,
+                courseTotalModules: course.totalModules || course.modules.length
+             })
+             const serverCompletedModules = course.completedModules || []
+             setCompletedModules(serverCompletedModules)
+             setCompleted(serverCompletedModules.includes(topicId))
+             setIsSaved(true)
+          }
+        })
+        .catch((error) => console.warn('Could not hydrate course from server:', error))
+        .finally(() => setLoading(false))
     }
-    
-    // Check if user has completed this topic
-    const completedTopics = JSON.parse(localStorage.getItem('completedTopics') || '[]')
-    setCompleted(completedTopics.includes(topicId))
-    
-    // Check if course is already saved
-    const savedCourses = JSON.parse(localStorage.getItem('savedCourses') || '[]')
-    const courseData = localStorage.getItem('generatedCourse')
-    if (courseData && savedCourses.includes(courseData)) {
-      setIsSaved(true)
-    }
-    
-    setLoading(false)
-  }, [topicId])
+  }, [courseSlug, topicId])
 
   useEffect(() => {
-    // Fetch YouTube video for the module with course context
-    const fetchVideo = async () => {
-      const topic = moduleData || mockTopics[0]
-      
-      // Get course title from localStorage for better video matching
-      let courseTitle = ''
-      try {
-        const generatedCourse = localStorage.getItem('generatedCourse')
-        if (generatedCourse) {
-          const courseData = JSON.parse(generatedCourse)
-          courseTitle = courseData.title || ''
-        }
-      } catch (e) {
-        console.error('Error getting course title:', e)
-      }
-      
-      // Use the specific youtubeSearch query from the module data if available
-      // This ensures each module gets videos relevant to its specific content
-      let searchQuery = ''
-      if (moduleData?.youtubeSearch) {
-        // Use the specific search query generated for this module
-        searchQuery = moduleData.youtubeSearch
-        console.log('🎥 Using module-specific search query:', searchQuery)
-        console.log('🎥 Module:', topicId, '|', moduleData.title)
-      } else if (courseTitle && topic.title) {
-        // Fallback to course title + topic for more relevant videos
-        // Extract clean module title (remove "Module X:" prefix)
-        const cleanTitle = topic.title.replace(/^Module\s+\d+[:\s]*/i, '').trim()
-        searchQuery = `${cleanTitle} tutorial`
-        console.log('🎥 Using fallback search query (from title):', searchQuery)
-      } else {
-        // Final fallback
-        searchQuery = `${topic.title} tutorial course`
-        console.log('🎥 Using generic search query:', searchQuery)
-      }
-      
-      console.log('🎥 === FETCHING VIDEO ===')
-      console.log('🎥 Module #:', topicId)
-      console.log('🎥 Search Query:', searchQuery)
-      console.log('🎥 Expected: Unique video per module')
-      
-      try {
-        const video = await getYouTubeVideoForTopic(searchQuery)
-        if (video) {
-          console.log('✅ Video fetched:', video.title)
-          setYoutubeVideo(video)
-        } else {
-          console.warn('⚠️ No video found for query:', searchQuery)
-        }
-      } catch (error) {
-        console.error('❌ Error fetching video:', error)
-      }
+    // If the backend already provided a unique video ID for this module via video intelligence, use it!
+    if (moduleData?.youtubeVideoId) {
+      setYoutubeVideo({
+        id: moduleData.youtubeVideoId,
+        title: moduleData.videoIntelligence?.title || moduleData.title,
+        channelTitle: moduleData.videoIntelligence?.channel || '',
+        description: '',
+        thumbnail: moduleData.videoIntelligence?.thumbnail || '',
+        url: `https://www.youtube.com/embed/${moduleData.youtubeVideoId}`
+      })
+      return
     }
-    
-    if (!loading && moduleData) {
-      fetchVideo()
-    }
+
+    // For legacy courses or if we explicitly didn't find a video (youtubeSearch is empty string)
+    console.log('🎥 No videoIntelligence found from backend for this module, skipping video render')
+    setYoutubeVideo(null)
   }, [moduleData, loading, topicId])
 
   const topic = moduleData || mockTopics[0]
 
   const markAsCompleted = async () => {
-    const completedTopics = JSON.parse(localStorage.getItem('completedTopics') || '[]')
-    if (completedTopics.includes(topicId)) {
+    if (completedModules.includes(topicId)) {
       setCompleted(true)
       return
     }
 
-    if (!courseId) {
+    if (courseSlug === 'preview') {
       alert('This course has not been saved yet. Save the course before tracking progress.')
       return
     }
 
-    const nextCompletedTopics = [...completedTopics, topicId]
+    const nextCompletedTopics = Array.from(new Set([...completedModules, topicId]))
     const totalModules = moduleData?.courseTotalModules || 1
     const progress = Math.round((nextCompletedTopics.length / totalModules) * 100)
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-    const response = await fetch(`${apiUrl}/courses/${courseId}/progress`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    
+    try {
+      await api.updateCourseProgress(courseSlug, {
         progress,
         currentModule: topicId,
         completedModules: nextCompletedTopics,
-      }),
-    })
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) {
-      alert(data.error || 'Progress could not be saved. Please try again.')
-      return
+      })
+      setCompletedModules(nextCompletedTopics)
+      setCompleted(true)
+    } catch (error: any) {
+      alert(error.message || 'Progress could not be saved. Please try again.')
     }
-
-    localStorage.setItem('completedTopics', JSON.stringify(nextCompletedTopics))
-    setCompleted(true)
   }
 
   const saveCourse = async () => {
     setIsSaving(true)
     try {
-      const courseData = localStorage.getItem('generatedCourse')
-      if (!courseData) {
+      const courseDataStr = typeof window !== 'undefined' ? sessionStorage.getItem('coursePreview') : null
+      if (!courseDataStr) {
         alert('No course data found. Please generate a course first.')
         setIsSaving(false)
         return
       }
 
-      const course = JSON.parse(courseData)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-      const response = await fetch(`${apiUrl}/courses/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ course }),
-      })
+      const course = JSON.parse(courseDataStr)
+      const response = await api.createCourse(course)
 
-      const data = await response.json()
-
-      if (data.success) {
+      if (response.success) {
         setIsSaved(true)
-        // Store the saved course ID
-        const savedCourses = JSON.parse(localStorage.getItem('savedCourses') || '[]')
-        if (!savedCourses.includes(courseData)) {
-          savedCourses.push(courseData)
-          localStorage.setItem('savedCourses', JSON.stringify(savedCourses))
-        }
         alert('Course saved successfully! You can now access it from "My Courses".')
+        router.push(`/course-generated/${response.courseId}`)
       } else {
-        throw new Error(data.error || 'Failed to save course')
+        throw new Error(response.error || 'Failed to save course')
       }
     } catch (error) {
       console.error('Error saving course:', error)
@@ -294,7 +210,7 @@ export default function TopicPage() {
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="container-custom py-4">
           <Link
-            href={courseId ? `/course-generated/${courseId}` : `/course/${courseSlug}`}
+            href={courseSlug === 'preview' ? '/course-generated/preview' : `/course-generated/${courseSlug}`}
             className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -593,8 +509,8 @@ export default function TopicPage() {
                   {courseId ? (
                     <button
                       onClick={() => {
-                        console.log('🔄 Navigating back to course:', courseId)
-                        router.push(`/course-generated/${courseId}`)
+                        console.log('🔄 Navigating back to course:', courseSlug)
+                        router.push(courseSlug === 'preview' ? '/course-generated/preview' : `/course-generated/${courseSlug}`)
                       }}
                       className="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors inline-flex items-center gap-2 cursor-pointer"
                     >

@@ -1,6 +1,6 @@
 'use client'
 
-import { Search } from 'lucide-react'
+import { Search, Sparkles, BookOpen, Target, Network } from 'lucide-react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -19,61 +19,52 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
   }
 
   return (
-    <section className="relative overflow-hidden pt-20 pb-16">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.14),transparent_36%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),linear-gradient(to_bottom,rgba(255,255,255,0.6),transparent)]" />
-      <div className="container-custom">
-        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div className="space-y-6 animate-fade-up">
-            <span className="inline-flex items-center rounded-full border border-border bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-              Course generator home
-            </span>
-            <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-              Build a course that matches your goal, pace, and starting point.
-            </h1>
-            <p className="max-w-2xl text-base text-muted-foreground sm:text-lg">
-              Enter a topic and we will turn it into a focused curriculum with a review flow, real resources, and a saved course record.
-            </p>
+    <section className="relative overflow-hidden pt-24 pb-16 bg-background">
+      {/* Decorative Gradients */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-accent/10 to-transparent blur-3xl opacity-60 pointer-events-none" />
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.02]" />
 
-            <form onSubmit={handleSearch} className="relative max-w-2xl">
-              <label htmlFor="hero-search" className="sr-only">Search topic</label>
-              <div className="rounded-2xl border border-border bg-card p-2 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
-                <input
-                  id="hero-search"
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Try: Product design fundamentals"
-                  className="h-14 w-full rounded-xl border-0 bg-transparent px-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
-                />
-
-                <div className="mt-2 flex flex-wrap gap-3 px-1 pb-1">
-                  <Button type="submit" size="lg" className="shadow-lg shadow-indigo-500/20">
-                    Generate course
-                  </Button>
-                  <Button variant="outline" size="lg" asChild>
-                    <a href="/roadmaps">Explore roadmaps</a>
-                  </Button>
-                </div>
-              </div>
-            </form>
+      <div className="container-custom relative z-10">
+        <div className="mx-auto max-w-4xl text-center space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-accent shadow-sm">
+            <Sparkles className="h-3.5 w-3.5" />
+            AI-Powered Intelligence
           </div>
+          
+          <h1 className="text-display-2 sm:text-6xl lg:text-[5.5rem] font-bold tracking-tight text-primary leading-[1.05]">
+            What do you want to <br className="hidden sm:block" />
+            <span className="text-gradient-gold">learn today?</span>
+          </h1>
+          
+          <p className="mx-auto max-w-2xl text-lg text-secondary-foreground sm:text-xl font-medium leading-relaxed">
+            Enter any topic. Our intelligence engine will build a tailored, production-ready curriculum with verified resources in seconds.
+          </p>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-            <div className="animate-pop-in rounded-3xl border border-border bg-card p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Three features</p>
-              <div className="mt-4 space-y-3">
-                <FeatureRow title="Course generator" description="Turn any topic into a tailored plan." />
-                <FeatureRow title="Roadmaps" description="Map a role, the skills, and the gap." />
-                <FeatureRow title="Skill evaluator" description="See where you are before you start." />
+          <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto mt-10">
+            <div className="group relative rounded-full bg-white p-2 shadow-elevated border border-border/80 transition-all hover:border-accent/40 focus-within:border-accent/40 focus-within:shadow-[0_8px_30px_rgba(184,121,36,0.15)]">
+              <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-muted-foreground group-focus-within:text-accent transition-colors" strokeWidth={2.5} />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="e.g. Advanced System Design, Product Management..."
+                className="h-14 w-full rounded-full bg-transparent pl-14 pr-44 text-lg text-primary placeholder:text-muted-foreground/60 focus:outline-none focus:ring-0 font-medium"
+              />
+              <div className="absolute inset-y-2 right-2">
+                <Button type="submit" size="lg" className="h-full rounded-full px-8 text-base font-bold shadow-md bg-primary text-white hover:bg-primary/90 transition-transform hover:-translate-y-0.5 active:translate-y-0">
+                  Generate Course
+                </Button>
               </div>
             </div>
+          </form>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
-              <MetricCard label="Topic search" value="1 prompt" />
-              <MetricCard label="Resources" value="Real links" />
-              <MetricCard label="Saved courses" value="Profile sync" />
-              <MetricCard label="Feedback" value="Adaptive" />
-            </div>
+          <div className="pt-16 grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
+            <MetricCard icon={<Target strokeWidth={2.5} />} label="Tailored" value="To Your Goal" />
+            <MetricCard icon={<Network strokeWidth={2.5} />} label="Structured" value="Curriculum" />
+            <MetricCard icon={<BookOpen strokeWidth={2.5} />} label="Verified" value="Resources" />
+            <MetricCard icon={<Sparkles strokeWidth={2.5} />} label="Adaptive" value="Pacing" />
           </div>
         </div>
       </div>
@@ -81,23 +72,14 @@ export default function HeroSection({ onSearch }: HeroSectionProps) {
   )
 }
 
-function FeatureRow({ title, description }: { title: string; description: string }) {
+function MetricCard({ icon, label, value }: { icon: React.ReactNode, label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-2xl border border-border bg-muted/30 px-4 py-3">
-      <div>
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
+    <div className="rounded-[1.5rem] border border-border/80 bg-white shadow-sm p-6 transition-all hover:shadow-md hover:border-accent/20 group">
+      <div className="text-muted-foreground group-hover:text-accent transition-colors mb-4 h-6 w-6">
+        {icon}
       </div>
-      <span className="mt-1 h-2.5 w-2.5 rounded-full bg-foreground/80" />
-    </div>
-  )
-}
-
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-foreground">{value}</p>
+      <p className="text-base font-bold text-primary">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mt-1">{label}</p>
     </div>
   )
 }

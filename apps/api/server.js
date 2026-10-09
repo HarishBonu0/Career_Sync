@@ -23,6 +23,8 @@ import roadmapRoutes from './routes/roadmaps.js';
 import skillEvalRoutes from './routes/skillEval.js';
 import profileRoutes from './routes/profile.js';
 import courseGenRoutes from './routes/course-generation-v2.js';
+import resumeRoutes from './routes/resume.js';
+import skillGapsRoutes from './routes/skillGaps.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -41,6 +43,9 @@ app.use(cors({
 }));
 // Basic security headers
 app.use(helmet());
+
+// Trust reverse proxy (e.g. Vercel, Heroku, Nginx) so rate limiter gets correct client IP
+app.set('trust proxy', 1);
 
 // Simple rate limiter to protect public endpoints
 const apiLimiter = rateLimit({
@@ -76,15 +81,18 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/roadmaps', roadmapRoutes);
 app.use('/api/skills', skillEvalRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/resume', resumeRoutes);
+app.use('/api/skill-gaps', skillGapsRoutes);
 // Mount specialized generation routes at /api to expose /api/generate-course-v2
 app.use('/api', courseGenRoutes);
 
 // Error Handler
 app.use((err, req, res, next) => {
   console.error('Error:', err);
+  const isProduction = process.env.NODE_ENV === 'production';
   res.status(500).json({ 
     error: 'Something went wrong!', 
-    message: err.message 
+    message: isProduction ? 'An unexpected internal error occurred.' : err.message
   });
 });
 

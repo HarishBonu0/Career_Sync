@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, ExternalLink, Map as MapIcon } from 'lucide-react';
+import { ExternalLink, CheckCircle2, ChevronRight, Play } from 'lucide-react';
 import { Pathway, RoadmapStep } from '../../types/index';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 interface MindMapSubTopic {
@@ -33,10 +32,10 @@ const TECH_KEYWORDS = [
 const COLORS: Array<'teal' | 'blue' | 'purple' | 'amber'> = ['teal', 'blue', 'purple', 'amber'];
 
 const COLOR_CLASSES: Record<MindMapSubTopic['colorKey'], string> = {
-  teal: 'border-emerald-500/30 bg-emerald-500/5',
-  blue: 'border-blue-500/30 bg-blue-500/5',
-  purple: 'border-violet-500/30 bg-violet-500/5',
-  amber: 'border-amber-500/30 bg-amber-500/5',
+  teal: 'border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/40 hover:bg-emerald-500/10',
+  blue: 'border-blue-500/20 bg-blue-500/5 hover:border-blue-500/40 hover:bg-blue-500/10',
+  purple: 'border-violet-500/20 bg-violet-500/5 hover:border-violet-500/40 hover:bg-violet-500/10',
+  amber: 'border-amber-500/20 bg-amber-500/5 hover:border-amber-500/40 hover:bg-amber-500/10',
 };
 
 function capitalize(str: string): string {
@@ -107,14 +106,14 @@ function buildSubTopics(step: RoadmapStep, role: string): MindMapSubTopic[] {
 
 const TYPE_LABELS: Record<string, string> = {
   CERTIFICATION: 'Certification',
-  PROJECT: 'Portfolio project',
-  APPLICATION: 'Apply & interview',
-  LEARNING: 'Learning track',
+  PROJECT: 'Portfolio Project',
+  APPLICATION: 'Apply & Interview',
+  LEARNING: 'Learning Track',
 };
 
 export default function RoadmapMindMap({ role, pathway }: RoadmapMindMapProps) {
   const router = useRouter();
-  const [expandedId, setExpandedId] = useState<string | null>(pathway.roadmap[0]?.id ?? null);
+  const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
 
   const stepsData = useMemo(
     () => pathway.roadmap.map((step) => ({ step, subTopics: buildSubTopics(step, role) })),
@@ -125,109 +124,135 @@ export default function RoadmapMindMap({ role, pathway }: RoadmapMindMapProps) {
     router.push(`/generate/${encodeURIComponent(query)}`);
   }
 
+  const activeData = stepsData[activeStepIndex];
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <MapIcon className="h-4 w-4 text-muted-foreground" />
-          <CardTitle className="text-base">Career roadmap</CardTitle>
-        </div>
-        <CardDescription>
-          Click any step to expand its learning branches. Press <strong>Learn now</strong> on any
-          sub-topic to open the course generator for that topic.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-md border border-border bg-muted/40 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your target</p>
-          <p className="mt-0.5 text-base font-semibold">{role}</p>
-          <p className="text-xs text-muted-foreground">{pathway.roadmap.length}-step career pathway</p>
+    <div className="flex flex-col md:flex-row gap-8 items-start relative">
+      {/* Visual Roadmap Path */}
+      <div className="w-full md:w-1/3 shrink-0 sticky top-28">
+        <div className="mb-6">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">Standard Track</p>
+          <h2 className="text-xl font-semibold text-foreground">{role}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{pathway.roadmap.length} major milestones</p>
         </div>
 
-        <ol className="space-y-3">
-          {stepsData.map(({ step, subTopics }, index) => {
-            const isExpanded = expandedId === step.id;
+        <div className="relative pl-6 space-y-8 before:absolute before:inset-y-0 before:left-[11px] before:w-0.5 before:bg-border/60">
+          {stepsData.map(({ step }, index) => {
+            const isActive = activeStepIndex === index;
+            const isCompleted = index < activeStepIndex;
+            
+            let statusColor = 'bg-muted border-border text-muted-foreground';
+            if (isActive) statusColor = 'bg-primary border-primary text-primary-foreground shadow-[0_0_15px_rgba(var(--primary),0.5)]';
+            else if (isCompleted) statusColor = 'bg-primary/20 border-primary/50 text-primary';
+
             return (
-              <li key={step.id} className="overflow-hidden rounded-md border border-border">
-                <button
-                  type="button"
-                  onClick={() => setExpandedId(isExpanded ? null : step.id)}
-                  aria-expanded={isExpanded}
-                  className={[
-                    'flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors',
-                    isExpanded ? 'bg-muted' : 'hover:bg-muted/50',
-                  ].join(' ')}
-                >
-                  <div className="flex flex-1 items-start gap-3">
-                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-foreground/20 bg-background text-xs font-semibold tabular-nums">
-                      {index + 1}
-                    </span>
-                    <div className="space-y-0.5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold">{step.title}</p>
-                        <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                          {TYPE_LABELS[step.type] ?? step.type}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{step.duration}</p>
+              <div 
+                key={step.id} 
+                className={`relative cursor-pointer group transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
+                onClick={() => setActiveStepIndex(index)}
+              >
+                {/* Node marker */}
+                <div className={`absolute -left-[30px] flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all duration-300 ${statusColor}`}>
+                  {isCompleted ? <CheckCircle2 className="h-3 w-3" /> : <span className="text-[9px] font-bold">{index + 1}</span>}
+                </div>
+                
+                <div className={`pl-2 transition-all duration-300 ${isActive ? 'translate-x-1' : ''}`}>
+                  <h3 className={`font-medium leading-tight ${isActive ? 'text-foreground text-base' : 'text-foreground/80 text-sm'}`}>
+                    {step.title}
+                  </h3>
+                  {isActive && (
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-muted text-muted-foreground">
+                        {TYPE_LABELS[step.type] ?? step.type}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{step.duration}</span>
                     </div>
-                  </div>
-                  <ChevronDown
-                    className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
-                      isExpanded ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-
-                {isExpanded && (
-                  <div className="space-y-4 border-t border-border bg-background p-4">
-                    <p className="text-sm text-muted-foreground">{step.description}</p>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {subTopics.map((topic) => (
-                        <div
-                          key={topic.id}
-                          className={`flex flex-col gap-3 rounded-md border p-3 ${COLOR_CLASSES[topic.colorKey]}`}
-                        >
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold">{topic.label}</p>
-                            <p className="text-xs text-muted-foreground">{topic.description}</p>
-                          </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="self-start"
-                            onClick={() => openCourse(topic.courseQuery)}
-                            title={`Generate course: ${topic.courseQuery}`}
-                          >
-                            Learn now
-                            <ExternalLink className="ml-1 h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </li>
+                  )}
+                </div>
+              </div>
             );
           })}
-        </ol>
-
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-          <Legend dot="bg-emerald-500" label="Click a step to explore its learning branches" />
-          <Legend dot="bg-foreground" label="Active step" />
-          <Legend dot="bg-blue-500" label="Learn now opens the course generator" />
         </div>
-      </CardContent>
-    </Card>
-  );
-}
+      </div>
 
-function Legend({ dot, label }: { dot: string; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={`inline-block h-1.5 w-1.5 rounded-full ${dot}`} />
-      {label}
-    </span>
+      {/* Active Node Detail Panel */}
+      <div className="w-full md:w-2/3">
+        {activeData ? (
+          <div className="rounded-3xl border border-border bg-card shadow-elevated overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+            {/* Header */}
+            <div className="p-8 border-b border-border bg-muted/20 relative overflow-hidden">
+              <div className="absolute -right-10 -top-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="flex items-start justify-between gap-4 relative z-10">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-2">Milestone {activeStepIndex + 1}</p>
+                  <h2 className="text-2xl font-bold text-foreground">{activeData.step.title}</h2>
+                  <p className="mt-3 text-sm text-muted-foreground max-w-lg leading-relaxed">
+                    {activeData.step.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-8 space-y-8">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Learning Branches</h3>
+                </div>
+                
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {activeData.subTopics.map((topic) => (
+                    <div
+                      key={topic.id}
+                      className={`group flex flex-col justify-between gap-4 rounded-xl border p-5 transition-all ${COLOR_CLASSES[topic.colorKey]}`}
+                    >
+                      <div className="space-y-1.5">
+                        <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors">{topic.label}</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{topic.description}</p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="self-start shadow-sm"
+                        onClick={() => openCourse(topic.courseQuery)}
+                        title={`Generate course: ${topic.courseQuery}`}
+                      >
+                        <Play className="mr-2 h-3 w-3" />
+                        Learn Now
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* Footer Navigation */}
+            <div className="border-t border-border bg-muted/10 p-4 flex items-center justify-between">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                disabled={activeStepIndex <= 0}
+                onClick={() => setActiveStepIndex(prev => Math.max(0, prev - 1))}
+              >
+                Previous
+              </Button>
+              <span className="text-xs text-muted-foreground font-medium">
+                {activeStepIndex + 1} of {stepsData.length}
+              </span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                disabled={activeStepIndex >= stepsData.length - 1}
+                onClick={() => setActiveStepIndex(prev => Math.min(stepsData.length - 1, prev + 1))}
+              >
+                Next Milestone
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }

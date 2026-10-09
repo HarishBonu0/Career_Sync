@@ -3,10 +3,9 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Chrome } from 'lucide-react'
+import { Chrome, ArrowRight, Compass } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
@@ -38,66 +37,112 @@ export default function SignupPage() {
   }
 
   return (
-    <section className="mx-auto flex max-w-md flex-col items-center px-6 py-16">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Create your account</CardTitle>
-          <CardDescription>Start mapping your career with AI.</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-          </CardContent>
-          <CardFooter className="flex flex-col gap-3">
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? 'Creating account…' : 'Create account'}
-            </Button>
+    <section className="relative min-h-[calc(100vh-80px)] flex items-center justify-center py-16 px-4">
+      {/* Premium Ivory & Gold Background */}
+      <div className="absolute inset-0 -z-10 bg-background overflow-hidden">
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-accent/10 to-transparent blur-3xl opacity-60 translate-x-1/3 -translate-y-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-accent/5 to-transparent blur-2xl opacity-60 -translate-x-1/4 translate-y-1/4 pointer-events-none" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.02]" />
+      </div>
+
+      <div className="w-full max-w-[420px]">
+        <div className="mb-10 text-center space-y-3">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm border border-border/50 mb-6">
+            <Compass className="h-6 w-6 text-accent" strokeWidth={2.5} />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-primary">Create Account</h1>
+          <p className="text-secondary-foreground text-base">Start mapping your career with AI.</p>
+        </div>
+
+        <div className="rounded-[2rem] border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 sm:p-10">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <Button
               type="button"
               variant="outline"
-              className="w-full"
+              size="lg"
+              className="w-full h-12 rounded-xl bg-white hover:bg-secondary/50 border-border text-primary font-semibold shadow-sm transition-all"
               disabled={submitting}
               onClick={() => { window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/google` }}
             >
-              <Chrome className="mr-2 h-4 w-4" aria-hidden="true" />
-              Continue with Google
+              <Chrome className="mr-3 h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              Sign up with Google
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <Link href="/login" className="font-medium text-foreground underline underline-offset-4">
-                Sign in
-              </Link>
+            
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border/80" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase tracking-widest font-semibold">
+                <span className="bg-[#FBF9F6] px-4 text-muted-foreground rounded-full">Or</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-semibold text-primary">Full Name</Label>
+                <Input 
+                  id="name" 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                  required 
+                  className="h-12 rounded-xl bg-white border-border/80 focus:border-accent focus:ring-accent/20 px-4 transition-all"
+                  placeholder="Jane Doe"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-semibold text-primary">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-12 rounded-xl bg-white border-border/80 focus:border-accent focus:ring-accent/20 px-4 transition-all"
+                  placeholder="alex@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-semibold text-primary">Password</Label>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12 rounded-xl bg-white border-border/80 focus:border-accent focus:ring-accent/20 px-4 transition-all tracking-widest"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="p-3 rounded-xl bg-destructive/5 text-destructive text-sm font-medium border border-destructive/10 text-center">
+                {error}
+              </div>
+            )}
+
+            <Button type="submit" size="lg" className="w-full h-14 rounded-xl text-base font-bold bg-primary text-white hover:bg-primary/90 shadow-md transition-transform hover:-translate-y-0.5" disabled={submitting}>
+              {submitting ? 'Creating account...' : 'Create Account'} <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            
+            <p className="text-[11px] text-center text-muted-foreground/70 leading-tight">
+              (Preview Mode: Will use local storage if DB is offline)
             </p>
-          </CardFooter>
-        </form>
-      </Card>
+          </form>
+        </div>
+        
+        <p className="mt-8 text-center text-sm font-medium text-secondary-foreground">
+          Already have an account?{' '}
+          <Link href="/login" className="font-bold text-accent hover:text-accent/80 transition-colors">
+            Sign in
+          </Link>
+        </p>
+      </div>
     </section>
   )
 }

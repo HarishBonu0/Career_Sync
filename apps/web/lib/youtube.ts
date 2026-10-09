@@ -1,5 +1,5 @@
 // YouTube API Service - Dynamic Video Fetching Only
-const YOUTUBE_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3'
 
 export interface YouTubeVideo {
@@ -111,7 +111,7 @@ export async function searchYouTubeVideos(
 
   // Check if API key is configured
   if (!YOUTUBE_API_KEY || YOUTUBE_API_KEY === 'YOUR_API_KEY_HERE') {
-    const errorMsg = '❌ YouTube API key not configured. Please set NEXT_PUBLIC_YOUTUBE_API_KEY in .env.local'
+    const errorMsg = '❌ YouTube API key not configured. Please set YOUTUBE_API_KEY in .env.local'
     console.error(errorMsg)
     throw new Error(errorMsg)
   }

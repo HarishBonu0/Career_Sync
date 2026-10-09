@@ -47,3 +47,15 @@ export async function fetchRoadmap(id: string) {
   if (!res.ok) throw new Error(json.error || 'Failed to fetch roadmap')
   return json.data || json.roadmap
 }
+
+export async function generatePersonalizedRoadmap(targetRole: string) {
+  const res = await fetch(`${API_BASE}/api/roadmaps/personalized`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ targetRole }),
+    credentials: 'include',
+  })
+  const json = await res.json()
+  if (!res.ok) throw new Error(json.message || json.error || 'Failed to generate personalized roadmap')
+  return json.data || json.roadmap
+}

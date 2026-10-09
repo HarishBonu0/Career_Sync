@@ -18,71 +18,6 @@ export default function SimulationResults({ result }: SimulationResultsProps) {
   const [displayCount, setDisplayCount] = useState(6);
   const { user, isAuthenticated } = useAuth();
 
-  useEffect(() => {
-    const trackRoadmap = async () => {
-      try {
-        if (!isAuthenticated || !user) return;
-        const savedRoadmaps = JSON.parse(localStorage.getItem('Career Sync_saved_roadmaps') || '[]');
-        const primaryPath = result.pathways?.[0];
-        const milestones = (primaryPath?.roadmap || []).map((step: any) => ({
-          title: step.title,
-          description: step.description,
-          resources: [],
-        }));
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-        const response = await fetch(`${apiUrl}/roadmaps`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: result.input?.targetRole ? `${result.input.targetRole} Roadmap` : 'Career Roadmap',
-            currentRole: result.input?.currentRole || '',
-            targetRole: result.input?.targetRole || primaryPath?.role || '',
-            timeline: primaryPath?.timeline || '12 months',
-            stages: milestones.length,
-            milestones,
-            status: 'draft',
-          }),
-        });
-        const saved = await response.json().catch(() => ({}));
-        if (!response.ok || !saved.roadmapId) {
-          throw new Error(saved.error || 'Roadmap could not be saved');
-        }
-
-        const roadmapRecord = {
-          id: saved.roadmapId,
-          title: result.input?.targetRole ? `${result.input.targetRole} Roadmap` : 'Career Roadmap',
-          createdAt: new Date().toISOString(),
-          stages: milestones.length,
-          userId: user.id,
-          pathways: result.pathways?.length || 0,
-        };
-
-        const existingIndex = savedRoadmaps.findIndex((r: any) => r.title === roadmapRecord.title);
-        if (existingIndex === -1) {
-          savedRoadmaps.push(roadmapRecord);
-          localStorage.setItem('Career Sync_saved_roadmaps', JSON.stringify(savedRoadmaps));
-
-        }
-
-        const profileData = JSON.parse(localStorage.getItem('Career Sync_profile_data') || '{}');
-        profileData.totalRoadmaps = savedRoadmaps.length;
-        profileData.roadmaps = savedRoadmaps;
-        localStorage.setItem('Career Sync_profile_data', JSON.stringify(profileData));
-
-        window.dispatchEvent(
-          new StorageEvent('storage', {
-            key: 'Career Sync_saved_roadmaps',
-            newValue: JSON.stringify(savedRoadmaps),
-          })
-        );
-      } catch (e) {
-        console.error('Roadmap persistence failed:', e)
-      }
-    };
-    trackRoadmap();
-  }, [isAuthenticated, result, user]);
-
   const handleFilterChange = (filterType: keyof FilterOptions, value: string) => {
     setFilters((prev) => ({ ...prev, [filterType]: value as any }));
   };
@@ -175,7 +110,7 @@ export default function SimulationResults({ result }: SimulationResultsProps) {
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredPathways.slice(0, displayCount).map((pathway) => (
-              <PathwayCard key={pathway.id} pathway={pathway} />
+              <PathwayCard key={pathway.id} pathway={pathway} input={result.input} />
             ))}
           </div>
 

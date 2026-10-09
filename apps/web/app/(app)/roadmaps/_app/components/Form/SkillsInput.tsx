@@ -37,9 +37,10 @@ export default function SkillsInput({ skills, onSkillsChange }: SkillsInputProps
   };
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor="skills-input">
-        Skills <span className="text-xs font-normal text-muted-foreground">— press Enter to add</span>
+    <div className="space-y-3">
+      <Label htmlFor="skills-input" className="text-sm font-bold text-primary flex items-center justify-between">
+        Skills
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 hidden sm:inline-block">Press Enter to add</span>
       </Label>
       <Input
         id="skills-input"
@@ -48,28 +49,33 @@ export default function SkillsInput({ skills, onSkillsChange }: SkillsInputProps
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
+        className="h-12 rounded-xl border-border/80 bg-white px-4 text-base focus-visible:ring-accent focus-visible:border-accent transition-all font-medium placeholder:text-muted-foreground/60"
       />
 
       {skills.length > 0 && (
-        <ul className="space-y-2 pt-1">
+        <ul className="grid gap-3 sm:grid-cols-2 pt-2">
           {skills.map((skill) => (
             <li
               key={skill.name}
-              className="rounded-md border border-border bg-muted/30 px-3 py-2"
+              className="rounded-[1rem] border border-border/80 bg-white p-4 shadow-sm transition-all hover:border-accent/30 group relative overflow-hidden"
             >
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-medium">{skill.name}</span>
+              <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+              <div className="relative z-10 flex items-center justify-between gap-3 mb-4">
+                <span className="text-sm font-bold text-primary">{skill.name}</span>
                 <button
                   type="button"
                   onClick={() => removeSkill(skill.name)}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-background hover:text-destructive"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                   aria-label={`Remove ${skill.name}`}
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
-              <div className="mt-2 flex items-center gap-3">
-                <span className="shrink-0 text-xs text-muted-foreground">Estimated level</span>
+              <div className="relative z-10 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Self Assessment</span>
+                  <span className="text-xs font-bold text-accent">{skill.selfScore}%</span>
+                </div>
                 <input
                   type="range"
                   min="0"
@@ -77,11 +83,11 @@ export default function SkillsInput({ skills, onSkillsChange }: SkillsInputProps
                   step="1"
                   value={skill.selfScore}
                   onChange={(e) => updateSkillScore(skill.name, Number(e.target.value))}
-                  className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-border accent-foreground"
+                  className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-accent outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                  style={{
+                    background: `linear-gradient(to right, hsl(var(--accent)) ${skill.selfScore}%, hsl(var(--muted)) ${skill.selfScore}%)`
+                  }}
                 />
-                <span className="w-12 shrink-0 text-right text-xs font-medium tabular-nums">
-                  {skill.selfScore}%
-                </span>
               </div>
             </li>
           ))}

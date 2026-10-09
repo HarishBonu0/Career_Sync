@@ -35,7 +35,7 @@ export async function getEmbedding(text: string): Promise<number[]> {
 
   try {
     // Use OpenAI embeddings
-    const apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
+    const apiKey = process.env.OPENAI_API_KEY 
     
     if (!apiKey) {
       logger.warn('⚠️ OpenAI API key not found, using mock embeddings')

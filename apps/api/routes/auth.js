@@ -10,10 +10,22 @@ import { extractToken } from '../utils/token.js';
 import { authenticate } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
 import { requireMongo } from '../middleware/mongoCheck.js';
+import rateLimit from 'express-rate-limit';
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 requests per windowMs for auth endpoints
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many authentication attempts, please try again later.' }
+});
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('FATAL: JWT_SECRET environment variable is missing in production');
+}
+const ACTIVE_JWT_SECRET = JWT_SECRET || 'your-secret-key-change-in-production';
 const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
 const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
@@ -80,11 +92,11 @@ router.post(
       const passwordHash = await bcryptjs.hash(password, 10);
       const user = await User.create({ email, passwordHash, name, phone });
 
-      const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ id: user._id, email: user.email }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
       setAuthCookie(res, token);
       res.json({ message: 'User registered successfully', token, user: { id: user._id, email: user.email, name: user.name } });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
     }
   }
 );
@@ -95,6 +107,7 @@ router.post('/signup', (req, res, next) => router.handle(Object.assign(req, { ur
 // Login
 router.post(
   '/login',
+  authLimiter,
   requireMongo,
   body('email').isEmail().withMessage('Valid email required'),
   body('password').notEmpty().withMessage('Password is required'),
@@ -118,13 +131,13 @@ router.post(
       await user.recordDeviceLogin(mergedDeviceInfo);
 
       const sessionId = generateSessionId();
-      const token = jwt.sign({ id: user._id, email: user.email, sessionId }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ id: user._id, email: user.email, sessionId }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
       setAuthCookie(res, token);
 
       res.json({ message: 'Login successful', token, user: user.toSafeObject(), devices: user.getActiveDevices(), sessionId, lastSyncAt: user.lastProfileUpdateAt });
     } catch (error) {
       console.error('Login error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
     }
   }
 );
@@ -132,6 +145,7 @@ router.post(
 // Request OTP
 router.post(
   '/request-otp',
+  authLimiter,
   body('email').isEmail().withMessage('Valid email is required'),
   async (req, res) => {
     try {
@@ -156,13 +170,14 @@ router.post(
     });
   } catch (error) {
     console.error('OTP request error:', error?.message || error);
-    res.status(500).json({ error: 'Failed to send OTP', detail: error?.message || '' });
+    res.status(500).json({ error: 'Failed to send OTP', detail: process.env.NODE_ENV === 'production' ? '' : (error?.message || '') });
   }
 });
 
 // Login with OTP
 router.post(
   '/login-otp',
+  authLimiter,
   body('email').isEmail().withMessage('Valid email is required'),
   body('otp').isString().isLength({ min: 4, max: 8 }).withMessage('OTP is required'),
   async (req, res) => {
@@ -186,18 +201,19 @@ router.post(
     await user.recordDeviceLogin(mergedDeviceInfo);
 
     const sessionId = generateSessionId();
-    const token = jwt.sign({ id: user._id, email: user.email, sessionId }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id, email: user.email, sessionId }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
     setAuthCookie(res, token);
 
     res.json({ message: 'Login successful', user: user.toSafeObject(), devices: user.getActiveDevices(), sessionId, lastSyncAt: user.lastProfileUpdateAt });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
 // Reset password using OTP
 router.post(
   '/reset-password',
+  authLimiter,
   body('email').isEmail().withMessage('Valid email is required'),
   body('otp').isString().isLength({ min: 4, max: 8 }).withMessage('OTP is required'),
   body('newPassword').isLength({ min: 8 }).withMessage('newPassword must be at least 8 characters'),
@@ -227,13 +243,13 @@ router.post(
       user.otpExpiresAt = undefined;
       await user.save();
 
-      const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ id: user._id, email: user.email }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
       setAuthCookie(res, token);
 
       res.json({ message: 'Password reset successful', user: user.toSafeObject(), token });
     } catch (error) {
       console.error('Password reset error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
     }
   }
 );
@@ -247,7 +263,7 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
     const { token } = req.body;
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, ACTIVE_JWT_SECRET);
     const user = await User.findById(decoded.id).select('email name');
     if (!user) return res.status(401).json({ error: 'Invalid token' });
     res.json({ message: 'Token is valid', user: { id: user._id, email: user.email, name: user.name } });
@@ -264,6 +280,9 @@ router.post('/logout', (req, res) => {
 
 // Get current user
 router.get('/me', authenticate, async (req, res) => {
+  if (process.env.BYPASS_AUTH === 'true') {
+    return res.json({ user: req.user });
+  }
   try {
     const user = await User.findById(req.user.id).select('email name role');
     if (!user) return res.status(401).json({ error: 'User not found' });
@@ -280,7 +299,7 @@ router.get('/devices', authenticate, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ devices: user.getActiveDevices(), syncedAt: user.lastProfileUpdateAt });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -291,7 +310,7 @@ router.post('/sync-devices', authenticate, async (req, res) => {
     const syncData = await user.syncToAllDevices();
     res.json({ message: 'Devices synced successfully', ...syncData });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -314,7 +333,7 @@ router.post(
       await user.updateCredentialsAcrossDevices({ name, phone, metadata });
       res.json({ message: 'Profile updated across all devices', user: user.toSafeObject(), devices: user.getActiveDevices(), syncedAt: user.lastProfileUpdateAt });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
     }
   }
 );
@@ -337,7 +356,7 @@ router.post(
       }
       res.json({ message: 'Device logged out', devices: user.getActiveDevices() });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
     }
   }
 );
@@ -351,7 +370,7 @@ router.post('/logout-all-devices', authenticate, async (req, res) => {
     await user.save();
     res.json({ message: 'Logged out from all devices' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -428,7 +447,7 @@ router.get('/google/callback', async (req, res) => {
     }
 
     await user.recordLogin();
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id, email: user.email }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
     setAuthCookie(res, token);
     return res.redirect(`${getFrontendUrl()}/home`);
   } catch (error) {

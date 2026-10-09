@@ -35,6 +35,8 @@ const moduleSchema = new mongoose.Schema({
     channel: String,
     thumbnail: String
   }],
+  youtubeVideoId: String,
+  videoIntelligence: mongoose.Schema.Types.Mixed,
   
   // Generic fields to store any additional data
   content: String,

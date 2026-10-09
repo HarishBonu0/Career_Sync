@@ -1,15 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft, CheckCircle2, Loader2, Sparkles } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { ChevronLeft, ChevronRight, Check, Loader2, Sparkles, ArrowRight, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Modal } from '@/components/ui/modal'
-import { SidePanel } from '@/components/ui/sidePanel'
-import Stepper from '@/components/ui/stepper'
 
 type WizardQuestion = {
   id: number
@@ -20,7 +15,6 @@ type WizardQuestion = {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-const WIZARD_STEPS = ['Discover', 'Shape', 'Refine', 'Review']
 
 export default function GenerateCoursePage() {
   const params = useParams()
@@ -33,9 +27,10 @@ export default function GenerateCoursePage() {
   const [textInput, setTextInput] = useState('')
   const [loadingQuestions, setLoadingQuestions] = useState(true)
   const [questionError, setQuestionError] = useState<string | null>(null)
-  const [reviewOpen, setReviewOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
+  
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     const loadQuestions = async () => {
@@ -73,14 +68,16 @@ export default function GenerateCoursePage() {
     if (topic) loadQuestions()
   }, [topic])
 
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [currentStep])
+
   const currentQuestion = questions[currentStep - 1]
   const currentAnswer = currentQuestion ? answers[currentQuestion.id] : undefined
   const progress = questions.length ? ((currentStep - 1) / questions.length) * 100 : 0
-  const summaryItems = questions
-    .map((question) => ({ question, answer: answers[question.id] }))
-    .filter((item) => item.answer !== undefined)
-
-  const activeStep = Math.min(3, Math.floor(((currentStep - 1) / Math.max(1, questions.length - 1)) * 4))
+  const isReviewStep = currentStep === questions.length + 1;
 
   const setAnswer = (questionId: number, value: string | string[]) => {
     setAnswers((current) => ({ ...current, [questionId]: value }))
@@ -95,28 +92,17 @@ export default function GenerateCoursePage() {
 
     if (currentQuestion.type === 'text') {
       const value = textInput.trim()
-      if (!value && currentStep !== questions.length) return
+      if (!value) return
       setAnswer(currentQuestion.id, value)
       setTextInput('')
     }
-
-    if (currentStep < questions.length) {
-      setCurrentStep((value) => value + 1)
-      return
-    }
-
-    setReviewOpen(true)
+    setCurrentStep((value) => value + 1)
   }
 
   const handleSingleChoice = (option: string) => {
     if (!currentQuestion) return
     setAnswer(currentQuestion.id, option)
-
-    if (currentStep < questions.length) {
-      setTimeout(() => setCurrentStep((value) => value + 1), 180)
-    } else {
-      setReviewOpen(true)
-    }
+    setTimeout(() => setCurrentStep((value) => value + 1), 250)
   }
 
   const toggleMultiChoice = (option: string) => {
@@ -134,6 +120,7 @@ export default function GenerateCoursePage() {
       const response = await fetch('/api/generate-course', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ topic, answers }),
         signal: AbortSignal.timeout(180000),
       })
@@ -147,25 +134,16 @@ export default function GenerateCoursePage() {
         throw new Error('Course generation returned no course data')
       }
 
-      let courseId: string | null = null
-      try {
-        const saveResponse = await fetch(`${API_BASE_URL}/courses/save`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ course: data.course }),
-        })
-
-        if (saveResponse.ok) {
-          const saveJson = await saveResponse.json()
-          courseId = saveJson.courseId
-        }
-      } catch {
-        // fall back to local storage only
-      }
-
-      localStorage.setItem('generatedCourse', JSON.stringify({ ...data.course, id: courseId }))
-      router.push(`/course-generated/${courseId || topic.toLowerCase().replace(/\s+/g, '-')}`)
+      const saveIntentId = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      sessionStorage.setItem('coursePreview', JSON.stringify({
+        ...data.course,
+        id: 'preview',
+        saveIntentId,
+        generationMetadata: data.generationMetadata,
+      }))
+      router.push('/course-generated/preview')
     } catch (error) {
       setGenerateError(error instanceof Error ? error.message : 'Failed to generate course')
       setIsGenerating(false)
@@ -174,235 +152,225 @@ export default function GenerateCoursePage() {
 
   if (loadingQuestions) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white px-4 py-20">
-        <div className="mx-auto max-w-xl text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-elevated">
-            <Loader2 className="h-7 w-7 animate-spin" />
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Preparing your wizard</h1>
-          <p className="mt-3 text-sm text-muted-foreground">Building a personalized course setup for {topic || 'your topic'}.</p>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-6" />
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Analyzing topic...</h1>
+        <p className="mt-3 text-lg text-muted-foreground animate-pulse">Building a personalized curriculum wizard for {topic}.</p>
       </div>
     )
   }
 
   if (questionError) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white px-4 py-20">
-        <div className="mx-auto max-w-xl rounded-3xl border border-border bg-card p-8 text-center shadow-elevated-sm">
-          <h1 className="text-2xl font-semibold tracking-tight">We could not load the questions</h1>
-          <p className="mt-3 text-sm text-muted-foreground">{questionError}</p>
-          <Button className="mt-6" onClick={() => window.location.reload()}>
-            Try again
-          </Button>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background">
+        <h1 className="text-3xl font-semibold tracking-tight text-destructive">Failed to load questions</h1>
+        <p className="mt-3 text-lg text-muted-foreground">{questionError}</p>
+        <Button className="mt-8 px-8 rounded-full" onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
       </div>
     )
   }
 
-  if (!currentQuestion) {
-    return null
-  }
-
-  const canContinue =
-    currentQuestion.type === 'text'
-      ? textInput.trim().length > 0 || currentStep === questions.length
-      : currentQuestion.type === 'single-choice'
-        ? Boolean(currentAnswer)
-        : Array.isArray(currentAnswer) && currentAnswer.length > 0
-
-  return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(15,23,42,0.05),transparent_30%),linear-gradient(180deg,#f8fafc_0%,#ffffff_40%,#f8fafc_100%)]">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div className="space-y-3">
-            <Badge variant="muted" className="w-fit rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.24em]">
-              Course wizard
-            </Badge>
-            <div className="space-y-2">
-              <h1 className="text-display-1 font-semibold tracking-tight text-foreground sm:text-display-2">Design a better course for {topic}</h1>
-              <p className="max-w-2xl text-body-lg text-muted-foreground">
-                Answer a focused set of questions, review the draft, and generate a personalized learning path with the new split layout.
-              </p>
-            </div>
-          </div>
-          <Button variant="outline" onClick={() => router.push('/courses')}>
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Back to courses
-          </Button>
-        </div>
-
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <Card className="overflow-hidden border-border/70 shadow-elevated-sm">
-            <CardHeader className="space-y-4 border-b border-border bg-muted/30 px-6 py-6">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-base">
-                    Step {currentStep} of {questions.length}
-                  </CardTitle>
-                  <CardDescription className="mt-1">{Math.round(progress)}% complete</CardDescription>
+  const renderReviewStep = () => (
+    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="mb-12">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-4">Almost there.</h1>
+        <p className="text-xl text-muted-foreground">Review your goals before we generate the perfect course.</p>
+      </div>
+      
+      <div className="space-y-6 mb-12">
+        {questions.map((q, idx) => {
+          const ans = answers[q.id];
+          return (
+            <div key={q.id} className="group relative rounded-2xl border border-border/50 bg-card/50 p-6 transition-all hover:bg-card hover:border-border cursor-pointer" onClick={() => setCurrentStep(idx + 1)}>
+              <div className="flex gap-4">
+                <span className="text-primary font-mono text-sm mt-1">{idx + 1}.</span>
+                <div className="flex-1">
+                  <p className="text-lg text-foreground font-medium mb-2">{q.question.replace('{topic}', topic)}</p>
+                  <p className="text-muted-foreground">{Array.isArray(ans) ? ans.join(', ') : (ans || '—')}</p>
                 </div>
-                <Badge variant="muted">{currentQuestion.type.replace('-', ' ')}</Badge>
-              </div>
-              <Stepper steps={WIZARD_STEPS} current={activeStep} />
-              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                <div className="h-full rounded-full bg-slate-950 transition-all" style={{ width: `${Math.max(progress, 8)}%` }} />
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-6 p-6">
-              <div className="rounded-3xl border border-border bg-background p-6 shadow-[0_1px_0_rgba(15,23,42,0.02)]">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Question</p>
-                <h2 className="mt-3 text-xl font-semibold tracking-tight text-foreground">
-                  {currentQuestion.question.replace('{topic}', topic)}
-                </h2>
-
-                {currentQuestion.type === 'text' ? (
-                  <div className="mt-6 space-y-3">
-                    <textarea
-                      value={textInput}
-                      onChange={(event) => setTextInput(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' && !event.shiftKey) {
-                          event.preventDefault()
-                          goNext()
-                        }
-                      }}
-                      placeholder={currentQuestion.placeholder || 'Type your answer'}
-                      className="min-h-28 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-950/10"
-                    />
-                    <p className="text-xs text-muted-foreground">Press Enter to continue, or use the button below.</p>
-                  </div>
-                ) : currentQuestion.type === 'single-choice' ? (
-                  <div className="mt-6 grid gap-3">
-                    {currentQuestion.options?.map((option) => {
-                      const selected = currentAnswer === option
-                      return (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => handleSingleChoice(option)}
-                          className={`flex items-center justify-between rounded-2xl border px-4 py-4 text-left text-sm transition ${selected ? 'border-slate-950 bg-slate-950 text-white shadow-elevated-sm' : 'border-border bg-background hover:border-slate-300 hover:bg-muted/30'}`}
-                        >
-                          <span className="pr-4 leading-6">{option}</span>
-                          {selected ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <span className="h-3 w-3 shrink-0 rounded-full border border-current/25" />}
-                        </button>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="mt-6 grid gap-3">
-                    {currentQuestion.options?.map((option) => {
-                      const selected = Array.isArray(currentAnswer) && currentAnswer.includes(option)
-                      return (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => toggleMultiChoice(option)}
-                          className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left text-sm transition ${selected ? 'border-slate-950 bg-slate-950 text-white shadow-elevated-sm' : 'border-border bg-background hover:border-slate-300 hover:bg-muted/30'}`}
-                        >
-                          <span className={`flex h-5 w-5 items-center justify-center rounded-md border ${selected ? 'border-white bg-white text-slate-950' : 'border-current/25'}`}>
-                            {selected ? '✓' : ''}
-                          </span>
-                          <span className="leading-6">{option}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {generateError ? (
-                  <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                    {generateError}
-                  </div>
-                ) : null}
-
-                <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-                  <Button variant="outline" onClick={goBack} disabled={currentStep === 1}>
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-3">
-                    <Button variant="ghost" onClick={() => setReviewOpen(true)} disabled={!questions.length}>
-                      Review answers
-                    </Button>
-                    <Button onClick={goNext} disabled={!canContinue}>
-                      {currentStep === questions.length ? 'Review' : 'Continue'}
-                    </Button>
-                  </div>
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-muted/50 rounded-full h-8 w-8 text-muted-foreground">
+                  ✎
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <SidePanel title="Live summary" subtitle="Your answers update this panel while you work through the wizard.">
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-border bg-muted/30 p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Topic</p>
-                <p className="mt-2 text-sm font-medium text-foreground">{topic}</p>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-muted/30 p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Progress</p>
-                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                  <div className="h-full rounded-full bg-slate-950" style={{ width: `${Math.max(progress, 8)}%` }} />
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">Question {currentStep} of {questions.length}</p>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Captured answers</p>
-                {summaryItems.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                    No answers yet. Start with the current question.
-                  </div>
-                ) : (
-                  summaryItems.slice(0, 5).map(({ question, answer }) => (
-                    <div key={question.id} className="rounded-2xl border border-border bg-background p-4">
-                      <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Q{question.id}</p>
-                      <p className="mt-2 text-sm text-foreground line-clamp-2">{question.question.replace('{topic}', topic)}</p>
-                      <p className="mt-3 text-sm text-muted-foreground">{Array.isArray(answer) ? answer.join(', ') : answer}</p>
-                    </div>
-                  ))
-                )}
               </div>
             </div>
-          </SidePanel>
-        </div>
+          )
+        })}
       </div>
 
-      <Modal
-        open={reviewOpen}
-        title="Review your answers"
-        description="Confirm the details below before generating your personalized course."
-        onClose={() => setReviewOpen(false)}
-      >
-        <div className="space-y-4">
-          <div className="grid max-h-[50vh] gap-4 overflow-y-auto pr-1">
-            {questions.map((question) => {
-              const answer = answers[question.id]
-              return (
-                <div key={question.id} className="rounded-2xl border border-border bg-muted/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Q{question.id}</p>
-                  <p className="mt-2 text-sm font-medium text-foreground">{question.question.replace('{topic}', topic)}</p>
-                  <p className="mt-3 text-sm text-muted-foreground">{Array.isArray(answer) ? answer.join(', ') : answer || 'Not answered yet'}</p>
-                </div>
-              )
-            })}
-          </div>
-
-          {generateError ? <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{generateError}</div> : null}
-
-          <div className="flex flex-wrap justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => setReviewOpen(false)}>
-              Keep editing
-            </Button>
-            <Button onClick={generateCourse} disabled={isGenerating}>
-              {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-              {isGenerating ? 'Generating...' : 'Generate course'}
-            </Button>
-          </div>
+      {generateError && (
+        <div className="mb-8 rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive flex items-center gap-3">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {generateError}
         </div>
-      </Modal>
+      )}
+
+      <div className="flex items-center gap-4">
+        <Button size="lg" className="rounded-full px-8 text-base h-14" onClick={generateCourse} disabled={isGenerating}>
+          {isGenerating ? <Loader2 className="mr-3 h-5 w-5 animate-spin" /> : <Sparkles className="mr-3 h-5 w-5" />}
+          {isGenerating ? 'Building Curriculum...' : 'Generate Course'}
+        </Button>
+        <Button variant="ghost" size="lg" className="rounded-full px-6" onClick={() => setCurrentStep(questions.length)}>
+          Go Back
+        </Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
+      {/* Dynamic Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 h-1.5 bg-muted z-50">
+        <div 
+          className="h-full bg-primary transition-all duration-700 ease-out" 
+          style={{ width: `${isReviewStep ? 100 : progress}%` }} 
+        />
+      </div>
+
+      {/* Header */}
+      <header className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-40">
+        <Button variant="ghost" className="rounded-full hover:bg-muted" onClick={() => router.push('/courses')}>
+          <ChevronLeft className="mr-2 h-4 w-4" /> Exit Setup
+        </Button>
+        {!isReviewStep && (
+          <div className="text-sm font-medium text-muted-foreground font-mono">
+            {currentStep} / {questions.length}
+          </div>
+        )}
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex items-center justify-center p-6 md:p-12 w-full max-w-5xl mx-auto min-h-screen">
+        {isReviewStep ? (
+          renderReviewStep()
+        ) : currentQuestion ? (
+          <div key={currentQuestion.id} className="w-full max-w-3xl animate-in fade-in slide-in-from-bottom-8 duration-700">
+            
+            <div className="flex gap-4 md:gap-6 mb-8 md:mb-12">
+              <span className="text-primary font-mono text-xl md:text-2xl mt-1 md:mt-2 shrink-0">{currentStep}.</span>
+              <h1 className="text-3xl md:text-5xl font-semibold tracking-tight text-foreground leading-tight">
+                {currentQuestion.question.replace('{topic}', topic)}
+              </h1>
+            </div>
+
+            <div className="pl-8 md:pl-12">
+              {currentQuestion.type === 'text' ? (
+                <div className="space-y-6">
+                  <textarea
+                    ref={inputRef}
+                    value={textInput}
+                    onChange={(event) => setTextInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault()
+                        if (textInput.trim()) goNext()
+                      }
+                    }}
+                    placeholder={currentQuestion.placeholder || 'Type your answer here...'}
+                    className="w-full min-h-[120px] bg-transparent border-b-2 border-muted-foreground/30 focus:border-primary text-2xl md:text-3xl text-foreground placeholder:text-muted-foreground/40 outline-none resize-none transition-colors py-2"
+                  />
+                  <div className="flex items-center gap-4 pt-4">
+                    <Button 
+                      size="lg" 
+                      className="rounded-full px-8 text-base h-12" 
+                      onClick={goNext} 
+                      disabled={!textInput.trim()}
+                    >
+                      OK <Check className="ml-2 h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-muted-foreground hidden md:inline-flex items-center gap-1">
+                      press <kbd className="bg-muted px-2 py-1 rounded text-xs font-mono">Enter ↵</kbd>
+                    </span>
+                  </div>
+                </div>
+              ) : currentQuestion.type === 'single-choice' ? (
+                <div className="grid gap-3">
+                  {currentQuestion.options?.map((option, idx) => {
+                    const selected = currentAnswer === option
+                    const letter = String.fromCharCode(65 + idx)
+                    return (
+                      <button
+                        key={option}
+                        onClick={() => handleSingleChoice(option)}
+                        className={`group relative flex items-center w-full rounded-xl border p-4 transition-all duration-300 text-left ${
+                          selected 
+                            ? 'border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary))]' 
+                            : 'border-border/60 hover:border-primary/50 bg-card hover:bg-card/80'
+                        }`}
+                      >
+                        <div className={`flex items-center justify-center h-8 w-8 rounded-md border text-sm font-mono transition-colors mr-4 shrink-0 ${
+                          selected ? 'bg-primary border-primary text-primary-foreground' : 'bg-muted border-border text-muted-foreground group-hover:border-primary/50'
+                        }`}>
+                          {letter}
+                        </div>
+                        <span className={`text-lg md:text-xl transition-colors ${selected ? 'text-foreground font-medium' : 'text-foreground/80'}`}>
+                          {option}
+                        </span>
+                        {selected && <Check className="absolute right-6 h-5 w-5 text-primary animate-in zoom-in" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  <div className="grid gap-3">
+                    {currentQuestion.options?.map((option, idx) => {
+                      const selected = Array.isArray(currentAnswer) && currentAnswer.includes(option)
+                      const letter = String.fromCharCode(65 + idx)
+                      return (
+                        <button
+                          key={option}
+                          onClick={() => toggleMultiChoice(option)}
+                          className={`group relative flex items-center w-full rounded-xl border p-4 transition-all duration-300 text-left ${
+                            selected 
+                              ? 'border-primary bg-primary/5 shadow-[0_0_0_1px_hsl(var(--primary))]' 
+                              : 'border-border/60 hover:border-primary/50 bg-card hover:bg-card/80'
+                          }`}
+                        >
+                          <div className={`flex items-center justify-center h-8 w-8 rounded-md border text-sm transition-colors mr-4 shrink-0 ${
+                            selected ? 'bg-primary border-primary text-primary-foreground' : 'bg-muted border-border text-muted-foreground group-hover:border-primary/50'
+                          }`}>
+                            {selected ? <Check className="h-4 w-4" /> : <span className="font-mono">{letter}</span>}
+                          </div>
+                          <span className={`text-lg md:text-xl transition-colors ${selected ? 'text-foreground font-medium' : 'text-foreground/80'}`}>
+                            {option}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <Button 
+                    size="lg" 
+                    className="rounded-full px-8 text-base h-12" 
+                    onClick={goNext}
+                    disabled={!Array.isArray(currentAnswer) || currentAnswer.length === 0}
+                  >
+                    OK <Check className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </main>
+
+      {/* Navigation Footer for multi-step */}
+      {!isReviewStep && currentQuestion && (
+        <footer className="fixed bottom-0 left-0 right-0 p-6 flex justify-between items-center bg-gradient-to-t from-background via-background to-transparent pointer-events-none z-40">
+          <div className="pointer-events-auto">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="rounded-full h-12 w-12 border-border/60 shadow-sm"
+              onClick={goBack} 
+              disabled={currentStep === 1}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          </div>
+        </footer>
+      )}
     </div>
   )
 }

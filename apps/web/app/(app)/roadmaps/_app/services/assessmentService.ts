@@ -452,6 +452,26 @@ async function analyzeProfileWithGemini(input: SimulationInput): Promise<Profile
   }
 }
 
+async function parseResumeIntelligenceWithGemini(input: SimulationInput) {
+  if (!input.resumeText || input.resumeText.trim().length < 50) return;
+  try {
+    await fetch(`${getBackendBaseUrl()}/api/resume/parse`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        resumeText: input.resumeText,
+        resumeTextOriginalLength: input.resumeTextOriginalLength,
+        resumeTextTruncated: input.resumeTextTruncated
+      }),
+    });
+  } catch (error) {
+    console.warn('Resume Intelligence parsing failed:', error);
+  }
+}
+
 function allocateQuestionCounts(total: number, skills: SkillProfile[]): Array<{ skill: SkillProfile; count: number }> {
   const activeSkills = skills.length > 0 ? skills : [{ name: 'General', selfScore: 60 }];
   const baseCount = Math.floor(total / activeSkills.length);
@@ -625,6 +645,11 @@ function buildFallbackQuestionsForSkill(skill: string, count: number, difficulty
 
 export async function generateAssessmentSession(input: SimulationInput): Promise<AssessmentSession> {
   const difficulty = getDifficulty(input);
+  
+  // Fire and forget resume parsing (Phase 5A)
+  // This persists structured intelligence independently from the assessment.
+  parseResumeIntelligenceWithGemini(input).catch(console.warn);
+
   const profileAnalysis = await analyzeProfileWithGemini(input);
 
   const aiRequiredSkills = (profileAnalysis?.requiredSkills || [])

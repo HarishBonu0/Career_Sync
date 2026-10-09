@@ -12,6 +12,7 @@ import {
   Settings,
   ChevronsLeft,
   ChevronsRight,
+  Briefcase
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Separator } from '@/components/ui/separator'
@@ -24,15 +25,16 @@ type NavItem = {
 }
 
 const PRIMARY_NAV: NavItem[] = [
-  { href: '/home', label: 'Home', icon: Home },
-  { href: '/courses', label: 'Courses', icon: BookOpen },
-  { href: '/roadmaps', label: 'Roadmaps', icon: Map },
+  { href: '/home', label: 'Dashboard', icon: Home },
+  { href: '/roadmaps', label: 'Roadmap', icon: Map },
+  { href: '/courses', label: 'Learning', icon: BookOpen },
   { href: '/assessments', label: 'Assessments', icon: ClipboardCheck },
+  { href: '/career', label: 'Career', icon: Briefcase },
 ]
 
 const SECONDARY_NAV: NavItem[] = [
-  { href: '/profile', label: 'Profile', icon: User },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/profile', label: 'Profile Settings', icon: User },
+  { href: '/settings', label: 'Preferences', icon: Settings },
 ]
 
 const COLLAPSE_KEY = 'careersync_sidebar_collapsed'
@@ -59,46 +61,58 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'sticky top-0 h-screen shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200',
-        collapsed ? 'w-[68px]' : 'w-60'
+        'sticky top-0 h-screen shrink-0 border-r border-border/50 bg-background/95 backdrop-blur-xl text-primary transition-all duration-300 shadow-[2px_0_8px_rgba(0,0,0,0.02)] z-40',
+        collapsed ? 'w-[76px]' : 'w-72'
       )}
       aria-label="Primary"
     >
-      <div className="flex h-16 items-center gap-2 px-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-indigo-600 to-purple-600 text-sm font-bold text-white shadow-sm">
-          C
+      <div className="flex h-24 items-center gap-4 px-6 border-b border-border/50">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-base font-bold text-white shadow-[0_4px_14px_rgba(17,17,17,0.15)] relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-tr from-accent/0 via-accent/30 to-accent/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <span className="relative z-10">C</span>
         </div>
         {!collapsed && (
-          <span className="truncate text-sm font-semibold tracking-tight">Career Sync</span>
+          <span className="truncate text-xl font-extrabold tracking-tight text-primary transition-opacity duration-300">
+            Career<span className="text-accent">Sync</span>
+          </span>
         )}
       </div>
 
-      <Separator className="bg-sidebar-border" />
+      <div className="flex flex-col h-[calc(100vh-6rem)] justify-between pb-6">
+        <div className="py-6 px-4 space-y-8 overflow-y-auto">
+          <nav className="flex flex-col gap-2">
+            {!collapsed && <p className="px-4 text-xs font-bold uppercase tracking-widest text-muted-foreground/80 mb-2">Platform</p>}
+            {PRIMARY_NAV.map((item) => (
+              <NavLink key={item.href} item={item} collapsed={collapsed} active={isActive(pathname, item.href)} />
+            ))}
+          </nav>
 
-      <nav className="flex flex-col gap-1 p-2">
-        {PRIMARY_NAV.map((item) => (
-          <NavLink key={item.href} item={item} collapsed={collapsed} active={isActive(pathname, item.href)} />
-        ))}
-      </nav>
+          <nav className="flex flex-col gap-2">
+            {!collapsed && <p className="px-4 text-xs font-bold uppercase tracking-widest text-muted-foreground/80 mb-2">Account</p>}
+            {SECONDARY_NAV.map((item) => (
+              <NavLink key={item.href} item={item} collapsed={collapsed} active={isActive(pathname, item.href)} />
+            ))}
+          </nav>
+        </div>
 
-      <Separator className="my-2 bg-sidebar-border" />
-
-      <nav className="flex flex-col gap-1 p-2">
-        {SECONDARY_NAV.map((item) => (
-          <NavLink key={item.href} item={item} collapsed={collapsed} active={isActive(pathname, item.href)} />
-        ))}
-      </nav>
-
-      {mounted && (
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        >
-          {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
-        </button>
-      )}
+        {mounted && (
+          <div className="px-4">
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="flex w-full items-center justify-center rounded-xl p-3 text-muted-foreground hover:bg-accent/5 hover:text-accent transition-colors border border-transparent hover:border-accent/10"
+            >
+              {collapsed ? <ChevronsRight className="h-5 w-5" /> : (
+                <div className="flex items-center gap-3 w-full px-2">
+                  <ChevronsLeft className="h-5 w-5" />
+                  <span className="text-sm font-semibold">Collapse</span>
+                </div>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
     </aside>
   )
 }
@@ -121,30 +135,34 @@ function NavLink({
   const Icon = item.icon
 
   const linkClasses = cn(
-    'group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+    'group relative flex items-center gap-4 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 overflow-hidden',
     active
-      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+      ? 'text-primary'
+      : 'text-secondary-foreground hover:text-primary'
   )
 
   if (collapsed) {
     return (
       <Tooltip delayDuration={120}>
         <TooltipTrigger asChild>
-          <Link href={item.href} className={cn(linkClasses, 'justify-center px-0')}>
-            <Icon className="h-5 w-5" />
+          <Link href={item.href} className={cn(linkClasses, 'justify-center px-0 w-11 h-11 mx-auto')}>
+            {active && <div className="absolute inset-0 bg-primary/5 rounded-xl -z-10" />}
+            <Icon className={cn("h-5 w-5 transition-colors", active ? "text-accent" : "text-muted-foreground group-hover:text-primary")} />
             <span className="sr-only">{item.label}</span>
+            {active && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-l-full bg-accent" />}
           </Link>
         </TooltipTrigger>
-        <TooltipContent side="right">{item.label}</TooltipContent>
+        <TooltipContent side="right" className="font-semibold">{item.label}</TooltipContent>
       </Tooltip>
     )
   }
 
   return (
     <Link href={item.href} className={linkClasses}>
-      <Icon className="h-5 w-5 shrink-0" />
+      {active && <div className="absolute inset-0 bg-primary/5 rounded-xl -z-10" />}
+      <Icon className={cn("h-5 w-5 shrink-0 transition-colors", active ? "text-accent" : "text-muted-foreground group-hover:text-primary")} />
       <span className="truncate">{item.label}</span>
+      {active && <div className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(184,121,36,0.5)]" />}
     </Link>
   )
 }

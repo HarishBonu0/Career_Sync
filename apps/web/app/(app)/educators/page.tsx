@@ -72,7 +72,7 @@ function EducatorForm({ onSuccess }: { onSuccess: () => void }) {
 
       <div>
         <label htmlFor="reason" className="mb-2 block text-sm font-semibold text-slate-700">
-          Why would you like to join CareerOS Educators?
+          Why would you like to join CareerSync Educators?
         </label>
         <textarea
           id="reason"
@@ -163,7 +163,7 @@ export default function EducatorsPage() {
                 Are you an educator or subject-matter expert?
               </h1>
               <p className="mx-auto max-w-2xl text-xl text-slate-600">
-                Join CareerOS and build a teaching presence that feels premium, credible, and easy to manage.
+                Join CareerSync and build a teaching presence that feels premium, credible, and easy to manage.
               </p>
             </div>
 
@@ -197,7 +197,7 @@ export default function EducatorsPage() {
 
             <div className="mx-auto mt-16 max-w-5xl rounded-[2rem] border border-slate-200 bg-white/90 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
               <h3 className="mb-6 text-2xl font-bold text-slate-950">
-                Why become a CareerOS educator?
+                Why become a CareerSync educator?
               </h3>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="flex items-start gap-3">

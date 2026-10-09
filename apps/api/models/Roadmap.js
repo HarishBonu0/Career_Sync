@@ -7,6 +7,24 @@ const milestoneSchema = new mongoose.Schema({
   resources: [String]
 }, { _id: false });
 
+const roadmapResourceSchema = new mongoose.Schema({
+  provider: String,
+  externalId: String,
+  title: String,
+  url: String,
+  resourceType: String,
+  rank: Number
+}, { _id: false });
+
+const roadmapStepSchema = new mongoose.Schema({
+  order: Number,
+  skill: String,
+  priority: String,
+  prerequisites: [String],
+  resources: [roadmapResourceSchema],
+  resourceAvailability: { type: String, enum: ['available', 'unavailable', 'partial'], default: 'unavailable' }
+}, { _id: false });
+
 const roadmapSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   userId: { type: String },
@@ -20,7 +38,8 @@ const roadmapSchema = new mongoose.Schema({
   stages: { type: Number },
   progress: { type: Number, default: 0 },
   milestones: [milestoneSchema],
-  status: { type: String, enum: ['draft', 'in-progress', 'completed'], default: 'draft' },
+  steps: [roadmapStepSchema],
+  status: { type: String, enum: ['draft', 'in-progress', 'completed', 'ready', 'partial'], default: 'draft' },
   metadata: { type: mongoose.Schema.Types.Mixed, default: {} }
 }, { timestamps: true });
 

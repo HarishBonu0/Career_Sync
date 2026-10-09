@@ -1,15 +1,22 @@
 import { useState } from 'react';
-import { ChevronDown, ExternalLink, MapPin } from 'lucide-react';
-import { Pathway } from '../../types/index';
+import { ChevronDown, ExternalLink, MapPin, Save, Check } from 'lucide-react';
+import { Pathway, SimulationInput } from '../../types/index';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PathwayCardProps {
   pathway: Pathway;
+  input?: SimulationInput;
 }
 
-export default function PathwayCard({ pathway }: PathwayCardProps) {
+export default function PathwayCard({ pathway, input }: PathwayCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
 
   const difficultyClass =
     pathway.difficulty === 'HIGH'
@@ -21,6 +28,47 @@ export default function PathwayCard({ pathway }: PathwayCardProps) {
       pathway.jobUrl ||
       `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(pathway.role)}`;
     window.open(jobUrl, '_blank');
+  };
+
+  const handleSaveRoadmap = async () => {
+    if (!isAuthenticated || !user) return;
+    if (isSaving || isSaved) return;
+    
+    setIsSaving(true);
+    try {
+      const milestones = (pathway.roadmap || []).map((step: any) => ({
+        title: step.title,
+        description: step.description,
+        resources: [],
+      }));
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/roadmaps`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: input?.targetRole ? `${input.targetRole} Roadmap` : 'Career Roadmap',
+          currentRole: input?.currentRole || '',
+          targetRole: input?.targetRole || pathway.role || '',
+          timeline: pathway.timeline || '12 months',
+          stages: milestones.length,
+          milestones,
+          status: 'draft',
+        }),
+      });
+
+      const saved = await response.json();
+      if (!response.ok || !saved.roadmapId) {
+        throw new Error(saved.error || 'Roadmap could not be saved');
+      }
+
+      setIsSaved(true);
+      router.push(`/roadmaps/${saved.roadmapId}`);
+    } catch (e) {
+      console.error('Roadmap persistence failed:', e);
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -98,10 +146,17 @@ export default function PathwayCard({ pathway }: PathwayCardProps) {
               </ol>
             </div>
 
-            <Button onClick={handleApplyNow} className="w-full">
-              Apply now
-              <ExternalLink className="ml-2 h-4 w-4" />
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button onClick={handleSaveRoadmap} className="w-full" variant="default" disabled={isSaving || isSaved}>
+                {isSaving ? 'Saving...' : isSaved ? 'Saved to My Roadmaps' : 'Save Roadmap'}
+                {!isSaving && !isSaved && <Save className="ml-2 h-4 w-4" />}
+                {isSaved && <Check className="ml-2 h-4 w-4" />}
+              </Button>
+              <Button onClick={handleApplyNow} className="w-full" variant="outline">
+                Apply now
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>

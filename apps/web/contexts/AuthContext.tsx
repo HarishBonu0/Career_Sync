@@ -55,6 +55,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAuthStatus('authenticated')
         return
       }
+
+      // Check localStorage if API check fails or isn't authenticated (DEV ONLY)
+      if (process.env.NODE_ENV === 'development') {
+        const localUser = localStorage.getItem('localUser')
+        if (localUser) {
+          setUser(JSON.parse(localUser))
+          setAuthStatus('authenticated')
+          return
+        }
+      }
+
       if (response.status === 401) {
         setUser(null)
         setAuthStatus('unauthenticated')
@@ -88,8 +99,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return true
       }
       
+      const data = await response.json().catch(() => ({}))
+      if (process.env.NODE_ENV === 'development' && (data.useLocalStorage || response.status === 503)) {
+        const localUser = { id: 'local', name: 'Local User', email }
+        localStorage.setItem('localUser', JSON.stringify(localUser))
+        setUser(localUser)
+        setAuthStatus('authenticated')
+        return true
+      }
+      
       return false
     } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        // Fallback to local on complete network failure if needed
+        const localUser = { id: 'local', name: 'Local User', email }
+        localStorage.setItem('localUser', JSON.stringify(localUser))
+        setUser(localUser)
+        setAuthStatus('authenticated')
+        return true
+      }
       return false
     }
   }
@@ -103,12 +131,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ name, email, password }),
       })
       const data = await response.json().catch(() => ({}))
-      if (!response.ok) return { ok: false, error: data.error || data.message || 'Sign up failed.' }
+      if (!response.ok) {
+        if (process.env.NODE_ENV === 'development' && (data.useLocalStorage || response.status === 503)) {
+          const localUser = { id: 'local', name, email }
+          localStorage.setItem('localUser', JSON.stringify(localUser))
+          setUser(localUser)
+          setAuthStatus('authenticated')
+          return { ok: true }
+        }
+        return { ok: false, error: data.error || data.message || 'Sign up failed.' }
+      }
       setUser(data.user || null)
       setAuthStatus('authenticated')
       return { ok: true }
     } catch {
-      return { ok: false, error: 'Unable to reach the authentication server.' }
+      if (process.env.NODE_ENV === 'development') {
+        const localUser = { id: 'local', name, email }
+        localStorage.setItem('localUser', JSON.stringify(localUser))
+        setUser(localUser)
+        setAuthStatus('authenticated')
+        return { ok: true }
+      }
+      return { ok: false, error: 'Sign up failed due to a network error.' }
     }
   }
 
@@ -122,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Logout error:', error)
     }
     
+    localStorage.removeItem('localUser')
     setUser(null)
     setAuthStatus('unauthenticated')
   }

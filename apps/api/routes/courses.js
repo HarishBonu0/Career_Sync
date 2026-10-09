@@ -108,7 +108,7 @@ router.post(
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
     const prompt = `Create a detailed course curriculum for "${courseName}" at ${level || 'intermediate'} level, lasting ${duration || '4 weeks'}. Include modules, topics, and learning outcomes.`;
     
     const result = await model.generateContent(prompt);
@@ -130,7 +130,7 @@ router.post(
       duration,
       level,
       prompt,
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3.8-flash',
       curriculum
     });
 
@@ -142,7 +142,7 @@ router.post(
     });
   } catch (error) {
     console.error('Course generation error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -594,7 +594,7 @@ router.post(
   if (process.env.GEMINI_API_KEY) {
     try {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
       const prompt = `Generate 6 personalized questions to understand a learner's needs for the topic: "${topic}". 
       
 Return ONLY a valid JSON array with NO additional text, explanations, or markdown formatting.
@@ -715,7 +715,7 @@ router.post(
     res.status(201).json({ success: true, courseId: course._id, data: course });
   } catch (error) {
     console.error('Create course error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -726,6 +726,7 @@ router.post(
   requireMongo,
   body('clientRequestId').optional().isString(),
   body('generationId').optional().isString(),
+  body('generationMetadata').optional().isObject(),
   body('course').optional().custom((v) => typeof v === 'object' || v === null),
   body('title').optional().isString().isLength({ min: 1 }).withMessage('title is required if course object not provided'),
   async (req, res) => {
@@ -733,7 +734,7 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     try {
-      const { userId, userEmail, generationId, title, description, level, duration, modules, course, clientRequestId } =
+      const { userId, userEmail, generationId, generationMetadata, title, description, level, duration, modules, course, clientRequestId } =
         withAuthenticatedUser(req, req.body);
 
     // LOG EVERYTHING RECEIVED
@@ -768,11 +769,35 @@ router.post(
     console.log('   userEmail:', userEmail);
 
     const normalizedModules = normalizeModules(courseData.modules || []);
+    let persistedGenerationId = generationId;
+    if (!persistedGenerationId && generationMetadata) {
+      const generation = await CourseGeneration.create({
+        user: userObjectId,
+        courseName: courseData.title,
+        duration: courseData.duration,
+        level: courseData.level || courseData.difficulty,
+        prompt: JSON.stringify({
+          topic: generationMetadata.topic,
+          answers: generationMetadata.answers,
+          promptVersion: generationMetadata.promptVersion,
+        }),
+        model: generationMetadata.model || 'openrouter',
+        curriculum: JSON.stringify({ modules: normalizedModules }),
+        modules: normalizedModules.map((module) => ({
+          title: module.title,
+          topics: Array.isArray(module.topics) ? module.topics.map(String) : [],
+          learningOutcomes: Array.isArray(module.objectives) ? module.objectives.map(String) : [],
+          duration: module.duration || '',
+        })),
+        status: 'saved',
+      });
+      persistedGenerationId = generation._id;
+    }
     const newCourse = await Course.create({
       user: userObjectId,
       userId: userId || userObjectId.toString(),
       userEmail: userEmail || req.user.email,
-      generation: generationId,
+      generation: persistedGenerationId,
       title: courseData.title,
       description: courseData.description || '',
       level: courseData.level || courseData.difficulty || 'beginner',
@@ -790,15 +815,15 @@ router.post(
       },
     });
 
-    if (generationId) {
-      await CourseGeneration.findByIdAndUpdate(generationId, { status: 'saved' });
+    if (persistedGenerationId) {
+      await CourseGeneration.findByIdAndUpdate(persistedGenerationId, { status: 'saved' });
     }
 
     console.log('✅ COURSE SAVED WITH ID:', newCourse._id);
     res.status(201).json({ success: true, courseId: newCourse._id, data: newCourse });
   } catch (error) {
     console.error('Save course error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -896,7 +921,7 @@ router.get('/', authenticate, requireMongo, async (req, res) => {
     const courses = await Course.find(filter).sort({ createdAt: -1 });
     res.json({ success: true, data: courses });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -919,7 +944,7 @@ router.get('/:id', optionalAuth, requireMongo, param('id').isMongoId().withMessa
     res.json({ success: true, data: course });
   } catch (error) {
     console.error('Get course error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 

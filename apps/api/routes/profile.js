@@ -87,7 +87,7 @@ router.post(
     });
   } catch (error) {
     console.error('Enrollment error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -160,7 +160,7 @@ router.post(
     });
   } catch (error) {
     console.error('Roadmap enrollment error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -320,7 +320,7 @@ router.get('/:userId', authenticate, requireMongo, param('userId').isString().is
     });
   } catch (error) {
     console.error('Profile fetch error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -361,7 +361,7 @@ router.put(
     res.json({ success: true, enrollment });
   } catch (error) {
     console.error('Progress update error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -397,7 +397,7 @@ router.put(
     res.json({ success: true, enrollment });
   } catch (error) {
     console.error('Roadmap progress update error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -440,7 +440,7 @@ router.post(
     });
   } catch (error) {
     console.error('Evaluation submission error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 

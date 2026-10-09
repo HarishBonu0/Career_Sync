@@ -16,5 +16,9 @@ export function getCorsOrigins() {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+  
+  if (process.env.NODE_ENV === 'production') {
+    return envOrigins.length > 0 ? envOrigins : false; // false disables CORS if not configured in prod
+  }
   return [...new Set([...DEV_ORIGINS, ...envOrigins])];
 }

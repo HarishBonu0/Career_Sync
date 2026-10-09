@@ -307,7 +307,7 @@ const analyzeProfileWithAI = async ({ currentRole = '', targetRole = '', userSki
   }
 
   const model = new GoogleGenerativeAI(process.env.GEMINI_API_KEY).getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3.8-flash',
     generationConfig: {
       temperature: 0.5,
       topP: 0.9,
@@ -401,7 +401,7 @@ const generateQuestionsWithAI = async (skillName, difficulty, questionCount, con
   try {
     const genAI = new GoogleGenerativeAI(geminiKey);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3.8-flash',
       generationConfig: {
         temperature: 1.0,
         topP: 0.95,
@@ -632,7 +632,7 @@ router.post(
     res.status(201).json({ success: true, evaluationId: evaluation._id, data: evaluation });
   } catch (error) {
     console.error('Evaluation creation error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -910,7 +910,7 @@ router.post(
     });
   } catch (error) {
     console.error('Evaluation submission error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -922,7 +922,7 @@ router.get('/', authenticate, requireMongo, async (req, res) => {
     res.json({ success: true, evaluations, count: evaluations.length });
   } catch (error) {
     console.error('Evaluations fetch error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 
@@ -950,7 +950,7 @@ router.get('/:id', optionalAuth, requireMongo, async (req, res) => {
     res.json({ success: true, data: evaluation });
   } catch (error) {
     console.error('Evaluation fetch error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message });
   }
 });
 

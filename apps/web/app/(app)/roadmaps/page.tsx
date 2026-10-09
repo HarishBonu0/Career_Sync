@@ -15,6 +15,7 @@ import {
   calculateAssessmentReport,
 } from './_app/services/assessmentService'
 import { simulatePathways } from './_app/services/simulationService'
+import { generatePersonalizedRoadmap } from './_app/services/roadmapService'
 import { useAuth } from '@/contexts/AuthContext'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
@@ -28,6 +29,7 @@ export default function RoadmapsPage() {
   const [assessmentSession, setAssessmentSession] = useState<AssessmentSession | null>(null)
   const [assessmentReport, setAssessmentReport] = useState<AssessmentReport | null>(null)
   const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null)
+  const [personalizedRoadmap, setPersonalizedRoadmap] = useState<any>(null)
   const [isGeneratingAssessment, setIsGeneratingAssessment] = useState(false)
   const [isBuildingWorkspace, setIsBuildingWorkspace] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -75,9 +77,18 @@ export default function RoadmapsPage() {
             : profileInput.skills,
       }
       const report = calculateAssessmentReport(enrichedInput, assessmentSession, answers)
-      const pathways = await simulatePathways(profileInput)
+      
+      const [pathways, pRoadmap] = await Promise.all([
+        simulatePathways(profileInput),
+        generatePersonalizedRoadmap(profileInput.targetRole).catch((err) => {
+          console.warn('Personalized roadmap error:', err)
+          return null
+        })
+      ])
+
       setAssessmentReport(report)
       setSimulationResult(pathways)
+      setPersonalizedRoadmap(pRoadmap)
       setStage('workspace')
     } catch (error) {
       console.error('Failed to prepare workspace:', error)
@@ -93,6 +104,7 @@ export default function RoadmapsPage() {
     setAssessmentSession(null)
     setAssessmentReport(null)
     setSimulationResult(null)
+    setPersonalizedRoadmap(null)
     setErrorMessage('')
   }
 
@@ -121,6 +133,7 @@ export default function RoadmapsPage() {
           input={profileInput}
           report={assessmentReport}
           simulationResult={simulationResult}
+          personalizedRoadmap={personalizedRoadmap}
           onStartOver={handleStartOver}
         />
       )}

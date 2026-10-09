@@ -104,7 +104,7 @@ router.post(
 
     // Validate API keys
     const openrouterKey = process.env.OPENROUTER_API_KEY
-    const youtubeKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY
+    const youtubeKey = process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY
     const redisUrl = process.env.REDIS_URL
 
     if (!openrouterKey) {

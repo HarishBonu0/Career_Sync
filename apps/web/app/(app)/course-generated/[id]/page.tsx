@@ -13,6 +13,8 @@ interface Module {
   description: string
   topics: string[]
   activities: string[]
+  youtubeVideoId?: string
+  youtubeLinks?: Array<{ title?: string; url?: string; thumbnail?: string }>
   project?: string
   assessment?: string
   readingMaterials?: Array<{
@@ -29,6 +31,7 @@ interface Resource {
   title: string
   description: string
   url?: string
+  coverage?: string
 }
 
 interface Course {
@@ -111,8 +114,23 @@ export default function GeneratedCoursePage() {
 
   useEffect(() => {
     const loadCourse = async () => {
+      const courseId = Array.isArray(params.id) ? params.id[0] : String(params.id || '')
+      if (courseId === 'preview') {
+        const preview = sessionStorage.getItem('coursePreview')
+        if (preview) {
+          try {
+            const parsedPreview = JSON.parse(preview)
+            parsedPreview.modules = ensureReadingMaterials(parsedPreview.modules || [])
+            setCourse(parsedPreview)
+          } catch (error) {
+            console.error('Error parsing course preview:', error)
+          }
+        }
+        setLoading(false)
+        return
+      }
+
       try {
-        const courseId = params.id as string
         const courseResponse = await api.getCourse(courseId)
         
         if (courseResponse && courseResponse.data) {
@@ -187,6 +205,8 @@ export default function GeneratedCoursePage() {
           objectives: course.objectives || [],
           resources: course.resources || [],
           course,
+          clientRequestId: (course as any).saveIntentId || `course-save-${course.title}`,
+          generationMetadata: (course as any).generationMetadata,
         }),
       })
 
@@ -211,7 +231,8 @@ export default function GeneratedCoursePage() {
       }
 
       setSaved(true)
-      router.push('/profile')
+      if (typeof window !== 'undefined') sessionStorage.removeItem('coursePreview')
+      router.push(`/course-generated/${saveData.courseId}`)
     } catch (error) {
       console.error('Error saving course:', error)
       alert(error instanceof Error ? error.message : 'Failed to save course. Please try again.')
@@ -312,6 +333,16 @@ export default function GeneratedCoursePage() {
         <div className="flex items-center justify-between mb-10">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-[0.15em]">TOPICS</h2>
           <div className="flex items-center gap-3">
+            {String(params.id) === 'preview' && (
+              <button
+                type="button"
+                onClick={handleSaveCourse}
+                disabled={saving || saved}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? 'Saving...' : saved ? 'Saved' : 'Save Course'}
+              </button>
+            )}
             <button className="text-sm text-gray-700 hover:text-gray-900 px-4 py-2 border border-gray-200 rounded-lg transition-colors">
               See course design
             </button>
@@ -404,6 +435,7 @@ export default function GeneratedCoursePage() {
                     </div>
                   )}
 
+
                   {/* Start Button */}
                   <div className="ml-16">
                     <button 
@@ -431,8 +463,8 @@ export default function GeneratedCoursePage() {
                         localStorage.setItem(`module_${index + 1}`, JSON.stringify(moduleData))
                         
                         const courseSlug = course.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-                        console.log('🚀 Navigating to topic:', `/course/${courseSlug}/topic/${index + 1}`)
-                        router.push(`/course/${courseSlug}/topic/${index + 1}`)
+                        console.log('🚀 Navigating to topic:', `/course/${courseIdValue}/topic/${index + 1}`)
+                        router.push(`/course/${courseIdValue}/topic/${index + 1}`)
                       }}
                     >
                       Start Module
@@ -485,8 +517,8 @@ export default function GeneratedCoursePage() {
                   
                   localStorage.setItem('module_1', JSON.stringify(moduleData))
                   const courseSlug = course.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-                  console.log('🚀 Navigating to topic:', `/course/${courseSlug}/topic/1`)
-                  router.push(`/course/${courseSlug}/topic/1`)
+                  console.log('🚀 Navigating to topic:', `/course/${courseIdValue}/topic/1`)
+                  router.push(`/course/${courseIdValue}/topic/1`)
                 }}
               >
                 Start Course
@@ -539,23 +571,44 @@ export default function GeneratedCoursePage() {
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">📚 COMPLETE LEARNING RESOURCES</h3>
                 <p className="text-xs text-gray-500 mb-6">Direct links to comprehensive documentation, courses, and learning materials for this topic</p>
                 <div className="space-y-2">
-                  {course.resources.map((resource, index) => (
-                    <a
-                      key={index}
-                      href={resource.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg transition-all group"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className="text-xs text-blue-600 uppercase font-semibold bg-blue-50 px-2 py-1 rounded whitespace-nowrap">{resource.type}</span>
-                        <h4 className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors truncate">{resource.title}</h4>
+                  {course.resources.map((resource, index) => {
+                    const isPrimary = resource.coverage === 'complete' || resource.type === 'primary-source'
+                    return (
+                      <div key={index} className="flex flex-col mb-4">
+                        <a
+                          href={resource.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`flex items-center justify-between p-3 border rounded-lg transition-all group ${
+                            isPrimary ? 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200' : 'bg-gray-50 hover:bg-blue-50 border-gray-200 hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <span className={`text-xs uppercase font-semibold px-2 py-1 rounded whitespace-nowrap ${
+                              isPrimary ? 'text-indigo-700 bg-indigo-100' : 'text-blue-600 bg-blue-50'
+                            }`}>
+                              {resource.type}
+                            </span>
+                            <h4 className={`font-medium transition-colors truncate ${
+                              isPrimary ? 'text-indigo-900 group-hover:text-indigo-700' : 'text-gray-900 group-hover:text-blue-600'
+                            }`}>
+                              {resource.title}
+                            </h4>
+                          </div>
+                          <svg className={`w-4 h-4 flex-shrink-0 ml-2 transition-transform group-hover:translate-x-1 ${
+                            isPrimary ? 'text-indigo-600' : 'text-blue-600'
+                          }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                        {isPrimary && (
+                          <div className="mt-2 ml-1 text-sm text-indigo-700 font-medium">
+                            ✨ This course syllabus follows the {resource.title.replace('Primary Learning Source: ', '')} course.
+                          </div>
+                        )}
                       </div>
-                      <svg className="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}

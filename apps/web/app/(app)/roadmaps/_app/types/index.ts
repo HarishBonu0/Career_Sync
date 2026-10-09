@@ -102,6 +102,8 @@ export interface SimulationInput {
   targetSalary?: string;
   resumeFileName?: string;
   resumeText?: string;
+  resumeTextOriginalLength?: number;
+  resumeTextTruncated?: boolean;
   projects?: string;
 }
 

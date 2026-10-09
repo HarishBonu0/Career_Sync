@@ -12,7 +12,7 @@ import Redis from 'ioredis'
 const REDIS_HOST = process.env.REDIS_HOST || 'localhost'
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10)
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD
-const YOUTUBE_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY
 
 const redisOptions = {
   host: REDIS_HOST,

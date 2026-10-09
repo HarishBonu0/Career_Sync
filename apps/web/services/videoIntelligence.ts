@@ -82,15 +82,16 @@ interface ScoredVideo extends YouTubeVideo {
 /**
  * Step 1: Generate optimized YouTube search query
  */
-function generateVideoQuery(moduleTitle: string, courseTopic: string, moduleNum: number, totalModules: number): string {
-  // Determine difficulty level
-  const difficultyPercentage = (moduleNum / totalModules) * 100;
-  let difficultyLevel = 'beginner';
-  if (difficultyPercentage > 70) difficultyLevel = 'advanced';
-  else if (difficultyPercentage > 30) difficultyLevel = 'intermediate';
-
-  // Build query with course context and difficulty
-  return `${moduleTitle} ${courseTopic} tutorial ${difficultyLevel}`;
+function generateVideoQuery(module: any, courseTopic: string): string {
+  // Build query with specific module topics to ensure we get a specific video rather than a full course
+  let query = `${module.title} ${courseTopic} tutorial`;
+  
+  if (module.topics && module.topics.length > 0) {
+    query += ` ${module.topics[0]}`;
+  }
+  
+  // Make sure it doesn't get too long for YouTube API (max 500 chars)
+  return query.substring(0, 100);
 }
 
 /**
@@ -98,7 +99,7 @@ function generateVideoQuery(moduleTitle: string, courseTopic: string, moduleNum:
  */
 async function fetchYouTubeVideos(query: string, maxResults: number = 15): Promise<YouTubeVideo[]> {
   try {
-    const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY;
+    const apiKey = process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
       console.error('[VIDEO INTELLIGENCE] YouTube API key not found');
       return [];
@@ -142,7 +143,7 @@ async function fetchYouTubeVideos(query: string, maxResults: number = 15): Promi
  */
 async function fetchVideoMetrics(videoId: string): Promise<Partial<YouTubeVideo>> {
   try {
-    const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY;
+    const apiKey = process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY;
     if (!apiKey) return {};
 
     const response = await fetch(
@@ -327,18 +328,19 @@ async function scoreVideos(
  * Main function: Get best videos for a module
  */
 export async function getBestVideos(
-  moduleTitle: string,
+  module: any,
   courseTopic: string,
   moduleNum: number,
   totalModules: number,
-  maxResults: number = 3
+  maxResults: number = 3,
+  usedVideoIds: Set<string> = new Set()
 ): Promise<YouTubeVideo[]> {
   console.log('[VIDEO INTELLIGENCE] Starting video selection process...');
-  console.log(`[MODULE] "${moduleTitle}" (Module ${moduleNum}/${totalModules})`);
+  console.log(`[MODULE] "${module.title}" (Module ${moduleNum}/${totalModules})`);
 
   try {
     // Step 1: Generate optimized query
-    const query = generateVideoQuery(moduleTitle, courseTopic, moduleNum, totalModules);
+    const query = generateVideoQuery(module, courseTopic);
     console.log(`[QUERY] ${query}`);
 
     // Step 2: Fetch videos from YouTube
@@ -348,18 +350,25 @@ export async function getBestVideos(
       return [];
     }
 
-    // Step 3: Apply hard filters
-    const filtered = applyHardFilters(videos);
+    // Step 3: Apply hard filters and remove already used videos
+    const filtered = applyHardFilters(videos).filter(v => !usedVideoIds.has(v.videoId));
     if (filtered.length === 0) {
-      console.log('[VIDEO INTELLIGENCE] All videos filtered out, returning raw results');
-      return videos.slice(0, maxResults);
+      console.log('[VIDEO INTELLIGENCE] All videos filtered out or already used');
+      return [];
     }
 
     // Step 4: Score all videos
-    const scored = await scoreVideos(filtered, moduleTitle);
+    const scored = await scoreVideos(filtered, module.title);
+
+    // Filter out videos with low relevance to prevent generic fallbacks
+    const highlyRelevant = scored.filter(v => v.relevanceScore >= 0.3);
+    if (highlyRelevant.length === 0) {
+      console.log('[VIDEO INTELLIGENCE] No videos passed the relevance threshold');
+      return [];
+    }
 
     // Step 5: Sort by final score and return top results
-    const ranked = scored.sort((a, b) => b.finalScore - a.finalScore);
+    const ranked = highlyRelevant.sort((a, b) => b.finalScore - a.finalScore);
     const top = ranked.slice(0, maxResults);
 
     console.log(`[TOP VIDEOS SELECTED] ${top.length} videos selected`);
@@ -383,11 +392,12 @@ export async function getBestVideos(
  * Get a single best video for a module (returns just one video)
  */
 export async function getBestVideo(
-  moduleTitle: string,
+  module: any,
   courseTopic: string,
   moduleNum: number,
-  totalModules: number
+  totalModules: number,
+  usedVideoIds: Set<string> = new Set()
 ): Promise<YouTubeVideo | null> {
-  const videos = await getBestVideos(moduleTitle, courseTopic, moduleNum, totalModules, 1);
+  const videos = await getBestVideos(module, courseTopic, moduleNum, totalModules, 1, usedVideoIds);
   return videos.length > 0 ? videos[0] : null;
 }

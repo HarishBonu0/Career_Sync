@@ -2,11 +2,86 @@ import { OpenRouter } from '@openrouter/sdk'
 import { jsonrepair } from 'jsonrepair'
 import { NextRequest, NextResponse } from 'next/server'
 import { getBestVideo } from '@/services/videoIntelligence'
+import { validateCurriculum } from '@/lib/semanticValidation'
+
+function isSafeHttpUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length > 2000) return false
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+async function verifyResourceUrl(url: string): Promise<boolean> {
+  if (!isSafeHttpUrl(url)) return false
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(4000),
+    })
+    return response.status >= 200 && response.status < 400
+  } catch {
+    return false
+  }
+}
+
+async function annotateResources(resources: any[]): Promise<any[]> {
+  if (!Array.isArray(resources)) return []
+  return Promise.all(resources.map(async (resource) => {
+    if (!resource || typeof resource !== 'object' || !isSafeHttpUrl(resource.url)) return null
+    return {
+      ...resource,
+      url: resource.url,
+      verified: await verifyResourceUrl(resource.url),
+    }
+  })).then((items) => items.filter(Boolean))
+}
+
+function normalizeCourseAnswers(rawAnswers: Record<string, unknown>) {
+  const value = (id: number) => rawAnswers[id] ?? rawAnswers[String(id)]
+  const text = (id: number, fallback: string) => {
+    const current = value(id)
+    return Array.isArray(current) ? current.join(', ') : String(current || fallback)
+  }
+
+  return {
+    answers: Object.fromEntries(Object.entries(rawAnswers).map(([key, current]) => [String(key), current])),
+    userContext: {
+      experience: text(3, 'beginner'),
+      goal: text(2, 'general learning'),
+      timeline: text(6, '1 month'),
+      timeCommitment: text(4, '1-2 hours'),
+      learningStyle: text(5, 'mixed'),
+      focusAreas: Array.isArray(value(7)) ? value(7) : [text(7, 'comprehensive coverage')],
+      requirements: text(10, 'comprehensive coverage'),
+    },
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+    const cookie = request.headers.get('cookie') || ''
+    const sessionResponse = await fetch(`${apiUrl}/auth/me`, {
+      headers: { cookie },
+      cache: 'no-store',
+    })
+    if (!sessionResponse.ok) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     const body = await request.json()
     const { topic, answers } = body
+
+    if (typeof topic !== 'string' || topic.trim().length < 1 || topic.trim().length > 200) {
+      return NextResponse.json({ error: 'Topic is required and must be 200 characters or fewer' }, { status: 422 })
+    }
+    if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
+      return NextResponse.json({ error: 'Answers must be an object' }, { status: 422 })
+    }
 
     console.log('=== COURSE GENERATION REQUEST ===')
     console.log('Topic:', topic)
@@ -690,16 +765,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract user answers
-    const userName = answers[1] || 'Student'
-    const goal = answers[2] || 'general learning'
-    const experience = answers[3] || 'beginner'
-    const timeCommitment = answers[4] || '1-2 hours'
-    const learningStyle = answers[5] || 'mixed'
-    const timeline = answers[6] || '1 month'
-    const interests = Array.isArray(answers[7]) ? answers[7].join(', ') : 'general topics'
-    const preference = answers[8] || 'mix of both'
-    const progressTracking = answers[9] || 'weekly'
-    const specificFocus = answers[10] || 'comprehensive coverage'
+    const normalized = normalizeCourseAnswers(answers)
+    const userName = String(answers[1] || 'Student')
+    const { goal, experience, timeCommitment, learningStyle, timeline, focusAreas, requirements } = normalized.userContext
+    const interests = (Array.isArray(focusAreas) ? focusAreas : []).join(', ')
+    const preference = String(answers[8] || 'mix of both')
+    const progressTracking = String(answers[9] || 'weekly')
+    const specificFocus = requirements
 
     console.log('Extracted answers:', { userName, goal, experience, timeline, interests })
 
@@ -878,8 +950,8 @@ RESPONSE FORMAT - Return ONLY valid JSON:
     }
   ],
   "resources": [
-    {"type": "official-docs", "title": "Official ${topic} Documentation", "url": "https://www.google.com/search?q=${encodeURIComponent(topic + ' official documentation')}"},
-    {"type": "video-course", "title": "${topic} Video Course", "url": "https://www.youtube.com/results?search_query=${encodeURIComponent(topic + ' tutorial')}"}
+    {"type": "primary-source", "title": "Primary Learning Source: Complete ${topic} Bootcamp on Udemy", "url": "https://www.udemy.com/courses/search/?q=${encodeURIComponent(topic)}", "coverage": "complete"},
+    {"type": "official-docs", "title": "Official ${topic} Documentation", "url": "https://www.google.com/search?q=${encodeURIComponent(topic + ' official documentation')}", "coverage": "partial"}
   ],
   "finalProject": {
     "title": "Complete ${topic} ${isLanguageTopic ? 'Conversation' : 'Application'}",
@@ -894,45 +966,59 @@ REMEMBER:
 - Use CONCRETE ${isLanguageTopic ? 'vocabulary themes or grammar concepts' : 'technical'} terms in every module title
 - NO vague or generic titles like "Basics", "Fundamentals", "Introduction"
 - Think: "Would this title match a real tutorial on ${isLanguageTopic ? 'language learning sites or YouTube?' : 'GeeksforGeeks or YouTube?'}"
-- For ${topic}: Create modules for actual ${isLanguageTopic ? 'conversations, vocabulary domains, and grammar concepts' : 'concepts and features'} users want to learn`
+- For ${topic}: Create modules for actual ${isLanguageTopic ? 'conversations, vocabulary domains, and grammar concepts' : 'concepts and features'} users want to learn
+- Identify a "Primary Learning Source" (a real comprehensive course, bootcamp, or official guide from Udemy, Coursera, freeCodeCamp, or official docs) and include it in \`resources\`. 
+- Set \`coverage: "complete"\` for the primary source, and \`coverage: "partial"\` for supplemental sources.`
 
     console.log('Sending to OpenRouter...')
 
-    const openrouter = new OpenRouter({ apiKey })
-    const stream = await openrouter.chat.send({
-      httpReferer: 'http://localhost:3000',
-      appTitle: 'Unfold',
-      chatRequest: {
-        model: 'mistralai/mixtral-8x22b-instruct',
-        messages: [
-          {
-            role: 'user',
-            content: [{ type: 'text', text: prompt }],
-          },
-        ],
-        maxTokens: 4000,
-        responseFormat: { type: 'json_object' },
-        stream: true,
-      },
-    })
-
     let courseContent = ''
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content
-      if (content) {
-        courseContent += content
+    try {
+      const openrouter = new OpenRouter({ apiKey })
+      const stream = await openrouter.chat.send({
+        httpReferer: 'http://localhost:3000',
+        appTitle: 'Unfold',
+        chatRequest: {
+          model: 'mistralai/mixtral-8x22b-instruct',
+          messages: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: prompt }],
+            },
+          ],
+          maxTokens: 2500,
+          responseFormat: { type: 'json_object' },
+          stream: true,
+        },
+      })
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content
+        if (content) {
+          courseContent += content
+        }
       }
+    } catch (err) {
+      console.warn('OpenRouter API failed, proceeding to fallback:', err)
     }
 
     // Parse JSON
     let course
     try {
       courseContent = courseContent.trim()
+      if (!courseContent) throw new Error("No course content generated")
+      
       if (courseContent.startsWith('```')) {
         courseContent = courseContent.replace(/```json\n?/, '').replace(/```\n?$/, '')
       }
       course = JSON.parse(jsonrepair(courseContent.trim()))
       
+      // Perform Semantic Validation to ensure no duplicate modules
+      if (course.modules && Array.isArray(course.modules)) {
+        course.modules = await validateCurriculum(course.modules, topic, experience)
+      }
+
+      const usedVideoIds = new Set<string>()
       // Ensure all modules have reading materials AND intelligent video recommendations
       if (course.modules && Array.isArray(course.modules)) {
         course.modules = await Promise.all(course.modules.map(async (module: any, idx: number) => {
@@ -947,8 +1033,9 @@ REMEMBER:
           
           // Get best video using VIDEO INTELLIGENCE SYSTEM
           try {
-            const bestVideo = await getBestVideo(moduleTopic, topic, moduleNum, numModules)
+            const bestVideo = await getBestVideo(updatedModule, topic, moduleNum, numModules, usedVideoIds)
             if (bestVideo) {
+              usedVideoIds.add(bestVideo.videoId)
               updatedModule.youtubeSearch = bestVideo.title
               updatedModule.youtubeVideoId = bestVideo.videoId
               updatedModule.videoIntelligence = {
@@ -962,12 +1049,14 @@ REMEMBER:
                 finalScore: (bestVideo as any).finalScore
               }
             } else {
-              // Fallback to search query if video intelligence fails
-              updatedModule.youtubeSearch = generateModuleVideoSearch(moduleTopic, moduleTopic, moduleNum, numModules, topic)
+              // Null if no highly relevant unique video is found
+              updatedModule.youtubeSearch = ''
+              updatedModule.youtubeVideoId = ''
             }
           } catch (error) {
             console.log(`[VIDEO INTELLIGENCE] Failed for module ${moduleNum}, using fallback search`)
-            updatedModule.youtubeSearch = generateModuleVideoSearch(moduleTopic, moduleTopic, moduleNum, numModules, topic)
+            updatedModule.youtubeSearch = ''
+            updatedModule.youtubeVideoId = ''
           }
           
           return updatedModule
@@ -975,9 +1064,16 @@ REMEMBER:
       }
 
       // Ensure course has real, accurate resources
-      if (!course.resources || !Array.isArray(course.resources) || course.resources.length === 0 || 
-          (course.resources.some((r: any) => r.url?.includes('example.com') || r.url === 'https://youtube.com'))) {
-        course.resources = generateCourseResources(topic, goal, experience, timeline, learningStyle)
+      const generatedResources = generateCourseResources(topic, goal, experience, timeline, learningStyle)
+      if (!course.resources || !Array.isArray(course.resources) || course.resources.length === 0) {
+        course.resources = generatedResources
+      } else {
+        // Filter out dummy resources
+        course.resources = course.resources.filter((r: any) => r.url && !r.url.includes('example.com') && r.url !== 'https://youtube.com')
+        // Append fallbacks if we are short on resources
+        if (course.resources.length < 2) {
+          course.resources.push(...generatedResources)
+        }
       }
     } catch (e) {
       console.error('Parse error:', e)
@@ -985,6 +1081,7 @@ REMEMBER:
       // Create fallback course with multiple modules
       const fallbackModules = []
       const moduleTopics = interests.split(',').map(i => i.trim())
+      const fallbackUsedVideoIds = new Set<string>()
       
       // Create 4-12 modules based on timeline with VIDEO INTELLIGENCE
       for (let i = 0; i < numModules; i++) {
@@ -993,8 +1090,10 @@ REMEMBER:
         
         let youtubeData: any = {}
         try {
-          const bestVideo = await getBestVideo(currentModuleTopic, topic, moduleNum, numModules)
+          const fallbackModuleTemp = { title: `Module ${moduleNum}: ${currentModuleTopic}`, topics: [`${currentModuleTopic} Basics`] }
+          const bestVideo = await getBestVideo(fallbackModuleTemp, topic, moduleNum, numModules, fallbackUsedVideoIds)
           if (bestVideo) {
+            fallbackUsedVideoIds.add(bestVideo.videoId)
             youtubeData = {
               youtubeSearch: bestVideo.title,
               youtubeVideoId: bestVideo.videoId,
@@ -1035,7 +1134,7 @@ REMEMBER:
           ],
           project: `Project ${moduleNum}: Build ${currentModuleTopic} application`,
           estimatedHours: 5 + i,
-          youtubeSearch: youtubeData.youtubeSearch || generateModuleVideoSearch(`Module ${moduleNum}: ${currentModuleTopic}`, currentModuleTopic, moduleNum, numModules, topic),
+          youtubeSearch: youtubeData.youtubeSearch || '',
           youtubeVideoId: youtubeData.youtubeVideoId,
           videoIntelligence: youtubeData.videoIntelligence,
           readingMaterials: generateReadingMaterials(currentModuleTopic, moduleNum, experience, topic),
@@ -1069,6 +1168,14 @@ REMEMBER:
       }
     }
 
+    course.resources = await annotateResources(course.resources || [])
+    if (Array.isArray(course.modules)) {
+      course.modules = await Promise.all(course.modules.map(async (module: any) => ({
+        ...module,
+        readingMaterials: await annotateResources(module.readingMaterials || []),
+      })))
+    }
+
     console.log('=== SUCCESS ===')
     console.log('Course modules count:', course.modules?.length)
     console.log('First module has reading materials:', !!course.modules?.[0]?.readingMaterials)
@@ -1080,6 +1187,14 @@ REMEMBER:
       course,
       topic,
       userName,
+      generationMetadata: {
+        provider: 'openrouter',
+        model: 'mistralai/mixtral-8x22b-instruct',
+        promptVersion: 'course-v1',
+        topic,
+        answers: normalized.answers,
+        userContext: normalized.userContext,
+      },
     })
   } catch (error) {
     console.error('ERROR:', error)

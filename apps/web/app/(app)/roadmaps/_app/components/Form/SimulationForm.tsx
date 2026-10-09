@@ -23,6 +23,8 @@ export default function SimulationForm({ onSubmit, isLoading }: SimulationFormPr
     dailyLearningTime: '',
     resumeFileName: '',
     resumeText: '',
+    resumeTextOriginalLength: 0,
+    resumeTextTruncated: false,
   });
 
   const isStudent = formData.currentRole.trim().toLowerCase() === 'student';
@@ -53,18 +55,18 @@ export default function SimulationForm({ onSubmit, isLoading }: SimulationFormPr
     setFormData((prev) => ({ ...prev, skills }));
   };
 
-  const extractResumeText = async (file: File): Promise<string> => {
+  const extractResumeText = async (file: File): Promise<{ text: string, originalLength: number }> => {
     const lowerName = file.name.toLowerCase();
+    let rawText = '';
+    
     if (lowerName.endsWith('.txt') || lowerName.endsWith('.md')) {
-      return (await file.text()).slice(0, 8000);
-    }
-    if (lowerName.endsWith('.docx')) {
+      rawText = await file.text();
+    } else if (lowerName.endsWith('.docx')) {
       const mammoth = await import('mammoth');
       const arrayBuffer = await file.arrayBuffer();
       const result = await mammoth.extractRawText({ arrayBuffer });
-      return (result.value || '').replace(/\s+/g, ' ').trim().slice(0, 8000);
-    }
-    if (lowerName.endsWith('.pdf')) {
+      rawText = (result.value || '').replace(/\s+/g, ' ').trim();
+    } else if (lowerName.endsWith('.pdf')) {
       const pdfjs = await import('pdfjs-dist');
       const anyPdfjs = pdfjs as unknown as {
         getDocument: (src: { data: Uint8Array }) => { promise: Promise<any> };
@@ -74,18 +76,19 @@ export default function SimulationForm({ onSubmit, isLoading }: SimulationFormPr
         'https://unpkg.com/pdfjs-dist@5.4.149/build/pdf.worker.min.mjs';
       const data = new Uint8Array(await file.arrayBuffer());
       const pdf = await anyPdfjs.getDocument({ data }).promise;
-      let text = '';
+      
       for (let page = 1; page <= pdf.numPages; page += 1) {
         const pageData = await pdf.getPage(page);
         const content = await pageData.getTextContent();
         const pageText = content.items
           .map((item: any) => ('str' in item ? item.str : ''))
           .join(' ');
-        text += ` ${pageText}`;
+        rawText += ` ${pageText}`;
       }
-      return text.replace(/\s+/g, ' ').trim().slice(0, 8000);
+      rawText = rawText.replace(/\s+/g, ' ').trim();
     }
-    return '';
+    
+    return { text: rawText.slice(0, 80000), originalLength: rawText.length };
   };
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,8 +98,11 @@ export default function SimulationForm({ onSubmit, isLoading }: SimulationFormPr
       return;
     }
     let extractedText = '';
+    let originalLength = 0;
     try {
-      extractedText = await extractResumeText(file);
+      const result = await extractResumeText(file);
+      extractedText = result.text;
+      originalLength = result.originalLength;
     } catch (error) {
       console.warn('Resume extraction failed, proceeding without extracted text:', error);
     }
@@ -104,6 +110,8 @@ export default function SimulationForm({ onSubmit, isLoading }: SimulationFormPr
       ...prev,
       resumeFileName: file?.name || '',
       resumeText: extractedText,
+      resumeTextOriginalLength: originalLength,
+      resumeTextTruncated: originalLength > 80000,
     }));
   };
 
@@ -122,18 +130,20 @@ export default function SimulationForm({ onSubmit, isLoading }: SimulationFormPr
       targetSalary: formData.expectedSalary.trim() || (isStudent ? undefined : formData.currentSalary),
       resumeFileName: formData.resumeFileName || undefined,
       resumeText: formData.resumeText || undefined,
+      resumeTextOriginalLength: formData.resumeTextOriginalLength,
+      resumeTextTruncated: formData.resumeTextTruncated,
       projects: '',
     });
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Roadmap generator</CardTitle>
-        <CardDescription>Tell us about yourself to generate your personalized career roadmap.</CardDescription>
+    <Card className="border-0 shadow-none bg-transparent">
+      <CardHeader className="px-0 pt-0">
+        <CardTitle className="text-2xl font-bold text-primary">Roadmap generator</CardTitle>
+        <CardDescription className="text-secondary-foreground font-medium text-base">Tell us about yourself to generate your personalized career roadmap.</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-6 px-0">
           <Field
             id="currentRole"
             label="Current role"
@@ -144,7 +154,7 @@ export default function SimulationForm({ onSubmit, isLoading }: SimulationFormPr
           />
 
           {!isStudent && (
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-2">
               <Field
                 id="experienceYears"
                 label="Years of experience in current role"
@@ -175,7 +185,7 @@ export default function SimulationForm({ onSubmit, isLoading }: SimulationFormPr
 
           <SkillsInput skills={formData.skills} onSkillsChange={handleSkillsChange} />
 
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             <Field
               id="dailyLearningTime"
               label="Daily time you can dedicate to learning"
@@ -194,20 +204,22 @@ export default function SimulationForm({ onSubmit, isLoading }: SimulationFormPr
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="resumeUpload">Upload resume (optional)</Label>
+          <div className="space-y-2">
+            <Label htmlFor="resumeUpload" className="text-sm font-bold text-primary">Upload resume (optional)</Label>
             <label
               htmlFor="resumeUpload"
-              className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-dashed border-border bg-muted/30 px-4 py-3 text-sm transition-colors hover:bg-muted/60"
+              className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border-2 border-dashed border-border/80 bg-white px-5 py-4 text-sm transition-all hover:bg-accent/5 hover:border-accent/40 group"
             >
-              <span className="flex items-center gap-2">
-                <Upload className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">
+              <span className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent group-hover:scale-110 transition-transform">
+                  <Upload className="h-5 w-5" />
+                </div>
+                <span className="text-secondary-foreground font-medium text-base">
                   {formData.resumeFileName || 'PDF, DOCX, or plain text'}
                 </span>
               </span>
               {formData.resumeFileName && (
-                <span className="text-xs font-medium text-foreground">Replace</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-primary">Replace</span>
               )}
             </label>
             <input
@@ -221,12 +233,12 @@ export default function SimulationForm({ onSubmit, isLoading }: SimulationFormPr
           </div>
         </CardContent>
 
-        <div className="px-6 pb-6">
-          <Button type="submit" className="w-full" disabled={!isFormValid || isLoading}>
+        <div className="pt-6">
+          <Button type="submit" size="lg" className="w-full h-14 rounded-full text-base font-bold shadow-lg shadow-accent/20 bg-primary text-white hover:bg-primary/90 transition-transform hover:-translate-y-0.5" disabled={!isFormValid || isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating skill assessment…
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Generating intelligence...
               </>
             ) : (
               'Generate skill assessment'
@@ -254,8 +266,8 @@ function Field({
   disabled?: boolean;
 }) {
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id}>{label}</Label>
+    <div className="space-y-2">
+      <Label htmlFor={id} className="text-sm font-bold text-primary">{label}</Label>
       <Input
         id={id}
         type="text"
@@ -264,6 +276,7 @@ function Field({
         value={value}
         onChange={onChange}
         disabled={disabled}
+        className="h-12 rounded-xl border-border/80 bg-white px-4 text-base focus-visible:ring-accent focus-visible:border-accent transition-all font-medium placeholder:text-muted-foreground/60"
       />
     </div>
   );
