@@ -480,8 +480,8 @@ Generate NOW with session ${timestamp}:`;
     
     console.log(`📥 Received response (${responseText.length} chars)`);
     
-    // Extract JSON array from response - use NON-GREEDY match to avoid capturing too much
-    const jsonMatch = responseText.match(/\[[\s\S]*?\]/);
+    // Extract JSON array from response - use GREEDY match to capture the whole array
+    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
       console.warn('⚠️  No valid JSON array found in AI response');
       console.warn('Response preview:', responseText.substring(0, 200));

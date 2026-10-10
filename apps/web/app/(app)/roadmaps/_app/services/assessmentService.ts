@@ -678,6 +678,7 @@ export async function generateAssessmentSession(input: SimulationInput): Promise
     try {
       const response = await fetch(`${getBackendBaseUrl()}/api/skills/evaluate`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

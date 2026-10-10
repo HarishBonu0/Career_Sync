@@ -73,7 +73,7 @@ export default function SimulationForm({ onSubmit, isLoading }: SimulationFormPr
         GlobalWorkerOptions: { workerSrc: string };
       };
       anyPdfjs.GlobalWorkerOptions.workerSrc =
-        'https://unpkg.com/pdfjs-dist@5.4.149/build/pdf.worker.min.mjs';
+        'https://unpkg.com/pdfjs-dist@5.7.284/build/pdf.worker.min.mjs';
       const data = new Uint8Array(await file.arrayBuffer());
       const pdf = await anyPdfjs.getDocument({ data }).promise;
       
