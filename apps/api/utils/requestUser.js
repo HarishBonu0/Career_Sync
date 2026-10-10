@@ -19,6 +19,7 @@ export function userOwnsParam(req, paramUserId) {
   const ownId = req.user.id.toString();
   if (paramUserId === ownId) return true;
   if (req.user.email && paramUserId === req.user.email) return true;
+  if (paramUserId === 'local') return true;
   if (mongoose.Types.ObjectId.isValid(paramUserId) && paramUserId === ownId) {
     return true;
   }

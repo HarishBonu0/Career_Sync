@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login } = useAuth()
+  const { login, register } = useAuth()
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
@@ -49,6 +49,31 @@ export default function LoginPage() {
     }
   }
 
+  async function handleGuestLogin() {
+    setError(null)
+    setSubmitting(true)
+    try {
+      const guestEmail = 'guest@careersync.local'
+      const guestPassword = 'GuestPassword123!'
+      const ok = await login(guestEmail, guestPassword)
+      if (ok) {
+        router.push('/home')
+        return
+      }
+      
+      const regOk = await register('Guest User', guestEmail, guestPassword)
+      if (regOk.ok) {
+        router.push('/home')
+      } else {
+        setError(regOk.error || 'Failed to create guest account.')
+      }
+    } catch {
+      setError('Something went wrong during guest login.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <section className="relative min-h-[calc(100vh-80px)] flex items-center justify-center py-16 px-4">
       {/* Premium Ivory & Gold Background */}
@@ -79,6 +104,18 @@ export default function LoginPage() {
             >
               <Chrome className="mr-3 h-5 w-5 text-muted-foreground" aria-hidden="true" />
               Continue with Google
+            </Button>
+            
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="w-full h-12 rounded-xl bg-white hover:bg-secondary/50 border-border text-primary font-semibold shadow-sm transition-all"
+              disabled={submitting}
+              onClick={handleGuestLogin}
+            >
+              <Compass className="mr-3 h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              Login as Guest
             </Button>
             
             <div className="relative py-2">

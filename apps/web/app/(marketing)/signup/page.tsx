@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 
 export default function SignupPage() {
   const router = useRouter()
-  const { register } = useAuth()
+  const { login, register } = useAuth()
   const [name, setName] = React.useState('')
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
@@ -31,6 +31,31 @@ export default function SignupPage() {
       router.push('/home')
     } catch {
       setError('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleGuestLogin() {
+    setError(null)
+    setSubmitting(true)
+    try {
+      const guestEmail = 'guest@careersync.local'
+      const guestPassword = 'GuestPassword123!'
+      const ok = await login(guestEmail, guestPassword)
+      if (ok) {
+        router.push('/home')
+        return
+      }
+      
+      const regOk = await register('Guest User', guestEmail, guestPassword)
+      if (regOk.ok) {
+        router.push('/home')
+      } else {
+        setError(regOk.error || 'Failed to create guest account.')
+      }
+    } catch {
+      setError('Something went wrong during guest login.')
     } finally {
       setSubmitting(false)
     }
@@ -66,6 +91,18 @@ export default function SignupPage() {
             >
               <Chrome className="mr-3 h-5 w-5 text-muted-foreground" aria-hidden="true" />
               Sign up with Google
+            </Button>
+            
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="w-full h-12 rounded-xl bg-white hover:bg-secondary/50 border-border text-primary font-semibold shadow-sm transition-all"
+              disabled={submitting}
+              onClick={handleGuestLogin}
+            >
+              <Compass className="mr-3 h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              Login as Guest
             </Button>
             
             <div className="relative py-2">

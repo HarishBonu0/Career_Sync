@@ -44,6 +44,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
+      // Check localStorage first if in dev mode to prevent 401 spam
+      if (process.env.NODE_ENV === 'development') {
+        const localUser = localStorage.getItem('localUser')
+        if (localUser) {
+          setUser(JSON.parse(localUser))
+          setAuthStatus('authenticated')
+          return
+        }
+      }
+
       const response = await fetch(`${API_URL}/auth/me`, {
         credentials: 'include', // Include cookies
       })
@@ -54,16 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(userData)
         setAuthStatus('authenticated')
         return
-      }
-
-      // Check localStorage if API check fails or isn't authenticated (DEV ONLY)
-      if (process.env.NODE_ENV === 'development') {
-        const localUser = localStorage.getItem('localUser')
-        if (localUser) {
-          setUser(JSON.parse(localUser))
-          setAuthStatus('authenticated')
-          return
-        }
       }
 
       if (response.status === 401) {

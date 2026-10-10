@@ -176,3 +176,5 @@ export async function syncResumeToSkillProfile(userId, resumeHash) {
 
   return profile;
 }
+
+export const buildSkillProfile = syncResumeToSkillProfile;
