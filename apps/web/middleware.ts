@@ -9,7 +9,9 @@ export function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  const hasToken = Boolean(req.cookies.get(AUTH_COOKIE)?.value)
+  const queryToken = req.nextUrl.searchParams.get('token')
+  const cookieToken = req.cookies.get(AUTH_COOKIE)?.value
+  const hasToken = Boolean(cookieToken) || Boolean(queryToken)
 
   if (!hasToken) {
     const loginUrl = new URL('/login', req.url)
@@ -17,7 +19,17 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  return NextResponse.next()
+  const res = NextResponse.next()
+  if (queryToken && !cookieToken) {
+    res.cookies.set(AUTH_COOKIE, queryToken, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+      sameSite: 'lax',
+      secure: req.nextUrl.protocol === 'https:',
+    })
+  }
+
+  return res
 }
 
 export const config = {

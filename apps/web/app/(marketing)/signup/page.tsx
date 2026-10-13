@@ -11,12 +11,18 @@ import { Label } from '@/components/ui/label'
 
 export default function SignupPage() {
   const router = useRouter()
-  const { login, register } = useAuth()
+  const { login, register, isAuthenticated } = useAuth()
   const [name, setName] = React.useState('')
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/home')
+    }
+  }, [isAuthenticated, router])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -44,13 +50,13 @@ export default function SignupPage() {
       const guestPassword = 'GuestPassword123!'
       const ok = await login(guestEmail, guestPassword)
       if (ok) {
-        router.push('/home')
+        router.replace('/home')
         return
       }
       
       const regOk = await register('Guest User', guestEmail, guestPassword)
       if (regOk.ok) {
-        router.push('/home')
+        router.replace('/home')
       } else {
         setError(regOk.error || 'Failed to create guest account.')
       }
@@ -87,7 +93,11 @@ export default function SignupPage() {
               size="lg"
               className="w-full h-12 rounded-xl bg-white hover:bg-secondary/50 border-border text-primary font-semibold shadow-sm transition-all"
               disabled={submitting}
-              onClick={() => { window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/google` }}
+              onClick={() => {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+                const origin = typeof window !== 'undefined' ? window.location.origin : ''
+                window.location.href = `${apiUrl}/auth/google?origin=${encodeURIComponent(origin)}`
+              }}
             >
               <Chrome className="mr-3 h-5 w-5 text-muted-foreground" aria-hidden="true" />
               Sign up with Google

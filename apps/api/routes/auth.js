@@ -11,6 +11,7 @@ import { authenticate } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
 import { requireMongo } from '../middleware/mongoCheck.js';
 import rateLimit from 'express-rate-limit';
+import { getCorsOrigins } from '../config/urls.js';
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -51,10 +52,18 @@ function setAuthCookie(res, token) {
 const GOOGLE_STATE_COOKIE = 'Career_Sync_google_state';
 const GOOGLE_SCOPES = ['openid', 'email', 'profile'];
 
-function getGoogleConfig() {
-  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL } = process.env;
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_CALLBACK_URL) return null;
-  return { clientId: GOOGLE_CLIENT_ID, clientSecret: GOOGLE_CLIENT_SECRET, redirectUri: GOOGLE_CALLBACK_URL };
+function getGoogleConfig(req) {
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = process.env;
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return null;
+  let redirectUri = process.env.GOOGLE_CALLBACK_URL;
+  if (process.env.NODE_ENV === 'production' && redirectUri && redirectUri.includes('localhost')) {
+    redirectUri = null;
+  }
+  if (!redirectUri && req) {
+    redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  }
+  if (!redirectUri) return null;
+  return { clientId: GOOGLE_CLIENT_ID, clientSecret: GOOGLE_CLIENT_SECRET, redirectUri };
 }
 
 function getGoogleClient(config) {
@@ -62,11 +71,32 @@ function getGoogleClient(config) {
 }
 
 function getFrontendUrl() {
-  return (process.env.FRONTEND_URL || 'http://localhost:3002').replace(/\/$/, '');
+  return (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 }
 
-function redirectToLogin(res, code) {
-  return res.redirect(`${getFrontendUrl()}/login?oauth_error=${encodeURIComponent(code)}`);
+function resolveSafeFrontendUrl(candidate) {
+  if (!candidate) return getFrontendUrl();
+  try {
+    const url = new URL(candidate);
+    const origin = url.origin;
+    const allowed = getCorsOrigins();
+    if (
+      allowed.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1')
+    ) {
+      return origin;
+    }
+  } catch {
+    // ignore malformed URL
+  }
+  return getFrontendUrl();
+}
+
+function redirectToLogin(res, code, customFrontendUrl) {
+  const base = customFrontendUrl || getFrontendUrl();
+  return res.redirect(`${base}/login?oauth_error=${encodeURIComponent(code)}`);
 }
 
 function statesMatch(expected, actual) {
@@ -376,15 +406,26 @@ router.post('/logout-all-devices', authenticate, async (req, res) => {
 
 // Begin the server-side Google OAuth authorization-code flow.
 router.get('/google', (req, res) => {
-  const config = getGoogleConfig();
-  if (!config) return redirectToLogin(res, 'not_configured');
+  const config = getGoogleConfig(req);
+  const targetFrontendUrl = resolveSafeFrontendUrl(req.query.origin || req.headers.referer);
 
-  const state = crypto.randomBytes(32).toString('hex');
-  res.cookie(GOOGLE_STATE_COOKIE, state, {
+  if (!config) {
+    console.error('[AUTH GOOGLE] Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET in environment.');
+    return redirectToLogin(res, 'not_configured', targetFrontendUrl);
+  }
+
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const statePayload = {
+    nonce,
+    targetOrigin: targetFrontendUrl,
+  };
+  const state = jwt.sign(statePayload, ACTIVE_JWT_SECRET, { expiresIn: '15m' });
+
+  res.cookie(GOOGLE_STATE_COOKIE, nonce, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 10 * 60 * 1000,
+    maxAge: 15 * 60 * 1000,
     path: '/api/auth/google',
   });
 
@@ -399,33 +440,62 @@ router.get('/google', (req, res) => {
 });
 
 router.get('/google/callback', async (req, res) => {
-  const config = getGoogleConfig();
-  if (!config) return redirectToLogin(res, 'not_configured');
-  if (req.query.error === 'access_denied') return redirectToLogin(res, 'cancelled');
+  const config = getGoogleConfig(req);
+  let targetFrontendUrl = getFrontendUrl();
 
   const state = typeof req.query.state === 'string' ? req.query.state : '';
-  const expectedState = req.cookies?.[GOOGLE_STATE_COOKIE] || '';
+  const expectedNonce = req.cookies?.[GOOGLE_STATE_COOKIE] || '';
   res.clearCookie(GOOGLE_STATE_COOKIE, { path: '/api/auth/google' });
-  if (!statesMatch(expectedState, state)) return redirectToLogin(res, 'invalid_state');
+
+  let stateValid = false;
+  if (state) {
+    try {
+      const decoded = jwt.verify(state, ACTIVE_JWT_SECRET);
+      if (decoded && decoded.nonce) {
+        stateValid = true;
+        if (decoded.targetOrigin) {
+          targetFrontendUrl = resolveSafeFrontendUrl(decoded.targetOrigin);
+        }
+      }
+    } catch {
+      if (expectedNonce && statesMatch(expectedNonce, state)) {
+        stateValid = true;
+      }
+    }
+  }
+
+  if (!config) {
+    return redirectToLogin(res, 'not_configured', targetFrontendUrl);
+  }
+
+  if (req.query.error === 'access_denied') {
+    return redirectToLogin(res, 'cancelled', targetFrontendUrl);
+  }
+
+  if (!stateValid) {
+    return redirectToLogin(res, 'invalid_state', targetFrontendUrl);
+  }
 
   const code = typeof req.query.code === 'string' ? req.query.code : '';
-  if (!code) return redirectToLogin(res, 'missing_code');
+  if (!code) {
+    return redirectToLogin(res, 'missing_code', targetFrontendUrl);
+  }
 
   try {
     const client = getGoogleClient(config);
     const { tokens } = await client.getToken(code);
-    if (!tokens.id_token) return redirectToLogin(res, 'missing_identity');
+    if (!tokens.id_token) return redirectToLogin(res, 'missing_identity', targetFrontendUrl);
 
     const ticket = await client.verifyIdToken({ idToken: tokens.id_token, audience: config.clientId });
     const payload = ticket.getPayload();
     const googleId = payload?.sub;
     const email = payload?.email?.toLowerCase();
     if (!googleId || !email || payload.email_verified !== true) {
-      return redirectToLogin(res, 'unverified_account');
+      return redirectToLogin(res, 'unverified_account', targetFrontendUrl);
     }
 
     let user = await User.findOne({ googleId });
-    if (user && user.email !== email) return redirectToLogin(res, 'account_conflict');
+    if (user && user.email !== email) return redirectToLogin(res, 'account_conflict', targetFrontendUrl);
 
     if (!user) user = await User.findByEmail(email);
     if (!user) {
@@ -449,10 +519,10 @@ router.get('/google/callback', async (req, res) => {
     await user.recordLogin();
     const token = jwt.sign({ id: user._id, email: user.email }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
     setAuthCookie(res, token);
-    return res.redirect(`${getFrontendUrl()}/home`);
+    return res.redirect(`${targetFrontendUrl}/home?token=${encodeURIComponent(token)}`);
   } catch (error) {
     console.error('Google OAuth callback failed:', error?.message || error);
-    return redirectToLogin(res, 'authentication_failed');
+    return redirectToLogin(res, 'authentication_failed', targetFrontendUrl);
   }
 });
 

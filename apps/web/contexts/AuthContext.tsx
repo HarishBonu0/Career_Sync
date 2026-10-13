@@ -28,6 +28,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // API URL
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
+function syncAuthToken(token: string | null) {
+  if (typeof window === 'undefined') return
+  if (token) {
+    localStorage.setItem('Career_Sync_token', token)
+    const isHttps = window.location.protocol === 'https:'
+    document.cookie = `Career_Sync_token=${token}; path=/; max-age=604800; SameSite=Lax${isHttps ? '; Secure' : ''}`
+  } else {
+    localStorage.removeItem('Career_Sync_token')
+    localStorage.removeItem('localUser')
+    document.cookie = 'Career_Sync_token=; path=/; max-age=0'
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [authStatus, setAuthStatus] = useState<AuthStatus>('loading')
@@ -44,6 +57,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search)
+        const urlToken = urlParams.get('token')
+        if (urlToken) {
+          syncAuthToken(urlToken)
+          urlParams.delete('token')
+          const cleanSearch = urlParams.toString() ? `?${urlParams.toString()}` : ''
+          window.history.replaceState({}, document.title, window.location.pathname + cleanSearch)
+        }
+      }
+
       // Check localStorage first if in dev mode to prevent 401 spam
       if (process.env.NODE_ENV === 'development') {
         const localUser = localStorage.getItem('localUser')
@@ -58,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined') {
         const token = localStorage.getItem('Career_Sync_token')
         if (token) {
+          syncAuthToken(token) // ensure cookie is also active on the Vercel domain
           headers['Authorization'] = `Bearer ${token}`
         }
       }
@@ -76,9 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (response.status === 401) {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('Career_Sync_token')
-        }
+        syncAuthToken(null)
         setUser(null)
         setAuthStatus('unauthenticated')
         return
@@ -106,8 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const data = await response.json()
         const userData = data.user || data
-        if (data.token && typeof window !== 'undefined') {
-          localStorage.setItem('Career_Sync_token', data.token)
+        if (data.token) {
+          syncAuthToken(data.token)
         }
         setUser(userData)
         setAuthStatus('authenticated')
@@ -156,8 +179,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return { ok: false, error: data.error || data.message || 'Sign up failed.' }
       }
-      if (data.token && typeof window !== 'undefined') {
-        localStorage.setItem('Career_Sync_token', data.token)
+      if (data.token) {
+        syncAuthToken(data.token)
       }
       setUser(data.user || null)
       setAuthStatus('authenticated')
@@ -184,10 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Logout error:', error)
     }
     
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('localUser')
-      localStorage.removeItem('Career_Sync_token')
-    }
+    syncAuthToken(null)
     setUser(null)
     setAuthStatus('unauthenticated')
   }
