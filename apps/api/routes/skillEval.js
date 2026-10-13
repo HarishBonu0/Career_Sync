@@ -307,7 +307,7 @@ const analyzeProfileWithAI = async ({ currentRole = '', targetRole = '', userSki
   }
 
   const model = new GoogleGenerativeAI(process.env.GEMINI_API_KEY).getGenerativeModel({
-    model: 'gemini-3.8-flash',
+    model: 'gemini-2.5-flash',
     generationConfig: {
       temperature: 0.5,
       topP: 0.9,
@@ -344,7 +344,7 @@ const analyzeProfileWithAI = async ({ currentRole = '', targetRole = '', userSki
 
   const result = await Promise.race([
     model.generateContent(prompt),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Profile analysis timeout (>35s)')), 35000)),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Profile analysis timeout (>12s)')), 12000)),
   ]);
 
   const text = result.response.text();
@@ -401,12 +401,13 @@ const generateQuestionsWithAI = async (skillName, difficulty, questionCount, con
   try {
     const genAI = new GoogleGenerativeAI(geminiKey);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-3.8-flash',
+      model: 'gemini-2.5-flash',
       generationConfig: {
-        temperature: 1.0,
+        temperature: 0.7,
         topP: 0.95,
         topK: 64,
-        maxOutputTokens: 8000
+        maxOutputTokens: 4000,
+        responseMimeType: 'application/json'
       }
     });
 
@@ -447,53 +448,39 @@ For EACH question, return this EXACT JSON structure:
   "explanation": "2-3 sentence explanation of why this is correct for ${skillName}"
 }
 
-EXAMPLES OF QUESTION VARIETY FOR ${skillName}:
-- Theory: "What is the purpose of X in ${skillName}?"
-- Practical: "How would you implement Y using ${skillName}?"
-- Debugging: "What's wrong with this ${skillName} code?"
-- Performance: "Which approach is more efficient in ${skillName}?"
-- Best Practice: "What's the recommended way to do Z in ${skillName}?"
-
 RETURN FORMAT:
-- ONLY return a valid JSON array
-- NO markdown, NO code blocks, NO explanations
-- Start with [ and end with ]
-- Generate exactly ${questionCount} questions
-
-Generate NOW with session ${timestamp}:`;
+- Return a valid JSON array of objects
+- Generate exactly ${questionCount} questions`;
 
     console.log(`📡 Calling Gemini AI [Session: ${timestamp}-${randomSeed}]`);
     console.log(`   Topic: ${skillName} | Difficulty: ${difficulty} | Count: ${questionCount}`);
     
-    // Wrap API call with retry logic and timeout
+    // Wrap API call with fast timeout
     let result;
     await retryWithExponentialBackoff(async () => {
       result = await Promise.race([
         model.generateContent(detailedPrompt),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Gemini API call timeout (>45s)')), 45000)
+          setTimeout(() => reject(new Error('Gemini API call timeout (>15s)')), 15000)
         )
       ]);
-    }, 3, 1000);
+    }, 1, 500);
     
     const responseText = result.response.text();
     
     console.log(`📥 Received response (${responseText.length} chars)`);
     
-    // Extract JSON array from response - use GREEDY match to capture the whole array
-    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      console.warn('⚠️  No valid JSON array found in AI response');
-      console.warn('Response preview:', responseText.substring(0, 200));
-      return null;
-    }
+    // Extract JSON array from response
+    const cleanedText = responseText.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+    const jsonMatch = cleanedText.match(/\[[\s\S]*\]/);
+    const candidateJson = jsonMatch ? jsonMatch[0] : cleanedText;
 
     let questionsRaw = [];
     try {
-      questionsRaw = JSON.parse(jsonMatch[0]);
+      questionsRaw = JSON.parse(candidateJson);
     } catch (parseError) {
       console.warn('⚠️  Failed to parse AI JSON:', parseError.message);
-      console.warn('JSON preview:', jsonMatch[0].substring(0, 200));
+      console.warn('JSON preview:', candidateJson.substring(0, 200));
       return null;
     }
 

@@ -54,8 +54,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      const headers: Record<string, string> = {}
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('Career_Sync_token')
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`
+        }
+      }
+
       const response = await fetch(`${API_URL}/auth/me`, {
         credentials: 'include', // Include cookies
+        headers,
       })
 
       if (response.ok) {
@@ -67,6 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('Career_Sync_token')
+        }
         setUser(null)
         setAuthStatus('unauthenticated')
         return
@@ -74,9 +86,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setAuthStatus('error')
     } catch (error) {
-      console.error('Backend auth check failed:', error)
+      console.warn('Backend auth check temporarily unavailable:', error)
       setUser(null)
-      setAuthStatus('error')
+      setAuthStatus('unauthenticated')
     }
   }
 
@@ -94,6 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const data = await response.json()
         const userData = data.user || data
+        if (data.token && typeof window !== 'undefined') {
+          localStorage.setItem('Career_Sync_token', data.token)
+        }
         setUser(userData)
         setAuthStatus('authenticated')
         return true
@@ -141,6 +156,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return { ok: false, error: data.error || data.message || 'Sign up failed.' }
       }
+      if (data.token && typeof window !== 'undefined') {
+        localStorage.setItem('Career_Sync_token', data.token)
+      }
       setUser(data.user || null)
       setAuthStatus('authenticated')
       return { ok: true }
@@ -166,7 +184,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Logout error:', error)
     }
     
-    localStorage.removeItem('localUser')
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('localUser')
+      localStorage.removeItem('Career_Sync_token')
+    }
     setUser(null)
     setAuthStatus('unauthenticated')
   }

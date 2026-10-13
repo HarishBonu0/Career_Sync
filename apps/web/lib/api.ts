@@ -10,9 +10,16 @@ class ApiClient {
 
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseUrl}${endpoint}`
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...((options.headers as Record<string, string>) || {}),
+    }
+
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('Career_Sync_token')
+      if (token && !headers['Authorization']) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
     }
 
     try {

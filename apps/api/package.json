@@ -5,7 +5,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "tsx --env-file=.env server.js",
+    "start": "node server.js",
     "dev": "tsx watch --env-file=.env server.js",
     "test:services": "tsx test-services.js",
     "test:phase0": "node scripts/verify-phase0.mjs",
@@ -19,7 +19,6 @@
     "@supabase/supabase-js": "^2.38.0",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
-    "careersync-platform": "file:../..",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

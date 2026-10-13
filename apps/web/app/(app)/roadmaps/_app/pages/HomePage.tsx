@@ -56,7 +56,13 @@ export default function HomePage({ onStartAssessment, isLoading, errorMessage, s
           <h2 className="text-xl font-bold text-primary tracking-tight">Active Roadmaps</h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {savedRoadmaps.slice(0, 6).map((roadmap) => (
-              <div key={roadmap._id} className="group relative overflow-hidden rounded-[1.5rem] border border-border/80 bg-white p-6 shadow-sm transition-all hover:shadow-elevated hover:border-accent/30">
+              <a
+                key={roadmap._id}
+                href={`/roadmaps/${roadmap._id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative block overflow-hidden rounded-[1.5rem] border border-border/80 bg-white p-6 shadow-sm transition-all hover:shadow-elevated hover:border-accent/30 cursor-pointer"
+              >
                 <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
                 <div className="relative z-10 flex flex-col h-full justify-between gap-6">
                   <div>
@@ -75,7 +81,7 @@ export default function HomePage({ onStartAssessment, isLoading, errorMessage, s
                     </div>
                   </div>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         </div>

@@ -96,23 +96,20 @@ try {
   const contentIntelligence = contentIntelligenceMod.default || contentIntelligenceMod
   
   // Test query generation
-  contentIntelligence.generateSearchQueries(
+  const queries = contentIntelligence.generateSearchQueries(
     'JavaScript',
     'JavaScript Variables and Data Types',
     'beginner'
-  ).then(queries => {
-    logger.info(`✅ Generated search queries:`)
-    logger.info(`   Primary: ${queries.primary}`)
-    logger.info(`   Secondary: ${queries.secondary}`)
-    logger.info(`   Tertiary: ${queries.tertiary}`)
-    
-    // Verify all queries include main topic
-    const allIncludeTopic = [queries.primary, queries.secondary, queries.tertiary]
-      .every(q => q.toLowerCase().includes('javascript'))
-    logger.info(`   All queries include topic: ${allIncludeTopic} (expected: true)`)
-  }).catch(error => {
-    console.error('❌ Content intelligence test failed:', error.message)
-  })
+  )
+  logger.info(`✅ Generated search queries:`)
+  logger.info(`   Primary: ${queries.primary}`)
+  logger.info(`   Secondary: ${queries.secondary}`)
+  logger.info(`   Tertiary: ${queries.tertiary}`)
+  
+  // Verify all queries include main topic
+  const allIncludeTopic = [queries.primary, queries.secondary, queries.tertiary]
+    .every(q => q.toLowerCase().includes('javascript'))
+  logger.info(`   All queries include topic: ${allIncludeTopic} (expected: true)`)
 } catch (error) {
   logger.error('❌ Content intelligence test failed:', error.message)
 }

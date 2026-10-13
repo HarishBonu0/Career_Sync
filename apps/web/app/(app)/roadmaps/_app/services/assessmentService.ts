@@ -427,12 +427,15 @@ function mergeDerivedSkills(
 
 async function analyzeProfileWithGemini(input: SimulationInput): Promise<ProfileAnalysisResponse | null> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
     const response = await fetch(`${getBackendBaseUrl()}/api/skills/analyze-profile`, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
       body: JSON.stringify({
         currentRole: input.currentRole,
         targetRole: input.targetRole,
@@ -440,6 +443,7 @@ async function analyzeProfileWithGemini(input: SimulationInput): Promise<Profile
         resumeText: input.resumeText || '',
       }),
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       return null;
@@ -473,7 +477,8 @@ async function parseResumeIntelligenceWithGemini(input: SimulationInput) {
 }
 
 function allocateQuestionCounts(total: number, skills: SkillProfile[]): Array<{ skill: SkillProfile; count: number }> {
-  const activeSkills = skills.length > 0 ? skills : [{ name: 'General', selfScore: 60 }];
+  // Cap at top 4 priority skills to ensure lightning-fast parallel question generation
+  const activeSkills = (skills.length > 0 ? skills : [{ name: 'General', selfScore: 60 }]).slice(0, 4);
   const baseCount = Math.floor(total / activeSkills.length);
   let remainder = total % activeSkills.length;
 
@@ -668,53 +673,66 @@ export async function generateAssessmentSession(input: SimulationInput): Promise
   ].join('\n');
 
   const skillAllocations = allocateQuestionCounts(20, mergedSkillProfiles);
-  const groupedQuestions: AssessmentQuestion[][] = [];
   const globalSeenKeys = new Set<string>();
   let emergencySerial = 1;
 
-  for (const allocation of skillAllocations) {
-    const normalizedFromBackend: AssessmentQuestion[] = [];
+  // Execute all skill evaluation queries in parallel for maximum speed
+  const rawGroupedPools = await Promise.all(
+    skillAllocations.map(async (allocation) => {
+      const normalizedFromBackend: AssessmentQuestion[] = [];
 
-    try {
-      const response = await fetch(`${getBackendBaseUrl()}/api/skills/evaluate`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          skillName: allocation.skill.name,
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+        const response = await fetch(`${getBackendBaseUrl()}/api/skills/evaluate`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            skillName: allocation.skill.name,
+            difficulty,
+            questionCount: allocation.count,
+            context: `${context}\nFocus Skill: ${allocation.skill.name}\nAssessment Rule: Ask technical, in-depth questions on this skill only. Avoid questions about choosing skills or generic learning habits.`,
+          }),
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Question generation failed with status ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const normalized = normalizeQuestions(
+          payload.questions || [],
+          { ...input, skills: mergedSkillProfiles },
           difficulty,
-          questionCount: allocation.count,
-          context: `${context}\nFocus Skill: ${allocation.skill.name}\nAssessment Rule: Ask technical, in-depth questions on this skill only. Avoid questions about choosing skills or generic learning habits.`,
-        }),
-      });
+          allocation.skill.name,
+        );
 
-      if (!response.ok) {
-        throw new Error(`Question generation failed with status ${response.status}`);
+        normalizedFromBackend.push(...normalized);
+      } catch (error) {
+        console.warn(`Falling back to local question generation for ${allocation.skill.name}:`, error);
       }
 
-      const payload = await response.json();
-      const normalized = normalizeQuestions(
-        payload.questions || [],
-        { ...input, skills: mergedSkillProfiles },
-        difficulty,
+      const fallbackPool = buildFallbackQuestionsForSkill(
         allocation.skill.name,
+        Math.max(allocation.count * 4, 8),
+        difficulty,
       );
 
-      normalizedFromBackend.push(...normalized);
-    } catch (error) {
-      console.warn(`Falling back to local question generation for ${allocation.skill.name}:`, error);
-    }
+      return {
+        allocation,
+        blendedPool: [...normalizedFromBackend, ...fallbackPool],
+      };
+    })
+  );
 
-    // Blend backend + fallback pools, then strictly dedupe against global set.
-    const fallbackPool = buildFallbackQuestionsForSkill(
-      allocation.skill.name,
-      Math.max(allocation.count * 4, 8),
-      difficulty,
-    );
-
-    const blendedPool = [...normalizedFromBackend, ...fallbackPool];
+  const groupedQuestions: AssessmentQuestion[][] = [];
+  for (const { allocation, blendedPool } of rawGroupedPools) {
     const uniqueForSkill = takeUniqueQuestions(blendedPool, allocation.count, globalSeenKeys);
 
     while (uniqueForSkill.length < allocation.count) {

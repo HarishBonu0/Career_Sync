@@ -121,7 +121,7 @@ export default function RoadmapMindMap({ role, pathway }: RoadmapMindMapProps) {
   );
 
   function openCourse(query: string): void {
-    router.push(`/generate/${encodeURIComponent(query)}`);
+    window.open(`/generate/${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
   }
 
   const activeData = stepsData[activeStepIndex];

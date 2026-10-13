@@ -11,14 +11,19 @@ export async function constructPersonalizedRoadmap(userId, targetRoleId, userEma
     throw new Error('Unknown target role configuration.');
   }
 
-  // 2. Fetch SkillLearningPlan
+  // 2. Fetch SkillLearningPlan or fallback to roleConfig skills
   const plan = await SkillLearningPlan.findOne({ user: userId, targetRoleId });
-  if (!plan) {
-    throw new Error('SkillLearningPlan not found. Complete Skill Prioritization first.');
+  let gaps = plan?.prioritizedGaps || [];
+  
+  if (!plan || gaps.length === 0) {
+    gaps = (roleConfig.skills || []).map((skillItem, index) => ({
+      order: index + 1,
+      skill: skillItem.name,
+      canonicalName: skillItem.canonicalName || skillItem.name.toLowerCase(),
+      priority: skillItem.required ? 'high' : 'medium',
+      prerequisites: [],
+    }));
   }
-
-  // If there are no missing skills in the plan, the roadmap is complete/empty
-  const gaps = plan.prioritizedGaps || [];
   
   // 3. Construct Steps from Prioritized Gaps and retrieve resources
   const steps = [];

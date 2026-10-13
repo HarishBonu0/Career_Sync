@@ -65,8 +65,13 @@ export async function POST(request: NextRequest) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
     const cookie = request.headers.get('cookie') || ''
+    const authHeader = request.headers.get('authorization') || ''
+    const fwdHeaders: Record<string, string> = { cookie }
+    if (authHeader) {
+      fwdHeaders['authorization'] = authHeader
+    }
     const sessionResponse = await fetch(`${apiUrl}/auth/me`, {
-      headers: { cookie },
+      headers: fwdHeaders,
       cache: 'no-store',
     })
     if (!sessionResponse.ok && process.env.NODE_ENV !== 'development') {

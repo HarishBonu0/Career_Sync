@@ -64,7 +64,7 @@ export default function PathwayCard({ pathway, input }: PathwayCardProps) {
       }
 
       setIsSaved(true);
-      router.push(`/roadmaps/${saved.roadmapId}`);
+      window.open(`/roadmaps/${saved.roadmapId}`, '_blank', 'noopener,noreferrer');
     } catch (e) {
       console.error('Roadmap persistence failed:', e);
       setIsSaving(false);
@@ -133,7 +133,7 @@ export default function PathwayCard({ pathway, input }: PathwayCardProps) {
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm font-medium">{step.title}</p>
-                      <p className="text-xs text-muted-foreground">{step.description}</p>
+                      <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium">{step.description}</p>
                       <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-muted-foreground">
                         <span>⏱ {step.duration}</span>
                         <span className="rounded-full border border-border px-2 py-0.5">

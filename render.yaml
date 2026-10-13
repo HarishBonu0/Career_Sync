@@ -1,31 +1,27 @@
 services:
-  # Backend API — Express + MongoDB. Frontend (apps/web) deploys separately on Vercel.
-  # Keep the Render service name unchanged to preserve the existing URL + env vars.
   - type: web
-    name: careersync-backend
+    name: careersync-api
     runtime: node
-    region: oregon
     plan: free
-    buildCommand: cd apps/api && npm install
-    startCommand: cd apps/api && npm start
+    region: oregon
+    rootDir: apps/api
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 5000
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
-        sync: false
-      # Comma-separated list of allowed CORS origins (e.g. the Vercel web URL)
-      - key: CORS_ORIGINS
-        sync: false
+        generateValue: true
       - key: GEMINI_API_KEY
         sync: false
-      - key: OPENROUTER_API_KEY
+      - key: CORS_ORIGINS
         sync: false
-      - key: YOUTUBE_API_KEY
-        sync: false
-      # RapidAPI (JSearch) — used by POST /api/roadmaps/jobs-search
-      - key: RAPIDAPI_KEY
+      - key: FRONTEND_URL
         sync: false
       - key: EMAILJS_SERVICE_ID
         sync: false
@@ -35,4 +31,7 @@ services:
         sync: false
       - key: EMAILJS_PRIVATE_KEY
         sync: false
-
+      - key: EMAILJS_GMAIL
+        sync: false
+      - key: RAPIDAPI_KEY
+        sync: false

@@ -13,6 +13,13 @@ import { getCorsOrigins } from './config/urls.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+process.on('uncaughtException', (err) => {
+  console.error('FATAL UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('FATAL UNHANDLED REJECTION at:', promise, 'reason:', reason);
+});
+
 // Load environment variables from the backend folder
 dotenv.config({ path: path.join(__dirname, '.env') });
 
@@ -37,7 +44,26 @@ if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process
 
 // Middleware
 app.use(cors({
-  origin: getCorsOrigins(),
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const allowed = getCorsOrigins();
+    const cleanOrigin = origin.replace(/\/$/, '');
+    if (allowed.includes(cleanOrigin) || allowed.includes(origin)) return callback(null, true);
+    // Automatically allow Vercel production and preview domains
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    if (process.env.NODE_ENV !== 'production') {
+      if (
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin.includes('192.168.') ||
+        origin.includes('10.') ||
+        origin.includes('172.')
+      ) {
+        return callback(null, true);
+      }
+    }
+    callback(null, false);
+  },
   credentials: true,
   optionsSuccessStatus: 200
 }));

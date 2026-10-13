@@ -85,6 +85,8 @@ IMPORTANT RULES (STRICTLY FOLLOW):
 7. If job description is provided, extract required skills and adapt roadmap.
 
 8. Ensure the roadmap works for BOTH students and career switchers.
+9. ABSOLUTELY NO META-COMMENTARY OR AI FILLER: Do NOT start descriptions with "Given the title...", "This step focuses on...", or "As an expert...". Start immediately with actionable bullet items formatted as:
+* **Skill/Topic Name:** Concrete actionable guidance, recommended platforms, and execution milestones.
 
 ---
 

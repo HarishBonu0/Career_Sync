@@ -135,7 +135,7 @@ router.post(
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const prompt = `You are an expert Career Roadmap Architect.
 
 Your job is to generate a REALISTIC, ROLE-SPECIFIC, INDUSTRY-CORRECT career roadmap.
@@ -304,7 +304,7 @@ router.post(
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const skillProfile = await SkillProfile.findOne({ user: req.user.id }).lean();
     const persistedSkills = skillProfile?.skills?.map((skill) => `${skill.name}: ${skill.percentage}%`).join(', ') || 'No persisted assessments yet';
     const enrichedPrompt = `${prompt}\n\nPersisted CareerOS skill profile for this authenticated user: ${persistedSkills}\nUse this profile as authoritative context where relevant.`;

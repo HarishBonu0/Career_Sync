@@ -219,7 +219,7 @@ export default function ProfilePage() {
           <Section title="Active Roadmaps" icon={Map} loading={isLoading} empty={!profile?.roadmaps?.length}>
             <div className="space-y-3">
               {profile?.roadmaps?.slice(0, 4).map((r, idx) => (
-                <div key={r.id || r._id || idx} className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-card/30 hover:bg-card transition-colors cursor-pointer" onClick={() => router.push(`/roadmaps/${r.id || r._id}`)}>
+                <div key={r.id || r._id || idx} className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-card/30 hover:bg-card transition-colors cursor-pointer" onClick={() => window.open(`/roadmaps/${r.id || r._id}`, '_blank', 'noopener,noreferrer')}>
                   <div className="min-w-0 pr-4">
                     <p className="truncate text-sm font-medium">{r.title || 'Untitled roadmap'}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{Math.round(r.progress ?? 0)}% complete</p>
@@ -233,7 +233,7 @@ export default function ProfilePage() {
           <Section title="Saved Courses" icon={Bookmark} loading={isLoading} empty={!profile?.courses?.some(c => c.isSaved)}>
             <div className="space-y-3">
               {profile?.courses?.filter(c => c.isSaved).slice(0, 5).map((c, idx) => (
-                <div key={c.id || idx} className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-card/30 hover:bg-card transition-colors cursor-pointer" onClick={() => router.push(`/course-generated/${c.id}`)}>
+                <div key={c.id || idx} className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-card/30 hover:bg-card transition-colors cursor-pointer" onClick={() => window.open(`/course-generated/${c.id}`, '_blank', 'noopener,noreferrer')}>
                   <div className="min-w-0 pr-4">
                     <p className="truncate text-sm font-medium">{c.title || 'Untitled course'}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{c.totalModules ? `${c.totalModules} modules` : 'Preview'}</p>

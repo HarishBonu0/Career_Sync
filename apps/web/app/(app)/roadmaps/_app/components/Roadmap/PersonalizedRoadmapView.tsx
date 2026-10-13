@@ -34,7 +34,7 @@ export default function PersonalizedRoadmapView({ roadmap, role }: { roadmap: Ro
   const [activeNode, setActiveNode] = useState<number>(steps[0]?.order ?? 1);
 
   function openCourse(query: string): void {
-    router.push(`/generate/${encodeURIComponent(query)}`);
+    window.open(`/generate/${encodeURIComponent(query)}`, '_blank', 'noopener,noreferrer');
   }
 
   const activeStepData = steps.find(s => s.order === activeNode);
