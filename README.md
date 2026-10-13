@@ -1,4 +1,4 @@
-# ⚡ CareerSync (Career OS)
+# ⚡ Career Sync
 
 > **Next-Generation AI Career Acceleration Platform**  
 > Generate personalized career roadmaps, discover real-world skill gaps from your resume, take adaptive skill assessments, and generate tailor-made learning courses on demand.
@@ -14,7 +14,7 @@
 
 ## 🏗️ Architecture & Technology Stack
 
-CareerSync is structured as an enterprise-grade monorepo optimized for decoupled production deployments:
+Career Sync is structured as an enterprise-grade monorepo optimized for decoupled production deployments:
 
 - **Frontend App (`apps/web`)**: Next.js 15 App Router, React 18, Tailwind CSS, Lucide icons, Radix UI primitives. Designed for **[Vercel](https://vercel.com)** edge hosting.
 - **Backend API (`apps/api`)**: Node.js & Express ESM, MongoDB Atlas (Mongoose ODM), Helmet security headers, rate limiting, and Google Gemini AI integrations. Designed for **[Render](https://render.com)** web services.
@@ -26,7 +26,7 @@ CareerSync is structured as an enterprise-grade monorepo optimized for decoupled
 ## 📁 Repository Structure
 
 ```
-Career OS/
+Career Sync/
 ├── apps/
 │   ├── api/                          # Express.js REST API & AI Pipelines
 │   │   ├── config/                   # Target roles, CORS allowlists, URL helpers

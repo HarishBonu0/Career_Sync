@@ -89,7 +89,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'SkillRoute Backend is running',
+    message: 'Career Sync Backend is running',
     timestamp: new Date().toISOString(),
     environment: {
       nodeEnv: process.env.NODE_ENV || 'not set',

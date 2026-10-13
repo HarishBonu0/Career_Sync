@@ -129,7 +129,7 @@ async function regenerateDuplicateTitles(
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'http://localhost:3000',
-      'X-Title': 'Career OS',
+      'X-Title': 'Career Sync',
     },
     body: JSON.stringify({
       model: 'mistralai/mixtral-8x7b-instruct',

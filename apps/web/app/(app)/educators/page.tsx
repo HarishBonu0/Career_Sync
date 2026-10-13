@@ -26,7 +26,7 @@ function EducatorForm({ onSuccess }: { onSuccess: () => void }) {
     }
 
     try {
-      localStorage.setItem('careeros_educator_application', JSON.stringify(application))
+      localStorage.setItem('careersync_educator_application', JSON.stringify(application))
       onSuccess()
     } finally {
       setIsSubmitting(false)
@@ -116,7 +116,7 @@ export default function EducatorsPage() {
   const [submitted, setSubmitted] = useState(false)
 
   useEffect(() => {
-    const saved = localStorage.getItem('careeros_educator_application')
+    const saved = localStorage.getItem('careersync_educator_application')
     if (saved) setSubmitted(true)
   }, [])
 

@@ -1,7 +1,7 @@
 {
-  "name": "skillroute-backend",
+  "name": "careersync-api",
   "version": "1.0.0",
-  "description": "SkillRoute AI - Unified Backend API",
+  "description": "Career Sync - Unified Backend API",
   "main": "server.js",
   "type": "module",
   "scripts": {

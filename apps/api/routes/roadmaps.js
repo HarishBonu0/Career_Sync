@@ -307,7 +307,7 @@ router.post(
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const skillProfile = await SkillProfile.findOne({ user: req.user.id }).lean();
     const persistedSkills = skillProfile?.skills?.map((skill) => `${skill.name}: ${skill.percentage}%`).join(', ') || 'No persisted assessments yet';
-    const enrichedPrompt = `${prompt}\n\nPersisted CareerOS skill profile for this authenticated user: ${persistedSkills}\nUse this profile as authoritative context where relevant.`;
+    const enrichedPrompt = `${prompt}\n\nPersisted Career Sync skill profile for this authenticated user: ${persistedSkills}\nUse this profile as authoritative context where relevant.`;
     const result = await model.generateContent(enrichedPrompt);
     const text = result?.response?.text?.() || '';
 
