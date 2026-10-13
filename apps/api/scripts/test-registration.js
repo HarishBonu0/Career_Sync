@@ -1,5 +1,5 @@
 import http from 'http';
-import logger from './utils/logger.js';
+import logger from '../utils/logger.js';
 
 const testEmail = `test${Math.floor(Math.random() * 100000)}@example.com`;
 

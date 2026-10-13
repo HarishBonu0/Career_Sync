@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "tsx watch --env-file=.env server.js",
-    "test:services": "tsx test-services.js",
+    "test:services": "tsx scripts/test-services.js",
     "test:phase0": "node scripts/verify-phase0.mjs",
     "test:phase1": "node scripts/verify-phase1.mjs",
     "test:phase2": "node scripts/verify-phase2.mjs",

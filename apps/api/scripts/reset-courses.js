@@ -1,8 +1,8 @@
 // Reset database by deleting courses created as 'guest'
 import mongoose from 'mongoose';
-import Course from './models/Course.js';
+import Course from '../models/Course.js';
 import dotenv from 'dotenv';
-import logger from './utils/logger.js';
+import logger from '../utils/logger.js';
 
 dotenv.config();
 

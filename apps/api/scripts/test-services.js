@@ -7,7 +7,7 @@
 process.env.OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || 'test-key'
 process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'test-key'
 
-import logger from './utils/logger.js'
+import logger from '../utils/logger.js'
 
 logger.info('🧪 Testing Backend Services\n')
 
@@ -16,7 +16,7 @@ logger.info('🧪 Testing Backend Services\n')
 // Test 1: Similarity Functions
   logger.info('📊 Test 1: Similarity Module')
 try {
-  const similarityMod = await import('./services/utils/similarity.ts')
+  const similarityMod = await import('../services/utils/similarity.ts')
   const similarity = similarityMod.cosineSimilarity ? similarityMod : similarityMod
   
   const vecA = [1, 0, 0, 0]
@@ -37,7 +37,7 @@ try {
 // Test 2: Schema Validation
   logger.info('\n📝 Test 2: Schema Validation Module')
 try {
-  const schemaValidationMod = await import('./services/utils/schemaValidation.ts')
+  const schemaValidationMod = await import('../services/utils/schemaValidation.ts')
   const schemaValidation = schemaValidationMod.default || schemaValidationMod
   
   const validModule = {
@@ -66,7 +66,7 @@ try {
 // Test 3: Ranking Functions
   logger.info('\n🏆 Test 3: Ranking Module')
 try {
-  const rankingMod = await import('./services/utils/ranking.ts')
+  const rankingMod = await import('../services/utils/ranking.ts')
   const ranking = rankingMod.default || rankingMod
   
   const durationScore1 = ranking.scoreDuration(600) // 10 min (ideal)
@@ -92,7 +92,7 @@ try {
 // Test 4: Content Intelligence
 logger.info('\n🎯 Test 4: Content Intelligence Module')
 try {
-  const contentIntelligenceMod = await import('./services/contentIntelligence.ts')
+  const contentIntelligenceMod = await import('../services/contentIntelligence.ts')
   const contentIntelligence = contentIntelligenceMod.default || contentIntelligenceMod
   
   // Test query generation
@@ -117,7 +117,7 @@ try {
 // Test 5: Resource Resolver
 logger.info('\n📚 Test 5: Resource Resolver Module')
 try {
-  const resourceResolverMod = await import('./services/resourceResolver.ts')
+  const resourceResolverMod = await import('../services/resourceResolver.ts')
   const resourceResolver = resourceResolverMod.default || resourceResolverMod
   
   resourceResolver.resolveResources(

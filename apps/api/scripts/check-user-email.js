@@ -1,10 +1,10 @@
 // Check user email in database and course linkage
 import mongoose from 'mongoose';
-import User from './models/User.js';
-import Course from './models/Course.js';
-import UserEnrollment from './models/UserEnrollment.js';
+import User from '../models/User.js';
+import Course from '../models/Course.js';
+import UserEnrollment from '../models/UserEnrollment.js';
 import dotenv from 'dotenv';
-import logger from './utils/logger.js';
+import logger from '../utils/logger.js';
 
 dotenv.config();
 
