@@ -344,7 +344,7 @@ const analyzeProfileWithAI = async ({ currentRole = '', targetRole = '', userSki
 
   const result = await Promise.race([
     model.generateContent(prompt),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Profile analysis timeout (>12s)')), 12000)),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Profile analysis timeout (>45s)')), 45000)),
   ]);
 
   const text = result.response.text();
@@ -406,7 +406,7 @@ const generateQuestionsWithAI = async (skillName, difficulty, questionCount, con
         temperature: 0.7,
         topP: 0.95,
         topK: 64,
-        maxOutputTokens: 4000,
+        maxOutputTokens: 8192,
         responseMimeType: 'application/json'
       }
     });
@@ -461,7 +461,7 @@ RETURN FORMAT:
       result = await Promise.race([
         model.generateContent(detailedPrompt),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Gemini API call timeout (>15s)')), 15000)
+          setTimeout(() => reject(new Error('Gemini API call timeout (>60s)')), 60000)
         )
       ]);
     }, 1, 500);
