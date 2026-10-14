@@ -336,6 +336,19 @@ function getBackendBaseUrl(): string {
   return apiUrl.replace(/\/api\/?$/, '');
 }
 
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('Career_Sync_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+}
+
 function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
@@ -428,13 +441,11 @@ function mergeDerivedSkills(
 async function analyzeProfileWithGemini(input: SimulationInput): Promise<ProfileAnalysisResponse | null> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
     const response = await fetch(`${getBackendBaseUrl()}/api/skills/analyze-profile`, {
       method: 'POST',
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       signal: controller.signal,
       body: JSON.stringify({
         currentRole: input.currentRole,
@@ -462,9 +473,7 @@ async function parseResumeIntelligenceWithGemini(input: SimulationInput) {
     await fetch(`${getBackendBaseUrl()}/api/resume/parse`, {
       method: 'POST',
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ 
         resumeText: input.resumeText,
         resumeTextOriginalLength: input.resumeTextOriginalLength,
@@ -683,14 +692,12 @@ export async function generateAssessmentSession(input: SimulationInput): Promise
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        const timeoutId = setTimeout(() => controller.abort(), 45000);
 
         const response = await fetch(`${getBackendBaseUrl()}/api/skills/evaluate`, {
           method: 'POST',
           credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: getAuthHeaders(),
           signal: controller.signal,
           body: JSON.stringify({
             skillName: allocation.skill.name,

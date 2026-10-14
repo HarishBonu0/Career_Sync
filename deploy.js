@@ -20,7 +20,7 @@ function startService(service) {
     : service.args;
   const child = spawn(command, args, {
     cwd: path.join(root, service.cwd),
-    env: { ...process.env, BYPASS_DB: process.env.BYPASS_DB || 'true' },
+    env: { ...process.env },
     stdio: ['inherit', 'pipe', 'pipe'],
   });
 
