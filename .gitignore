@@ -58,3 +58,9 @@ tmp/
 .vercel/
 .netlify/
 .eslintcache
+
+# AI Agent & Local Tooling Caches
+.claude/
+.gemini/
+.turbo/
+
