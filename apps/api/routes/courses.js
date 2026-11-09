@@ -388,9 +388,34 @@ Return ONLY the JSON array, nothing else.`;
       // Parse JSON
       const questions = JSON.parse(responseText);
       
-      // Validate structure
-      if (!Array.isArray(questions) || questions.length === 0) {
-        throw new Error('Invalid questions format received from AI');
+      // Validate structure and prevent question mixing/repetition
+      if (!Array.isArray(questions) || questions.length < 5) {
+        throw new Error('Invalid questions format or too few questions received from AI');
+      }
+
+      // Check for duplicate questions or repeated intents (prevent mixing/redundant questions)
+      const seenIntents = new Set();
+      let hasOverlap = false;
+      for (const q of questions) {
+        const text = (q.question || '').toLowerCase();
+        let intent = 'other';
+        if (text.includes('goal') || text.includes('objective') || text.includes('aim') || text.includes('hope to')) intent = 'goal';
+        else if (text.includes('experience') || text.includes('familiar') || text.includes('level') || text.includes('background')) intent = 'experience';
+        else if (text.includes('time') || text.includes('hour') || text.includes('dedicate') || text.includes('schedule')) intent = 'time';
+        else if (text.includes('focus') || text.includes('area') || text.includes('topic') || text.includes('excite')) intent = 'focus';
+        else if (text.includes('timeline') || text.includes('complete') || text.includes('finish') || text.includes('pace') || text.includes('deadline')) intent = 'timeline';
+        else if (text.includes('require') || text.includes('project') || text.includes('custom') || text.includes('tool')) intent = 'requirement';
+
+        if (intent !== 'other' && seenIntents.has(intent)) {
+          hasOverlap = true;
+          break;
+        }
+        if (intent !== 'other') seenIntents.add(intent);
+      }
+
+      if (hasOverlap) {
+        console.warn('AI generated overlapping/mixed questions, using clean curated fallback');
+        throw new Error('AI generated overlapping questions');
       }
 
       const sanitizedQuestions = questions.map((q) => ({

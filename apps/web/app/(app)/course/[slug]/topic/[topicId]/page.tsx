@@ -19,52 +19,32 @@ interface Topic {
 const mockTopics: Topic[] = [
   {
     id: 1,
-    title: 'Introduction to the Fundamentals',
-    content: `# Welcome to Introduction to the Fundamentals
+    title: 'Module Overview & Foundations',
+    content: `# Module Overview & Foundations
 
-Hi there! I'm excited to guide you through this first topic. Let's start with a simple analogy to make things clear.
+Welcome to this module. Focus on understanding the core principles and applying them step by step through the guided resources and exercises.
 
-## Understanding the Basics
+## Key Learning Objectives
+1. **Core Understanding**: Master the essential concepts and terminology.
+2. **Practical Application**: Apply what you learn through hands-on practice.
+3. **Synthesis & Reflection**: Connect these ideas to broader goals in your field.
 
-Think of this like building a house. Before you can build walls and a roof, you need a strong foundation. That's exactly what we're doing here - laying down the foundation for your learning journey.
-
-## Key Concepts
-
-1. **Concept One**: This is the first building block. Imagine it as the concrete foundation of your house. Without it, everything else would crumble.
-
-2. **Concept Two**: Now that we have our foundation, we can start building the framework. This is like the wooden beams that give structure to your house.
-
-3. **Concept Three**: Finally, we add the details. These are the finishing touches that make everything come together beautifully.
-
-## Let's Practice
-
-Now that you understand these concepts intuitively, let's look at how they work in practice:
-
-\`\`\`python
-# Example code demonstrating the concept
-def fundamental_example():
-    print("This is where theory meets practice")
-    return "Understanding achieved!"
-\`\`\`
-
-## Remember
-
-The key to mastering this topic is practice and patience. Don't rush - take your time to absorb each concept fully before moving on.`,
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    duration: 480, // 8 minutes in seconds
+## Guidance
+Take your time to explore the reading materials and video references provided on the left. Consistent practice is the key to mastery.`,
+    duration: 480,
     completed: false,
   },
   {
     id: 2,
-    title: 'Deep Dive into Core Principles',
-    content: '# Deep Dive into Core Principles\n\nIn this lesson, we explore the fundamental principles that will guide your learning...',
+    title: 'Deep Dive & Applied Practice',
+    content: '# Deep Dive & Applied Practice\n\nIn this lesson, we explore the core principles that will guide your learning...',
     duration: 600,
     completed: false,
   },
   {
     id: 3,
-    title: 'Practical Applications',
-    content: '# Practical Applications\n\nNow that you understand the theory, let\'s apply it to real-world scenarios...',
+    title: 'Practical Applications & Capstone',
+    content: '# Practical Applications & Capstone\n\nNow that you understand the theory, let\'s apply it to real-world scenarios...',
     duration: 720,
     completed: false,
   },
