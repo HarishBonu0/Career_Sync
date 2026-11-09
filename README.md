@@ -1,25 +1,82 @@
-# ⚡ Career Sync
+# ⚡ Career Sync — Autonomous Career & Learning Intelligence Platform
 
-> **Next-Generation AI Career Acceleration Platform**  
-> Generate personalized career roadmaps, discover real-world skill gaps from your resume, take adaptive skill assessments, and generate tailor-made learning courses on demand.
+> **Production-ready, AI-driven career acceleration engine** combining personalized career trajectory roadmaps, domain-adaptive course generation, ATS resume intelligence, dynamic skill assessments, and real-time job market matching.
 
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2015-black?style=flat&logo=next.js)](https://nextjs.org/)
-[![Express.js](https://img.shields.io/badge/Backend-Express%20ESM-blue?style=flat&logo=express)](https://expressjs.com/)
-[![MongoDB](https://img.shields.io/badge/Database-MongoDB%20Atlas-47A248?style=flat&logo=mongodb)](https://www.mongodb.com/atlas)
-[![Gemini AI](https://img.shields.io/badge/AI-Google%20Gemini%202.5%20Flash-8E75B2?style=flat&logo=google)](https://deepmind.google/technologies/gemini/)
-[![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?style=flat&logo=vercel)](https://vercel.com/)
-[![Render](https://img.shields.io/badge/Deploy-Render-46E3B7?style=flat&logo=render)](https://render.com/)
+[![Next.js 15](https://img.shields.io/badge/Frontend-Next.js%2015%20App%20Router-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Express.js](https://img.shields.io/badge/Backend-Express%20ESM-000000?style=for-the-badge&logo=express)](https://expressjs.com/)
+[![MongoDB Atlas](https://img.shields.io/badge/Database-MongoDB%20Atlas-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/atlas)
+[![Gemini 2.5 Flash](https://img.shields.io/badge/Primary%20AI-Google%20Gemini%202.5%20Flash-8E75B2?style=for-the-badge&logo=google)](https://deepmind.google/technologies/gemini/)
+[![Vercel Deployment](https://img.shields.io/badge/Hosted-Vercel%20Production-000000?style=for-the-badge&logo=vercel)](https://career-syncai.vercel.app/home)
+[![Render Deployment](https://img.shields.io/badge/API-Render%20Production-46E3B7?style=for-the-badge&logo=render)](https://careersync-backend-5oxw.onrender.com/api/health)
 
 ---
 
-## 🏗️ Architecture & Technology Stack
+## 🏛️ System Architecture
 
-Career Sync is structured as an enterprise-grade monorepo optimized for decoupled production deployments:
+Career Sync follows a decoupled monorepo architecture designed for high availability, sub-second edge response times, and multi-provider AI resilience.
 
-- **Frontend App (`apps/web`)**: Next.js 15 App Router, React 18, Tailwind CSS, Lucide icons, Radix UI primitives. Designed for **[Vercel](https://vercel.com)** edge hosting.
-- **Backend API (`apps/api`)**: Node.js & Express ESM, MongoDB Atlas (Mongoose ODM), Helmet security headers, rate limiting, and Google Gemini AI integrations. Designed for **[Render](https://render.com)** web services.
-- **AI Engine**: Google Gemini 2.5 Flash for high-speed parallel question generation, intelligent resume parsing, and role-skill roadmap synthesis.
-- **Authentication**: Dual-layer cross-domain auth supporting secure HttpOnly `SameSite=None` cookies with seamless `Authorization: Bearer` token fallback for maximum cross-browser reliability.
+```mermaid
+flowchart TD
+    subgraph Client ["Client Layer (Edge / Browser)"]
+        UI["Next.js 15 App Router\n(React 18 + Tailwind CSS)"]
+        State["Dual-Auth Session Manager\n(HttpOnly Cookie + Bearer JWT)"]
+    end
+
+    subgraph Gateway ["Edge & Routing Layer"]
+        VercelEdge["Vercel Edge Gateway\n(/api/generate-course proxy)"]
+    end
+
+    subgraph Backend ["Application Service Layer (Render)"]
+        API["Express.js ESM Server\n(Helmet + Rate Limiting + CORS)"]
+        AuthModule["JWT Auth & Ownership Guard"]
+        CurriculumEngine["Universal Domain-Adaptive\nCurriculum Engine"]
+        SkillEngine["Skill Gap & Assessment Service"]
+    end
+
+    subgraph Data ["Persistence & External Services"]
+        Mongo[("MongoDB Atlas\n(Encrypted at Rest)")]
+        Gemini["Google Gemini 2.5 Flash\n(Primary AI Provider)"]
+        OpenRouter["OpenRouter AI Gateway\n(Secondary Fallback)"]
+        JSearch["JSearch Job Discovery API"]
+        VerifiedResources["404-Free Resource Resolver\n(Wikipedia + YouTube + Docs)"]
+    end
+
+    UI --> State
+    State --> VercelEdge
+    VercelEdge --> API
+    API --> AuthModule
+    AuthModule --> Mongo
+    API --> CurriculumEngine
+    CurriculumEngine --> Gemini
+    Gemini -.->|Failover| OpenRouter
+    CurriculumEngine --> VerifiedResources
+    API --> SkillEngine
+    SkillEngine --> JSearch
+```
+
+---
+
+## 🧠 Key Systems Engineering Decisions
+
+### 1. Universal Domain-Adaptive Curriculum Engine
+- **No Hardcoded IT Assumptions**: Unlike traditional course generators that force software engineering terminology (*"Architecture"*, *"Deployment"*, *"Security"*, *"Code"*) onto every topic, Career Sync's curriculum engine operates on universal pedagogical principles.
+- **Dynamic Vocabulary & Milestone Derivation**:
+  - Arts, Music & Crafts: Generates authentic milestones around composition, color theory, brushwork, mediums, glazing, and textures.
+  - Agriculture & Gardening: Generates milestones around soil microbiome, seed germination, sunlight zones, companion planting, and composting.
+  - Languages: Organically structures phonetic alphabet/script, vowel modifiers, everyday dialogues, and sentence structure (SOV/SVO).
+  - Software & DevOps: Uses real system design, containerization, state management, and CI/CD.
+- **Dynamic Module Count**: Derives 4 to 8 milestones organically based on the learner's timeline, daily commitment, and starting level.
+
+### 2. Multi-Provider AI Fallback & Self-Healing JSON
+- **Dual-Engine Redundancy**: Primary generation runs through **Google Gemini 2.5 Flash** for deep multilingual fluency and 20–25s response times, with an automatic failover circuit to **OpenRouter / Mixtral-8x22B**.
+- **Malformed Response Self-Healing**: Utilizes AST-level `jsonrepair` parsing to automatically correct trailing commas, unescaped quotes, or truncated tokens without crashing the user session.
+- **Zero 404-Error Resource Resolution**: Replaces speculative URLs with deterministic Wikipedia and educational YouTube search endpoints, backed by automated HEAD status verification.
+
+### 3. Dual-Layer Cross-Domain Authentication
+- **HttpOnly + Bearer Token Sync**: Implements cross-domain cookie authentication (`SameSite=None`, `Secure`) for standard web flows, accompanied by an automatic `Authorization: Bearer` header injector for Safari/iOS privacy sandbox environments.
+
+### 4. Enterprise Monorepo Organization
+- Clean workspaces separating Next.js 15 client logic (`apps/web`) from Express.js business pipelines (`apps/api`), with shared scripts and root orchestration.
 
 ---
 
@@ -28,73 +85,57 @@ Career Sync is structured as an enterprise-grade monorepo optimized for decouple
 ```
 Career Sync/
 ├── apps/
-│   ├── api/                          # Express.js REST API & AI Pipelines
+│   ├── api/                          # Express.js REST API & AI Service Pipelines
 │   │   ├── config/                   # Target roles, CORS allowlists, URL helpers
-│   │   ├── db/                       # MongoDB Atlas connection & schema lifecycle
+│   │   ├── db/                       # MongoDB Atlas connection & Mongoose schemas
 │   │   ├── middleware/               # JWT authentication, MongoDB guard, rate limits
 │   │   ├── models/                   # Mongoose models (User, Course, Roadmap, etc.)
 │   │   ├── routes/                   # REST API routes (auth, roadmaps, courses, skills, resume)
-│   │   ├── scripts/                  # Data inspection & service verification utilities
-│   │   ├── services/                 # AI roadmap synthesis, resume parsing, email service
-│   │   ├── utils/                    # Device detectors, token extractors, logger
-│   │   ├── package.json              # Backend dependencies & scripts
-│   │   └── server.js                 # Express server bootstrap
+│   │   ├── services/                 # AI roadmap synthesis, resume parsing, job matchers
+│   │   ├── utils/                    # Structured logging, token extractors, ownership guards
+│   │   ├── package.json              # Backend dependencies & npm scripts
+│   │   └── server.js                 # Express server entry point
 │   │
 │   └── web/                          # Next.js 15 Full-Stack Web Application
-│       ├── app/                      # Next.js App Router (pages, layouts, API handlers)
-│       │   ├── (app)/                # Authenticated workspace routes (home, roadmaps, courses)
-│       │   ├── (marketing)/          # Public landing, authentication, and login flows
-│       │   └── api/                  # Serverless route handlers (course generator proxy)
+│       ├── app/                      # App Router (pages, layouts, API proxy routes)
+│       │   ├── (app)/                # Authenticated workspace routes (home, roadmaps, course-generator)
+│       │   ├── (marketing)/          # Landing page, authentication, and login flows
+│       │   └── api/                  # Server-side proxy endpoints (generate-course proxy)
 │       ├── components/               # Modular UI components & design system primitives
 │       ├── contexts/                 # React Contexts (AuthContext with token sync)
 │       ├── lib/                      # ApiClient, utility functions, type validators
-│       ├── middleware.ts             # Route protection middleware
-│       ├── package.json              # Frontend dependencies & scripts
-│       └── tailwind.config.ts        # Design tokens & responsive styling config
+│       ├── middleware.ts             # Route protection & edge session redirection
+│       ├── package.json              # Frontend dependencies & npm scripts
+│       └── tailwind.config.ts        # Minimalist black & white design tokens
 │
-├── scripts/                          # Operational tools (mock-api, check-credits)
-├── deploy.js                         # Unified local development runner
-├── DEPLOYMENT_GUIDE.md               # Step-by-step production deployment guide
-├── render.yaml                       # Render Infrastructure-as-Code Blueprint
-├── package.json                      # Monorepo root workspace scripts
-└── .gitignore                        # Production-ready git ignore rules
+├── docs/                             # Engineering documentation & quality audits
+│   ├── BACKUP_AND_RECOVERY.md        # RPO/RTO & Disaster recovery specifications
+│   ├── ERROR_HANDLING_AND_LOGGING.md # Centralized structured logging architecture
+│   ├── SECURITY_AUDIT.md             # OWASP Top 10 compliance audit
+│   └── QUALITY_AUDIT.md              # UI/UX, responsive layout, and performance audit
+│
+├── scripts/                          # Operational CLI utilities
+├── deploy.js                         # Unified dual-process development runner
+├── DEPLOYMENT_GUIDE.md               # Step-by-step production deployment manual
+├── render.yaml                       # Infrastructure-as-Code blueprint for Render
+├── package.json                      # Root workspace configuration
+└── .gitignore                        # Hardened git exclusions (zero caches or secrets)
 ```
 
 ---
 
-## 🚀 Key Features
-
-1. **Intelligent Resume Parser & Profiler**
-   - Upload PDF or Word documents to extract verified skills, domain experience, and profile attributes.
-   - Automatically maps extracted talents to industry standard target roles.
-
-2. **Ultra-Fast Adaptive Skill Assessments**
-   - AI generates calibrated technical challenges tailored to target roles and extracted skill gaps.
-   - Questions generate in **5–8 seconds** through parallelized Gemini Flash evaluation pipelines.
-
-3. **Interactive Personalized Roadmaps**
-   - Clean, high-contrast, actionable milestone tracker (Milestones, Domain Units, and Step checklists).
-   - Dynamic stage filtering (Early Stage, Intermediate, Mastery) with toggleable checklist view.
-   - Built-in PDF export, progress persistence, and 1-click "Generate Course" integration per topic.
-
-4. **On-Demand Modular Course Generator**
-   - Real-time generation of complete multi-module courses with learning objectives and verified educational resources.
-   - Interactive chapter navigation, video lessons, and quiz checkpoints.
-
----
-
-## 💻 Local Development
+## ⚡ Quickstart & Local Setup
 
 ### Prerequisites
 - **Node.js**: v20 or newer
 - **npm**: v10 or newer
-- **MongoDB Atlas** database connection string (or local MongoDB on port 27017)
-- **Google Gemini API Key**
+- **MongoDB**: MongoDB Atlas connection URI or local MongoDB instance (`mongodb://localhost:27017/CareerOs`)
+- **Google Gemini API Key**: [Google AI Studio](https://aistudio.google.com/)
 
-### 1. Installation
-
-Install all workspace dependencies across root, API, and web:
+### 1. Clone & Install
 ```bash
+git clone https://github.com/HarishBonu0/Career_Sync.git
+cd Career_Sync
 npm run install:all
 ```
 
@@ -115,68 +156,50 @@ FRONTEND_URL=http://localhost:3000
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 NEXT_PUBLIC_API_BASE_URL=http://localhost:5000/api
+GEMINI_API_KEY=your_gemini_api_key_here
 OPENROUTER_API_KEY=your_openrouter_api_key_here
-YOUTUBE_API_KEY=your_youtube_api_key_here
 ```
 
-### 3. Start Development Servers
-
-Run both the API and Web applications concurrently:
+### 3. Run Development Servers
 ```bash
+# Starts both Backend (port 5000) and Frontend (port 3000) concurrently
 npm run dev
 ```
 
-Or run them individually in separate terminals:
-```bash
-# Terminal 1: Backend API (port 5000)
-npm run start:api
-
-# Terminal 2: Frontend App (port 3000)
-npm run start:web
-```
-
-Access the application in your browser:
 - **Frontend App**: [http://localhost:3000](http://localhost:3000)
 - **API Health Check**: [http://localhost:5000/api/health](http://localhost:5000/api/health)
 
 ---
 
+## 📡 REST API Reference
+
+| Endpoint | Method | Description | Auth |
+| :--- | :--- | :--- | :---: |
+| `/api/health` | `GET` | Service connectivity, database ping, uptime | Public |
+| `/api/auth/register` | `POST` | Create a new user account with bcrypt hash | Public |
+| `/api/auth/login` | `POST` | Authenticate credentials & issue JWT | Public |
+| `/api/auth/me` | `GET` | Retrieve session user profile | Required |
+| `/api/courses/generate-questions` | `POST` | Dynamic, topic-authentic question wizard | Public |
+| `/api/generate-course` | `POST` | Multi-module AI curriculum synthesis engine | Optional |
+| `/api/courses` | `GET` | List user saved courses & completion metrics | Required |
+| `/api/roadmaps/generate` | `POST` | Synthesize role-specific career trajectory | Required |
+| `/api/roadmaps` | `GET` | Retrieve persisted user roadmaps | Required |
+| `/api/resume/analyze` | `POST` | Parse resume document & extract verified talents | Required |
+| `/api/skills/questions` | `POST` | Generate adaptive skill assessment test | Required |
+| `/api/skills/evaluate` | `POST` | Score test submissions & update skill gaps | Required |
+
+---
+
 ## 🚢 Production Deployment
 
-CareerSync is production-configured for decoupled hosting:
-- **Backend API ➔ Render** (`apps/api`)
-- **Frontend App ➔ Vercel** (`apps/web`)
+The project is architected for decoupled cloud hosting:
+- **Frontend ➔ Vercel**: Production edge hosting with automated CI/CD branch previews.
+- **Backend ➔ Render**: Web service running Node.js ESM connected to MongoDB Atlas.
 
-👉 **For the complete step-by-step walkthrough, see [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md).**
-
-### Quick Deployment Summary:
-1. **MongoDB Atlas**: Whitelist `0.0.0.0/0` under Network Access so cloud instances can connect.
-2. **Render (Backend)**: Create a Web Service pointing to `apps/api`. Set build command `npm install` and start command `npm start`. Add environment variables (`MONGODB_URI`, `JWT_SECRET`, `GEMINI_API_KEY`).
-3. **Vercel (Frontend)**: Import repo, set Root Directory to `apps/web`. Configure `NEXT_PUBLIC_API_URL` to point to your live Render backend URL.
-4. **Link CORS**: Add your live Vercel domain to `CORS_ORIGINS` and `FRONTEND_URL` on Render.
+Refer to [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for complete step-by-step instructions.
 
 ---
 
-## 📡 Core API Reference
+## 📄 License
 
-| Endpoint | Method | Description | Auth Required |
-| :--- | :--- | :--- | :---: |
-| `/api/health` | `GET` | Health check & service connectivity status | No |
-| `/api/auth/register` | `POST` | Create a new user account | No |
-| `/api/auth/login` | `POST` | Authenticate with email & password | No |
-| `/api/auth/me` | `GET` | Retrieve authenticated user profile | Yes |
-| `/api/auth/logout` | `POST` | Clear session cookies | Yes |
-| `/api/resume/analyze` | `POST` | Parse resume document & extract skills | Yes |
-| `/api/skills/questions` | `POST` | Generate adaptive skill assessment questions | Yes |
-| `/api/skills/evaluate` | `POST` | Evaluate submitted assessment answers | Yes |
-| `/api/roadmaps/generate` | `POST` | Generate personalized career roadmap | Yes |
-| `/api/roadmaps` | `GET` | Retrieve saved roadmaps for user | Yes |
-| `/api/roadmaps/:id` | `GET` | Retrieve specific roadmap by ID | Yes |
-| `/api/courses` | `GET` | List user courses & enrolled tracks | Yes |
-| `/api/generate-course-v2` | `POST` | Synthesize complete modular course track | Yes |
-
----
-
-## 🛡️ License
-
-This project is licensed under the ISC License. Built with ❤️ for empowering tech career journeys.
+This project is licensed under the ISC License.
