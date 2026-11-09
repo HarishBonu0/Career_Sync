@@ -1,0 +1,44 @@
+{
+  "name": "careersync-platform",
+  "version": "1.0.0",
+  "description": "Career Sync - AI-Powered Learning Platform with MongoDB",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node deploy.js",
+    "dev": "node deploy.js",
+    "start:all": "node deploy.js",
+    "start:api": "cd apps/api && npm start",
+    "start:web": "cd apps/web && npm run dev",
+    "install:all": "npm run install:api && npm run install:web",
+    "install:api": "cd apps/api && npm install",
+    "install:web": "cd apps/web && npm install",
+    "build:web": "cd apps/web && npm run build",
+    "test:phase0": "cd apps/api && npm run test:phase0",
+    "test:phase1": "cd apps/api && npm run test:phase1",
+    "test:phase2": "cd apps/api && npm run test:phase2",
+    "test:phase3": "cd apps/api && npm run test:phase3"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^3.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HarishBonu0/Career-Sync.git"
+  },
+  "keywords": [
+    "ai",
+    "learning",
+    "education",
+    "career",
+    "mongodb"
+  ],
+  "author": "Career Sync Team",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/HarishBonu0/Career-Sync/issues"
+  },
+  "homepage": "https://github.com/HarishBonu0/Career-Sync#readme"
+}
