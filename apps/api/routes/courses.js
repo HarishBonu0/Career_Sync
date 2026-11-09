@@ -150,146 +150,28 @@ router.post(
 // Helper function to generate high-quality, non-overlapping questions when AI API is unavailable
 function generateFallbackQuestions(topic) {
   const t = topic.trim();
-  const topicLower = t.toLowerCase();
-  
-  // Categorize topics
-  let category = 'technical';
-  if (topicLower.match(/english|spanish|french|german|chinese|japanese|korean|hindi|language|grammar|vocabulary|pronunciation|telugu|tamil|malayalam|arabic|portuguese|russian|italian|dutch|swedish/)) {
-    category = 'language';
-  } else if (topicLower.match(/art|drawing|painting|music|guitar|piano|photography|design|ui|ux|graphic|video editing|animation|creative writing|illustration|3d modeling|digital art|figma/)) {
-    category = 'creative';
-  } else if (topicLower.match(/business|marketing|finance|management|economics|accounting|entrepreneurship|sales|stock market|investing|startup|leadership|hr|operations|product management/)) {
-    category = 'business';
-  } else if (!topicLower.match(/programming|code|coding|javascript|python|java|c\+\+|react|angular|vue|web|software|data|algorithm|api|database|sql|machine learning|ai|devops|cloud|aws|azure|cybersecurity|blockchain|html|css|node|django|flask|spring|kotlin|swift|rust|go|typescript|php|docker|kubernetes/)) {
-    category = 'academic';
-  }
-
-  // 1. Goal options
-  let goalOptions = [
-    `Build real-world production projects with ${t}`,
-    `Prepare for technical job interviews & career transition`,
-    `Master core architecture and professional best practices`,
-    `Learn ${t} fundamentals to expand my technical skill set`,
-    `Automate workflows or solve specific business problems with ${t}`
-  ];
-
-  if (category === 'language') {
-    goalOptions = [
-      `Conversational fluency for travel and everyday communication`,
-      `Professional & business communication in ${t}`,
-      `Academic certification, exams, or language proficiency test`,
-      `Connect with native speakers and understand cultural media`,
-      `Grammar mastery and comprehensive reading/writing`
-    ];
-  } else if (category === 'creative') {
-    goalOptions = [
-      `Build a professional portfolio in ${t}`,
-      `Freelancing and client design/creative work`,
-      `Personal artistic expression and creative hobby`,
-      `Create high-engagement digital content and assets`,
-      `Master industry-standard workflows and tools`
-    ];
-  } else if (category === 'business') {
-    goalOptions = [
-      `Launch or scale a business/startup using ${t}`,
-      `Career advancement, promotion, and leadership growth`,
-      `Drive better strategic decisions and KPI outcomes`,
-      `Master practical execution frameworks and case studies`,
-      `Gain formal industry certification or credentials`
-    ];
-  } else if (category === 'academic') {
-    goalOptions = [
-      `Exams and academic coursework preparation`,
-      `Competitive examination or certification mastery`,
-      `In-depth theoretical understanding and research`,
-      `Applied problem-solving and real-world understanding`,
-      `Broad foundational knowledge and lifelong learning`
-    ];
-  }
-
-  // 4. Focus Area options
-  let focusOptions = [
-    `Core syntax, architecture, and design patterns in ${t}`,
-    `Hands-on project development and modern workflows`,
-    `API integration, state handling, and data structures`,
-    `Performance tuning, debugging, and testing strategies`,
-    `Production deployment and industry best practices`
-  ];
-
-  if (topicLower.match(/react|vue|angular|frontend|next\.?js/)) {
-    focusOptions = [
-      `Component architecture, JSX, and Props`,
-      `State management, Hooks, and lifecycle effects`,
-      `Client-side routing, layout structure, and navigation`,
-      `API data fetching, caching, and async handling`,
-      `Performance optimization, memoization, and unit testing`
-    ];
-  } else if (topicLower.match(/python/)) {
-    focusOptions = [
-      `Core data structures, OOP, and functional paradigms`,
-      `Data analysis and visualization (Pandas, NumPy, Matplotlib)`,
-      `Web frameworks and REST APIs (FastAPI / Django / Flask)`,
-      `Automation, web scraping, and scripting`,
-      `Machine learning and algorithmic problem-solving`
-    ];
-  } else if (topicLower.match(/machine learning|ai|deep learning|data science/)) {
-    focusOptions = [
-      `Data preprocessing, exploratory analysis, and feature engineering`,
-      `Supervised learning algorithms (Regression, Classification)`,
-      `Neural network architectures and deep learning frameworks`,
-      `Model evaluation, hyperparameter tuning, and validation`,
-      `MLOps, model serving, and real-world deployment`
-    ];
-  } else if (topicLower.match(/sql|database|mongodb|postgres/)) {
-    focusOptions = [
-      `Schema design, normalization, and relational modeling`,
-      `Complex queries, joins, aggregations, and subqueries`,
-      `Indexing strategies, query optimization, and execution plans`,
-      `Transactions, concurrency control, and ACID compliance`,
-      `Database migration, backup strategies, and security`
-    ];
-  } else if (category === 'language') {
-    focusOptions = [
-      `Everyday conversational dialogues and practical phrases`,
-      `Pronunciation, listening comprehension, and phonetics`,
-      `Core grammar rules, sentence structure, and tenses`,
-      `High-frequency vocabulary and idiom acquisition`,
-      `Reading comprehension and written expression`
-    ];
-  } else if (category === 'creative') {
-    focusOptions = [
-      `Foundational design theory: color, contrast, and typography`,
-      `Software shortcuts, tools, and technical execution`,
-      `Layout composition and visual hierarchy`,
-      `Client brief interpretation and concept ideation`,
-      `Exporting, asset optimization, and portfolio presentation`
-    ];
-  } else if (category === 'business') {
-    focusOptions = [
-      `Strategic frameworks and competitive market analysis`,
-      `Financial modeling, unit economics, and budgeting`,
-      `Customer acquisition, sales funnels, and marketing metrics`,
-      `Operations optimization and team leadership`,
-      `Risk mitigation and growth execution`
-    ];
-  }
-
   return [
     {
       id: 1,
       type: 'single-choice',
-      question: `What is your primary goal with ${t}?`,
-      options: goalOptions
+      question: `What is your primary goal or ambition with ${t}?`,
+      options: [
+        `Master foundational essentials and build strong core practical skills`,
+        `Create meaningful real-world projects and personal creations in ${t}`,
+        `Achieve advanced technique mastery and refine my expertise`,
+        `Pursue ${t} as an enriching personal hobby or creative passion`,
+        `Prepare for professional application, career transition, or certification in ${t}`
+      ]
     },
     {
       id: 2,
       type: 'single-choice',
       question: `What is your current experience level with ${t}?`,
       options: [
-        `Complete Beginner (New to ${t})`,
-        `Foundational (Know the basics, need structured guidance)`,
-        `Intermediate (Have built small projects or used it before)`,
-        `Advanced (Looking to master advanced architecture and patterns)`
+        `Complete Beginner (Brand new to ${t})`,
+        `Foundational (Know basic concepts, want structured guidance)`,
+        `Intermediate (Have practical experience, seeking higher mastery)`,
+        `Advanced (Experienced practitioner refining nuance and technique)`
       ]
     },
     {
@@ -297,34 +179,28 @@ function generateFallbackQuestions(topic) {
       type: 'single-choice',
       question: `How much time can you dedicate to learning ${t} per day?`,
       options: [
-        `15-30 minutes / day (Bite-sized pace)`,
-        `30-60 minutes / day (Steady progress)`,
-        `1-2 hours / day (Dedicated learning)`,
-        `3+ hours / day (Intensive bootcamp pace)`
+        `15-30 minutes / day (Bite-sized, steady pace)`,
+        `30-60 minutes / day (Consistent daily progress)`,
+        `1-2 hours / day (Dedicated, focused practice)`,
+        `3+ hours / day (Intensive immersive learning)`
       ]
     },
     {
       id: 4,
-      type: 'multiple-choice',
-      question: `Which specific areas of ${t} do you want to prioritize? (Select all that apply)`,
-      options: focusOptions
-    },
-    {
-      id: 5,
       type: 'single-choice',
       question: `What is your target completion timeline for ${t}?`,
       options: [
-        `2 Weeks (Fast track / Crash course)`,
-        `1 Month (Recommended standard pace)`,
-        `2-3 Months (In-depth comprehensive mastery)`,
-        `Self-paced (Learn flexibly without pressure)`
+        `2 Weeks (Intensive crash course / quick start)`,
+        `1 Month (Standard balanced curriculum)`,
+        `2-3 Months (In-depth, comprehensive mastery)`,
+        `Self-paced (Flexible learning without time pressure)`
       ]
     },
     {
-      id: 6,
+      id: 5,
       type: 'text',
-      question: `Any specific projects, tools, or requirements you want included in your ${t} course?`,
-      placeholder: `e.g., Build a real-world ${t} application, prepare for upcoming interviews...`
+      question: `Any specific areas, projects, techniques, or requirements you want emphasized in your ${t} course?`,
+      placeholder: `e.g., Particular styles, materials, projects, or personal goals in ${t}...`
     }
   ];
 }
@@ -339,123 +215,100 @@ router.post(
 
     const { topic } = req.body;
 
-  // Try AI generation first, fallback to predefined questions if it fails
-  // Try AI generation first, fallback to predefined questions if it fails
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const prompt = `Generate exactly 6 personalized questions to understand a learner's needs for the topic: "${topic}".
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const prompt = `You are a master curriculum advisor across all human disciplines (arts, humanities, crafts, sciences, trades, languages, technology, business, culinary, wellness, etc.).
+Analyze the topic: "${topic}".
 
-RULES:
-- Each question must have a DIFFERENT intent/purpose. No two questions should ask about the same thing.
-- Do NOT ask about experience level twice. Do NOT ask about goals twice.
-- Replace {topic} in question text with the actual topic name.
-- Make ALL options SPECIFIC to "${topic}" — never generic like "Learn the basics".
-- Options must be concrete and actionable for "${topic}".
+Generate 4 to 6 personalized, highly tailored questions to understand this learner's background, goals, time availability, and topic-specific preferences for: "${topic}".
 
-The 6 questions MUST cover these 6 distinct topics (one each):
-1. What is their PRIMARY GOAL with ${topic}? (career, project, hobby, etc.)
-2. What is their current EXPERIENCE LEVEL with ${topic}?
-3. How much TIME PER DAY can they dedicate to ${topic}?
-4. What SPECIFIC AREAS of ${topic} excite them most? (make options very specific to ${topic})
-5. What is their TARGET TIMELINE to complete the ${topic} course?
-6. Any SPECIFIC REQUIREMENT or custom topic they want covered in ${topic}? (text input)
-
-Format each question as:
-{
-  "id": number,
-  "type": "text" | "single-choice" | "multiple-choice",
-  "question": "question text (use actual topic name, not placeholder)",
-  "placeholder": "for text type only",
-  "options": ["option1", "option2", ...] // for choice types, 4-6 options VERY SPECIFIC to ${topic}
-}
-
-GOOD example for topic "React":
-- Q4 options: ["React Hooks & functional components", "State management with Redux/Context", "React Router & navigation", "Performance optimization & memoization", "Server-side rendering with Next.js"]
-
-BAD example (too generic):
-- Q4 options: ["Fundamentals", "Advanced topics", "Practical applications", "Best practices"]
-
-Return ONLY the JSON array, nothing else.`;
-      
-      const result = await model.generateContent(prompt);
-      let responseText = result.response.text().trim();
-      
-      // Clean up response - remove markdown code blocks if present
-      responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      
-      // Parse JSON
-      const questions = JSON.parse(responseText);
-      
-      // Validate structure and prevent question mixing/repetition
-      if (!Array.isArray(questions) || questions.length < 5) {
-        throw new Error('Invalid questions format or too few questions received from AI');
-      }
-
-      // Check for duplicate questions or repeated intents (prevent mixing/redundant questions)
-      const seenIntents = new Set();
-      let hasOverlap = false;
-      for (const q of questions) {
-        const text = (q.question || '').toLowerCase();
-        let intent = 'other';
-        if (text.includes('goal') || text.includes('objective') || text.includes('aim') || text.includes('hope to')) intent = 'goal';
-        else if (text.includes('experience') || text.includes('familiar') || text.includes('level') || text.includes('background')) intent = 'experience';
-        else if (text.includes('time') || text.includes('hour') || text.includes('dedicate') || text.includes('schedule')) intent = 'time';
-        else if (text.includes('focus') || text.includes('area') || text.includes('topic') || text.includes('excite')) intent = 'focus';
-        else if (text.includes('timeline') || text.includes('complete') || text.includes('finish') || text.includes('pace') || text.includes('deadline')) intent = 'timeline';
-        else if (text.includes('require') || text.includes('project') || text.includes('custom') || text.includes('tool')) intent = 'requirement';
-
-        if (intent !== 'other' && seenIntents.has(intent)) {
-          hasOverlap = true;
-          break;
-        }
-        if (intent !== 'other') seenIntents.add(intent);
-      }
-
-      if (hasOverlap) {
-        console.warn('AI generated overlapping/mixed questions, using clean curated fallback');
-        throw new Error('AI generated overlapping questions');
-      }
-
-      const sanitizedQuestions = questions.map((q) => ({
-        ...q,
-        question: (q.question || '').replace(/\{topic\}/g, topic),
-        placeholder: q.placeholder ? q.placeholder.replace(/\{topic\}/g, topic) : q.placeholder,
-        options: Array.isArray(q.options)
-          ? q.options.map((opt) => (typeof opt === 'string' ? opt.replace(/\{topic\}/g, topic) : opt))
-          : q.options,
-      }));
-
-      return res.json({ 
-        success: true,
-        topic,
-        questions: sanitizedQuestions,
-        generatedAt: new Date(),
-        source: 'ai'
-      });
-    } catch (error) {
-      console.error('AI question generation failed, using fallback:', error.message);
-      // Fall through to fallback
-    }
+CRITICAL PEDAGOGY RULES:
+- 100% DOMAIN-AUTHENTIC: Adapt all questions and options directly to the nature of "${topic}".
+  * If "${topic}" is an Art, Craft, or Music: questions and options must be about mediums, tools, artistic style, instruments, techniques. (NEVER mention IT terms like "architecture", "deployment", "APIs", "stacks").
+  * If "${topic}" is Cooking/Culinary: questions must be about cuisine style, skill level, equipment, dietary preferences.
+  * If "${topic}" is Language/Linguistics: questions must be about speaking vs writing, dialect, cultural media, travel goals.
+  * If "${topic}" is Software/IT: questions should be about environment, technology stack, project scale.
+- NO DUPLICATE INTENTS: Every question must address a distinct facet (Goal, Starting Level, Daily Time, Specific Topic Interests, Timeline, Custom Projects).
+- Return between 4 and 6 questions in valid JSON array format:
+[
+  {
+    "id": 1,
+    "type": "single-choice" | "multiple-choice" | "text",
+    "question": "Clear, engaging question text specifically mentioning ${topic}",
+    "placeholder": "for text type only",
+    "options": ["Specific option 1", "Specific option 2", "Specific option 3", "Specific option 4"]
   }
-  
-  // Use fallback questions (avoids Gemini API rate limits)
-  const rawQuestions = generateFallbackQuestions(topic);
-  // Replace all {topic} placeholders with actual topic
-  const questions = rawQuestions.map(q => ({
-    ...q,
-    question: q.question.replace(/\{topic\}/g, topic),
-    placeholder: q.placeholder ? q.placeholder.replace(/\{topic\}/g, topic) : q.placeholder,
-  }));
-  res.json({ 
-    success: true,
-    topic,
-    questions,
-    generatedAt: new Date(),
-    source: 'fallback'
-  });
-});
+]
+
+Return ONLY the raw JSON array.`;
+
+        const result = await model.generateContent(prompt);
+        let responseText = result.response.text().trim();
+        responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const questions = JSON.parse(responseText);
+
+        if (!Array.isArray(questions) || questions.length < 3) {
+          throw new Error('Invalid questions format or too few questions received from AI');
+        }
+
+        // Deduplication & intent overlap guard
+        const seenIntents = new Set();
+        let hasOverlap = false;
+        for (const q of questions) {
+          const text = (q.question || '').toLowerCase();
+          let intent = 'other';
+          if (text.includes('goal') || text.includes('objective') || text.includes('aim') || text.includes('hope to')) intent = 'goal';
+          else if (text.includes('experience') || text.includes('familiar') || text.includes('level') || text.includes('background') || text.includes('starting')) intent = 'experience';
+          else if (text.includes('time') || text.includes('hour') || text.includes('dedicate') || text.includes('schedule') || text.includes('day')) intent = 'time';
+          else if (text.includes('timeline') || text.includes('complete') || text.includes('finish') || text.includes('pace') || text.includes('deadline') || text.includes('month') || text.includes('week')) intent = 'timeline';
+          else if (text.includes('require') || text.includes('project') || text.includes('custom') || text.includes('tool') || text.includes('equipment') || text.includes('material')) intent = 'requirement';
+
+          if (intent !== 'other' && seenIntents.has(intent)) {
+            hasOverlap = true;
+            break;
+          }
+          if (intent !== 'other') seenIntents.add(intent);
+        }
+
+        if (hasOverlap) {
+          console.warn('AI generated overlapping questions, falling back to clean universal questionnaire');
+          throw new Error('AI generated overlapping questions');
+        }
+
+        const sanitizedQuestions = questions.map((q, idx) => ({
+          ...q,
+          id: idx + 1,
+          question: (q.question || '').replace(/\{topic\}/g, topic),
+          placeholder: q.placeholder ? q.placeholder.replace(/\{topic\}/g, topic) : q.placeholder,
+          options: Array.isArray(q.options)
+            ? q.options.map((opt) => (typeof opt === 'string' ? opt.replace(/\{topic\}/g, topic) : opt))
+            : q.options,
+        }));
+
+        return res.json({
+          success: true,
+          topic,
+          questions: sanitizedQuestions,
+          generatedAt: new Date(),
+          source: 'ai',
+        });
+      } catch (error) {
+        console.error('AI question generation failed or invalid, using universal fallback:', error.message);
+      }
+    }
+
+    const rawQuestions = generateFallbackQuestions(topic);
+    res.json({
+      success: true,
+      topic,
+      questions: rawQuestions,
+      generatedAt: new Date(),
+      source: 'fallback',
+    });
+  }
+);
 
 // Save a generated course or create a new course
 router.post(
