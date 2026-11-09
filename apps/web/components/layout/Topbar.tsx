@@ -54,7 +54,7 @@ export function Topbar() {
   const navItems = [
     { href: '/home', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/roadmaps', label: 'Roadmap', icon: Map },
-    { href: '/courses', label: 'Learning', icon: BookOpen },
+    { href: '/courses', label: 'Course Generator', icon: BookOpen },
     { href: '/assessments', label: 'Assessments', icon: ClipboardCheck },
     { href: '/career', label: 'Career', icon: Briefcase },
   ]

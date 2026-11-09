@@ -136,7 +136,7 @@ function getMockVideos(query: string): YouTubeVideo[] {
     {
       id: 'ZZ5DwHVAYlU',
       snippet: {
-        title: `${query} - Advanced',
+        title: `${query} - Advanced`,
         description: 'Deep dive into advanced concepts',
         channelTitle: 'Expert Channel',
         publishedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),

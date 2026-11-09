@@ -41,7 +41,10 @@ export default function MyCoursesPage() {
 
     const fetchEnrollments = async () => {
       try {
-        const response = await axios.get(`${API_URL}/courses/enrollments/my`, { withCredentials: true })
+        const token = typeof window !== 'undefined' ? localStorage.getItem('Career_Sync_token') : null;
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const response = await axios.get(`${API_URL}/courses/enrollments/my`, { withCredentials: true, headers })
 
         if (response.data.success) {
           setEnrollments(response.data.data)

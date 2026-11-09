@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 
 const NAV_ITEMS = [
   { label: 'Platform', href: '/home' },
-  { label: 'Learning', href: '/courses' },
+  { label: 'Course Generator', href: '/courses' },
   { label: 'Roadmaps', href: '/roadmaps' },
   { label: 'Assessments', href: '/assessments' },
 ]

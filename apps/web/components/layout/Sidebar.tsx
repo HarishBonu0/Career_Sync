@@ -27,7 +27,7 @@ type NavItem = {
 const PRIMARY_NAV: NavItem[] = [
   { href: '/home', label: 'Dashboard', icon: Home },
   { href: '/roadmaps', label: 'Roadmap', icon: Map },
-  { href: '/courses', label: 'Learning', icon: BookOpen },
+  { href: '/courses', label: 'Course Generator', icon: BookOpen },
   { href: '/assessments', label: 'Assessments', icon: ClipboardCheck },
   { href: '/career', label: 'Career', icon: Briefcase },
 ]

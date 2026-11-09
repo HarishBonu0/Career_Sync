@@ -17,6 +17,7 @@ import {
 import { simulatePathways } from './_app/services/simulationService'
 import { generatePersonalizedRoadmap } from './_app/services/roadmapService'
 import { useAuth } from '@/contexts/AuthContext'
+import { getAuthHeaders } from '@/lib/api'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
@@ -37,7 +38,7 @@ export default function RoadmapsPage() {
 
   useEffect(() => {
     if (authStatus !== 'authenticated' || !isAuthenticated) return
-    fetch(`${API_URL}/roadmaps`, { credentials: 'include' })
+    fetch(`${API_URL}/roadmaps`, { credentials: 'include', headers: getAuthHeaders() })
       .then(async (response) => {
         if (!response.ok) throw new Error(`Roadmap fetch failed (${response.status})`)
         const data = await response.json()

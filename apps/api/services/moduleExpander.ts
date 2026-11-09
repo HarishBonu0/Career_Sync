@@ -103,7 +103,7 @@ async function expandSingleModule(
     throw new Error(`API error: ${response.statusText}`)
   }
 
-  const data = await response.json()
+  const data = (await response.json()) as any
   let content = data.choices?.[0]?.message?.content || ''
 
   content = content.trim()

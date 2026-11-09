@@ -265,6 +265,64 @@ router.get('/:userId', authenticate, requireMongo, param('userId').isString().is
     const uniqueRoadmaps = Array.from(new Map(allRoadmaps.map(r => [r._id?.toString() || r.title, r])).values());
     const uniqueEvaluations = Array.from(new Map(allEvaluations.map(e => [e._id?.toString() || e.title, e])).values());
 
+    // Calculate real learning streak from persistent activity timestamps
+    const activityDates = new Set();
+    const addDate = (d) => {
+      if (!d) return;
+      const dateObj = new Date(d);
+      if (!isNaN(dateObj.getTime())) {
+        activityDates.add(dateObj.toISOString().slice(0, 10));
+      }
+    };
+
+    uniqueCourses.forEach(c => {
+      addDate(c.enrolledAt);
+      addDate(c.lastAccessed);
+      addDate(c.lastAccessedAt);
+      addDate(c.createdAt);
+      addDate(c.updatedAt);
+    });
+
+    uniqueRoadmaps.forEach(r => {
+      addDate(r.createdAt);
+      addDate(r.updatedAt);
+    });
+
+    uniqueEvaluations.forEach(e => {
+      addDate(e.completedAt);
+      addDate(e.createdAt);
+      addDate(e.evaluatedAt);
+    });
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const sortedDates = Array.from(activityDates).sort().reverse();
+
+    let streak = 0;
+    if (sortedDates.length > 0) {
+      const mostRecent = sortedDates[0];
+      if (mostRecent === todayStr || mostRecent === yesterdayStr) {
+        let checkDate = new Date(mostRecent);
+        while (true) {
+          const dateKey = checkDate.toISOString().slice(0, 10);
+          if (activityDates.has(dateKey)) {
+            streak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+      } else {
+        streak = 0;
+      }
+    } else if (user?.createdAt) {
+      const createdStr = new Date(user.createdAt).toISOString().slice(0, 10);
+      if (createdStr === todayStr) {
+        streak = 1;
+        activityDates.add(createdStr);
+      }
+    }
+
     res.json({
       success: true,
       profile: {
@@ -275,7 +333,9 @@ router.get('/:userId', authenticate, requireMongo, param('userId').isString().is
           totalCourses: uniqueCourses.length,
           totalRoadmaps: uniqueRoadmaps.length,
           totalEvaluations: uniqueEvaluations.length,
-          activeDays: user?.createdAt ? Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24)) : 0
+          activeDays: streak > 0 ? streak : (activityDates.size > 0 ? 1 : 0),
+          totalActiveDays: activityDates.size,
+          learningStreak: streak
         },
         courses: uniqueCourses.map(c => ({
           id: c._id,

@@ -144,7 +144,7 @@ async function regenerateDuplicateTitles(
     throw new Error(`Failed to regenerate titles: ${response.statusText}`)
   }
 
-  const data = await response.json()
+  const data = (await response.json()) as any
   let content = data.choices?.[0]?.message?.content || ''
 
   content = content.trim()

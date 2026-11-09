@@ -60,7 +60,7 @@ export async function getEmbedding(text: string): Promise<number[]> {
       throw new Error(`Failed to get embeddings: ${response.statusText}`)
     }
 
-    const data = await response.json()
+    const data = (await response.json()) as any
     const embeddings = data.data[0].embedding
 
     // Cache the result

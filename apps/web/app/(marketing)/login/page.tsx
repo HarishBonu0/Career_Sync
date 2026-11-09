@@ -46,13 +46,15 @@ export default function LoginPage() {
       const ok = await login(email, password)
       if (ok) {
         const next = new URLSearchParams(window.location.search).get('next') || '/home'
-        router.replace(next)
+        const token = typeof window !== 'undefined' ? localStorage.getItem('Career_Sync_token') : null
+        const target = token ? `${next}${next.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}` : next
+        window.location.href = target
       } else {
         setError('Invalid email or password.')
+        setSubmitting(false)
       }
     } catch {
-      setError('Something went wrong. Please try again.')
-    } finally {
+      setError('Something went wrong during sign in. Please try again.')
       setSubmitting(false)
     }
   }
@@ -66,26 +68,27 @@ export default function LoginPage() {
       const next = new URLSearchParams(window.location.search).get('next') || '/home'
       const ok = await login(guestEmail, guestPassword)
       if (ok) {
-        router.replace(next)
+        const token = typeof window !== 'undefined' ? localStorage.getItem('Career_Sync_token') : null
+        window.location.href = token ? `${next}${next.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}` : next
         return
       }
       
       const regOk = await register('Guest User', guestEmail, guestPassword)
       if (regOk.ok) {
-        router.replace(next)
+        window.location.href = regOk.token ? `${next}${next.includes('?') ? '&' : '?'}token=${encodeURIComponent(regOk.token)}` : next
       } else {
         setError(regOk.error || 'Failed to create guest account.')
+        setSubmitting(false)
       }
     } catch {
       setError('Something went wrong during guest login.')
-    } finally {
       setSubmitting(false)
     }
   }
 
   return (
     <section className="relative min-h-[calc(100vh-80px)] flex items-center justify-center py-16 px-4">
-      {/* Premium Ivory & Gold Background */}
+      {/* Background accents */}
       <div className="absolute inset-0 -z-10 bg-background overflow-hidden">
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-accent/10 to-transparent blur-3xl opacity-60 translate-x-1/3 -translate-y-1/3 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-accent/5 to-transparent blur-2xl opacity-60 -translate-x-1/4 translate-y-1/4 pointer-events-none" />
@@ -148,6 +151,7 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="email"
                   required
+                  disabled={submitting}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-12 rounded-xl bg-white border-border/80 focus:border-accent focus:ring-accent/20 px-4 transition-all"
@@ -163,6 +167,7 @@ export default function LoginPage() {
                   type="password"
                   autoComplete="current-password"
                   required
+                  disabled={submitting}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-12 rounded-xl bg-white border-border/80 focus:border-accent focus:ring-accent/20 px-4 transition-all tracking-widest"
@@ -190,10 +195,6 @@ export default function LoginPage() {
             <Button type="submit" size="lg" className="w-full h-14 rounded-xl text-base font-bold bg-primary text-white hover:bg-primary/90 shadow-md transition-transform hover:-translate-y-0.5" disabled={submitting}>
               {submitting ? 'Signing in...' : 'Sign In'} <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            
-            <p className="text-[11px] text-center text-muted-foreground/70 leading-tight">
-              (Preview Mode: Will use local storage if DB is offline)
-            </p>
           </form>
         </div>
         

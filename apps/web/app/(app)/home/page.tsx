@@ -7,6 +7,7 @@ import { ArrowRight, BookOpen, Map, ClipboardCheck, Target, Brain, Compass, Cloc
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
+import { getAuthHeaders } from '@/lib/api'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
@@ -23,7 +24,8 @@ type ProfilePayload = {
 }
 
 async function fetchProfile(url: string): Promise<ProfilePayload> {
-  const res = await fetch(url, { credentials: 'include' })
+  const headers = getAuthHeaders()
+  const res = await fetch(url, { credentials: 'include', headers })
   if (!res.ok) throw new Error(`Profile fetch failed (${res.status})`)
   return res.json()
 }

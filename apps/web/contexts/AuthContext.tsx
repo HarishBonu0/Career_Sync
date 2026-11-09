@@ -17,7 +17,7 @@ type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'error'
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<boolean>
-  register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>
+  register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string; token?: string }>
   logout: () => void
   isAuthenticated: boolean
   authStatus: AuthStatus
@@ -28,7 +28,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // API URL
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
-function syncAuthToken(token: string | null) {
+export function syncAuthToken(token: string | null) {
   if (typeof window === 'undefined') return
   if (token) {
     localStorage.setItem('Career_Sync_token', token)
@@ -48,7 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     checkAuth()
 
-    const authCheckInterval = setInterval(checkAuth, 10000)
+    const authCheckInterval = setInterval(() => {
+      // Only poll when actively authenticated to verify session validity
+      const token = typeof window !== 'undefined' ? localStorage.getItem('Career_Sync_token') : null
+      if (token) {
+        checkAuth()
+      }
+    }, 15000)
     
     return () => {
       clearInterval(authCheckInterval)
@@ -68,23 +74,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Check localStorage first if in dev mode to prevent 401 spam
-      if (process.env.NODE_ENV === 'development') {
-        const localUser = localStorage.getItem('localUser')
-        if (localUser) {
-          setUser(JSON.parse(localUser))
-          setAuthStatus('authenticated')
-          return
+      const headers: Record<string, string> = {}
+      let token: string | null = null
+      if (typeof window !== 'undefined') {
+        token = localStorage.getItem('Career_Sync_token')
+        if (token) {
+          syncAuthToken(token) // ensure cookie is also active
+          headers['Authorization'] = `Bearer ${token}`
         }
       }
 
-      const headers: Record<string, string> = {}
-      if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('Career_Sync_token')
-        if (token) {
-          syncAuthToken(token) // ensure cookie is also active on the Vercel domain
-          headers['Authorization'] = `Bearer ${token}`
-        }
+      const hasCookie = typeof document !== 'undefined' && document.cookie.includes('Career_Sync_token=')
+      if (!token && !hasCookie) {
+        setUser(null)
+        setAuthStatus('unauthenticated')
+        return
       }
 
       const response = await fetch(`${API_URL}/auth/me`, {
@@ -122,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Include cookies
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
       })
 
@@ -137,30 +141,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return true
       }
       
-      const data = await response.json().catch(() => ({}))
-      if (process.env.NODE_ENV === 'development' && (data.useLocalStorage || response.status === 503)) {
-        const localUser = { id: 'local', name: 'Local User', email }
-        localStorage.setItem('localUser', JSON.stringify(localUser))
-        setUser(localUser)
-        setAuthStatus('authenticated')
-        return true
-      }
-      
       return false
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        // Fallback to local on complete network failure if needed
-        const localUser = { id: 'local', name: 'Local User', email }
-        localStorage.setItem('localUser', JSON.stringify(localUser))
-        setUser(localUser)
-        setAuthStatus('authenticated')
-        return true
-      }
+      console.error('Login error:', error)
       return false
     }
   }
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (
+    name: string,
+    email: string,
+    password: string
+  ): Promise<{ ok: boolean; error?: string; token?: string }> => {
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
@@ -170,30 +162,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) {
-        if (process.env.NODE_ENV === 'development' && (data.useLocalStorage || response.status === 503)) {
-          const localUser = { id: 'local', name, email }
-          localStorage.setItem('localUser', JSON.stringify(localUser))
-          setUser(localUser)
-          setAuthStatus('authenticated')
-          return { ok: true }
-        }
-        return { ok: false, error: data.error || data.message || 'Sign up failed.' }
+        const errorMsg = data.errors && Array.isArray(data.errors)
+          ? data.errors.map((e: any) => e.msg).join(', ')
+          : data.error || data.message || 'Sign up failed.'
+        return { ok: false, error: errorMsg }
       }
       if (data.token) {
         syncAuthToken(data.token)
       }
       setUser(data.user || null)
       setAuthStatus('authenticated')
-      return { ok: true }
-    } catch {
-      if (process.env.NODE_ENV === 'development') {
-        const localUser = { id: 'local', name, email }
-        localStorage.setItem('localUser', JSON.stringify(localUser))
-        setUser(localUser)
-        setAuthStatus('authenticated')
-        return { ok: true }
-      }
-      return { ok: false, error: 'Sign up failed due to a network error.' }
+      return { ok: true, token: data.token }
+    } catch (error) {
+      console.error('Registration error:', error)
+      return { ok: false, error: 'Sign up failed due to a network error. Please try again.' }
     }
   }
 

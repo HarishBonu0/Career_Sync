@@ -16,7 +16,7 @@ export async function connectMongo() {
     console.info('🔄 Connecting to MongoDB Atlas...');
     await mongoose.connect(uri, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 15000,
       socketTimeoutMS: 45000,
     });
     console.info(`✅ MongoDB connected successfully!`);

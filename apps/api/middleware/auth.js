@@ -7,6 +7,7 @@ if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
   throw new Error('FATAL: JWT_SECRET environment variable is missing in production');
 }
 const ACTIVE_JWT_SECRET = JWT_SECRET || 'your-secret-key-change-in-production';
+
 async function attachUserFromToken(req, token) {
   const decoded = jwt.verify(token, ACTIVE_JWT_SECRET);
   const user = await User.findById(decoded.id).select('email name role');
@@ -38,7 +39,6 @@ export const authenticate = async (req, res, next) => {
   try {
     const token = extractToken(req);
     if (!token) {
-      console.error('[AUTH DEBUG] No token present. NODE_ENV:', process.env.NODE_ENV);
       if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
         req.user = {
           id: '6ac1103e62e1fd6d49c31ea4', // Mock valid ObjectId
@@ -56,7 +56,6 @@ export const authenticate = async (req, res, next) => {
     }
     next();
   } catch (err) {
-    console.error('[AUTH DEBUG] Error in attachUserFromToken:', err.message, 'Token:', extractToken(req), 'NODE_ENV:', process.env.NODE_ENV);
     if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
       req.user = {
         id: '6ac1103e62e1fd6d49c31ea4',

@@ -4,8 +4,8 @@ import type { NextRequest } from 'next/server'
 const AUTH_COOKIE = 'Career_Sync_token'
 
 export function middleware(req: NextRequest) {
-  // BYPASS_AUTH to let users test locally without DB
-  if (process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true' || process.env.NODE_ENV === 'development') {
+  // Allow bypassing auth if explicitly enabled in environment
+  if (process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true') {
     return NextResponse.next()
   }
 
@@ -20,7 +20,7 @@ export function middleware(req: NextRequest) {
   }
 
   const res = NextResponse.next()
-  if (queryToken && !cookieToken) {
+  if (queryToken) {
     res.cookies.set(AUTH_COOKIE, queryToken, {
       path: '/',
       maxAge: 60 * 60 * 24 * 7,
@@ -47,6 +47,7 @@ export const config = {
     '/course-generated/:path*',
     '/generate/:path*',
     '/educators/:path*',
+    '/career/:path*',
     '/search/:path*',
     '/studio/:path*',
   ],

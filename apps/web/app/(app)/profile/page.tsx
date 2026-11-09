@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import ActivityHeatmap from '@/components/profile/ActivityHeatmap'
+import { getAuthHeaders } from '@/lib/api'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
@@ -61,8 +62,10 @@ type ProfileData = {
 }
 
 async function fetchProfile(url: string): Promise<ProfileData> {
+  const headers = getAuthHeaders()
   const res = await fetch(url, {
     credentials: 'include',
+    headers,
   })
   if (!res.ok) {
     throw new Error(`Profile fetch failed (${res.status})`)

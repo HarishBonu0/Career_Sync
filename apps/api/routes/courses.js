@@ -147,434 +147,186 @@ router.post(
 });
 
 // Helper function to generate fallback questions when AI API is unavailable
+// Helper function to generate high-quality, non-overlapping questions when AI API is unavailable
 function generateFallbackQuestions(topic) {
-  const topicLower = topic.toLowerCase();
+  const t = topic.trim();
+  const topicLower = t.toLowerCase();
   
   // Categorize topics
-  let category = 'academic';
-  if (topicLower.match(/programming|code|coding|javascript|python|java|c\+\+|react|angular|vue|web dev|software|data structure|algorithm|api|database|sql|nosql|machine learning|ai|artificial intelligence|devops|cloud|aws|azure|cybersecurity|blockchain|html|css|node|django|flask|spring|kotlin|swift|rust|go|typescript|php/)) {
-    category = 'technical';
-  } else if (topicLower.match(/english|spanish|french|german|chinese|japanese|korean|hindi|language|grammar|vocabulary|pronunciation|telugu|tamil|malayalam|arabic|portuguese|russian|italian/)) {
+  let category = 'technical';
+  if (topicLower.match(/english|spanish|french|german|chinese|japanese|korean|hindi|language|grammar|vocabulary|pronunciation|telugu|tamil|malayalam|arabic|portuguese|russian|italian|dutch|swedish/)) {
     category = 'language';
-  } else if (topicLower.match(/art|drawing|painting|music|guitar|piano|photography|design|ui|ux|graphic|video editing|animation|creative writing|illustration|3d modeling|digital art/)) {
+  } else if (topicLower.match(/art|drawing|painting|music|guitar|piano|photography|design|ui|ux|graphic|video editing|animation|creative writing|illustration|3d modeling|digital art|figma/)) {
     category = 'creative';
-  } else if (topicLower.match(/business|marketing|finance|management|economics|accounting|entrepreneurship|sales|stock market|investing|startup|leadership|hr|operations/)) {
+  } else if (topicLower.match(/business|marketing|finance|management|economics|accounting|entrepreneurship|sales|stock market|investing|startup|leadership|hr|operations|product management/)) {
     category = 'business';
+  } else if (!topicLower.match(/programming|code|coding|javascript|python|java|c\+\+|react|angular|vue|web|software|data|algorithm|api|database|sql|machine learning|ai|devops|cloud|aws|azure|cybersecurity|blockchain|html|css|node|django|flask|spring|kotlin|swift|rust|go|typescript|php|docker|kubernetes/)) {
+    category = 'academic';
   }
-  
-  const questions = [];
-  
-  // Question 1: Main Goal (varies by category with topic-specific options)
-  if (category === 'technical') {
-    // Detect specific technologies to customize options
-    let goalOptions = [
-      'Get a job as a developer',
-      'Build personal/portfolio projects',
-      'Career growth & promotion',
-      'Freelancing opportunities',
-      'Learn fundamentals & basics'
+
+  // 1. Goal options
+  let goalOptions = [
+    `Build real-world production projects with ${t}`,
+    `Prepare for technical job interviews & career transition`,
+    `Master core architecture and professional best practices`,
+    `Learn ${t} fundamentals to expand my technical skill set`,
+    `Automate workflows or solve specific business problems with ${t}`
+  ];
+
+  if (category === 'language') {
+    goalOptions = [
+      `Conversational fluency for travel and everyday communication`,
+      `Professional & business communication in ${t}`,
+      `Academic certification, exams, or language proficiency test`,
+      `Connect with native speakers and understand cultural media`,
+      `Grammar mastery and comprehensive reading/writing`
     ];
-    
-    if (topicLower.match(/web dev|html|css|javascript|react|angular|vue|frontend|backend|fullstack/)) {
-      goalOptions = [
-        'Get a web developer job',
-        'Build websites/web applications',
-        'Freelance web development',
-        'Upgrade existing skills',
-        'Create my own web projects'
-      ];
-    } else if (topicLower.match(/python/)) {
-      goalOptions = [
-        'Data Science & Machine Learning',
-        'Web development with Django/Flask',
-        'Automation & scripting',
-        'Job interviews preparation',
-        'General programming skills'
-      ];
-    } else if (topicLower.match(/java/)) {
-      goalOptions = [
-        'Enterprise application development',
-        'Android app development',
-        'Job interview preparation',
-        'Backend development',
-        'Learn core programming concepts'
-      ];
-    } else if (topicLower.match(/data science|machine learning|ai|artificial intelligence/)) {
-      goalOptions = [
-        'Career in Data Science/AI',
-        'Build ML models & projects',
-        'Research & academic purposes',
-        'Improve business decisions with data',
-        'Personal interest & exploration'
-      ];
-    } else if (topicLower.match(/database|sql|nosql|mongodb|postgresql/)) {
-      goalOptions = [
-        'Database administrator career',
-        'Backend development skills',
-        'Data analysis & reporting',
-        'Optimize database performance',
-        'Learn for job requirement'
-      ];
-    }
-    
-    questions.push({
-      id: 1,
-      type: 'single-choice',
-      question: 'What is your main goal with learning {topic}?',
-      options: goalOptions
-    });
-  } else if (category === 'language') {
-    questions.push({
-      id: 1,
-      type: 'single-choice',
-      question: 'What is your main goal with learning {topic}?',
-      options: [
-        'Travel and daily communication',
-        'Career & job opportunities',
-        'Academic/School requirements',
-        'Connect with native speakers',
-        'Cultural interest & entertainment'
-      ]
-    });
   } else if (category === 'creative') {
-    questions.push({
-      id: 1,
-      type: 'single-choice',
-      question: 'What is your main goal with learning {topic}?',
-      options: [
-        'Start a creative career',
-        'Freelancing & side income',
-        'Create content for social media',
-        'Personal hobby & self-expression',
-        'Enhance professional skills'
-      ]
-    });
+    goalOptions = [
+      `Build a professional portfolio in ${t}`,
+      `Freelancing and client design/creative work`,
+      `Personal artistic expression and creative hobby`,
+      `Create high-engagement digital content and assets`,
+      `Master industry-standard workflows and tools`
+    ];
   } else if (category === 'business') {
-    questions.push({
+    goalOptions = [
+      `Launch or scale a business/startup using ${t}`,
+      `Career advancement, promotion, and leadership growth`,
+      `Drive better strategic decisions and KPI outcomes`,
+      `Master practical execution frameworks and case studies`,
+      `Gain formal industry certification or credentials`
+    ];
+  } else if (category === 'academic') {
+    goalOptions = [
+      `Exams and academic coursework preparation`,
+      `Competitive examination or certification mastery`,
+      `In-depth theoretical understanding and research`,
+      `Applied problem-solving and real-world understanding`,
+      `Broad foundational knowledge and lifelong learning`
+    ];
+  }
+
+  // 4. Focus Area options
+  let focusOptions = [
+    `Core syntax, architecture, and design patterns in ${t}`,
+    `Hands-on project development and modern workflows`,
+    `API integration, state handling, and data structures`,
+    `Performance tuning, debugging, and testing strategies`,
+    `Production deployment and industry best practices`
+  ];
+
+  if (topicLower.match(/react|vue|angular|frontend|next\.?js/)) {
+    focusOptions = [
+      `Component architecture, JSX, and Props`,
+      `State management, Hooks, and lifecycle effects`,
+      `Client-side routing, layout structure, and navigation`,
+      `API data fetching, caching, and async handling`,
+      `Performance optimization, memoization, and unit testing`
+    ];
+  } else if (topicLower.match(/python/)) {
+    focusOptions = [
+      `Core data structures, OOP, and functional paradigms`,
+      `Data analysis and visualization (Pandas, NumPy, Matplotlib)`,
+      `Web frameworks and REST APIs (FastAPI / Django / Flask)`,
+      `Automation, web scraping, and scripting`,
+      `Machine learning and algorithmic problem-solving`
+    ];
+  } else if (topicLower.match(/machine learning|ai|deep learning|data science/)) {
+    focusOptions = [
+      `Data preprocessing, exploratory analysis, and feature engineering`,
+      `Supervised learning algorithms (Regression, Classification)`,
+      `Neural network architectures and deep learning frameworks`,
+      `Model evaluation, hyperparameter tuning, and validation`,
+      `MLOps, model serving, and real-world deployment`
+    ];
+  } else if (topicLower.match(/sql|database|mongodb|postgres/)) {
+    focusOptions = [
+      `Schema design, normalization, and relational modeling`,
+      `Complex queries, joins, aggregations, and subqueries`,
+      `Indexing strategies, query optimization, and execution plans`,
+      `Transactions, concurrency control, and ACID compliance`,
+      `Database migration, backup strategies, and security`
+    ];
+  } else if (category === 'language') {
+    focusOptions = [
+      `Everyday conversational dialogues and practical phrases`,
+      `Pronunciation, listening comprehension, and phonetics`,
+      `Core grammar rules, sentence structure, and tenses`,
+      `High-frequency vocabulary and idiom acquisition`,
+      `Reading comprehension and written expression`
+    ];
+  } else if (category === 'creative') {
+    focusOptions = [
+      `Foundational design theory: color, contrast, and typography`,
+      `Software shortcuts, tools, and technical execution`,
+      `Layout composition and visual hierarchy`,
+      `Client brief interpretation and concept ideation`,
+      `Exporting, asset optimization, and portfolio presentation`
+    ];
+  } else if (category === 'business') {
+    focusOptions = [
+      `Strategic frameworks and competitive market analysis`,
+      `Financial modeling, unit economics, and budgeting`,
+      `Customer acquisition, sales funnels, and marketing metrics`,
+      `Operations optimization and team leadership`,
+      `Risk mitigation and growth execution`
+    ];
+  }
+
+  return [
+    {
       id: 1,
       type: 'single-choice',
-      question: 'What is your main goal with learning {topic}?',
-      options: [
-        'Start my own business/startup',
-        'Career advancement & promotion',
-        'Professional certification',
-        'Improve current job performance',
-        'Academic/Educational purpose'
-      ]
-    });
-  } else {
-    questions.push({
-      id: 1,
+      question: `What is your primary goal with ${t}?`,
+      options: goalOptions
+    },
+    {
+      id: 2,
       type: 'single-choice',
-      question: 'What is your main goal with learning {topic}?',
+      question: `What is your current experience level with ${t}?`,
       options: [
-        'School/College exams',
-        'Competitive exams preparation',
-        'General knowledge & awareness',
-        'Career/Professional growth',
-        'Personal interest & curiosity'
+        `Complete Beginner (New to ${t})`,
+        `Foundational (Know the basics, need structured guidance)`,
+        `Intermediate (Have built small projects or used it before)`,
+        `Advanced (Looking to master advanced architecture and patterns)`
       ]
-    });
-  }
-  
-  // Question 2: Experience Level
-  questions.push({
-    id: 2,
-    type: 'single-choice',
-    question: 'What is your current experience level with {topic}?',
-    options: [
-      'Complete beginner - Never learned this before',
-      'Beginner - Know very basic concepts',
-      'Intermediate - Have practical experience',
-      'Advanced - Strong knowledge, want to master',
-      'Expert - Want specialized/niche topics'
-    ]
-  });
-  
-  // Question 3: Prior Knowledge/Prerequisites
-  if (category === 'technical') {
-    let prerequisiteOptions = [
-      'No programming experience',
-      'Basic programming knowledge',
-      'Comfortable with another language',
-      'Know related technologies',
-      'Strong technical background'
-    ];
-    
-    if (topicLower.match(/react|angular|vue|frontend/)) {
-      prerequisiteOptions = [
-        'No prior web development experience',
-        'Know HTML & CSS basics',
-        'Good with JavaScript fundamentals',
-        'Built websites before',
-        'Experienced web developer'
-      ];
-    } else if (topicLower.match(/machine learning|ai|data science/)) {
-      prerequisiteOptions = [
-        'No programming or math background',
-        'Know basic programming',
-        'Good with Python & math',
-        'Have done data analysis before',
-        'Strong in statistics & algorithms'
-      ];
-    }
-    
-    questions.push({
+    },
+    {
       id: 3,
       type: 'single-choice',
-      question: 'What is your background/prior knowledge?',
-      options: prerequisiteOptions
-    });
-  } else if (category === 'language') {
-    questions.push({
-      id: 3,
-      type: 'single-choice',
-      question: 'Have you learned any foreign language before?',
+      question: `How much time can you dedicate to learning ${t} per day?`,
       options: [
-        'No, this is my first foreign language',
-        'Yes, I know one other language',
-        'Yes, I know multiple languages',
-        'I am multilingual',
-        'I have basic exposure to this language'
+        `15-30 minutes / day (Bite-sized pace)`,
+        `30-60 minutes / day (Steady progress)`,
+        `1-2 hours / day (Dedicated learning)`,
+        `3+ hours / day (Intensive bootcamp pace)`
       ]
-    });
-  } else {
-    questions.push({
-      id: 3,
-      type: 'single-choice',
-      question: 'Do you have any related knowledge or background?',
-      options: [
-        'Complete beginner in this area',
-        'Some basic understanding',
-        'Studied related subjects before',
-        'Have practical experience',
-        'Strong foundational knowledge'
-      ]
-    });
-  }
-  
-  // Question 4: Time Commitment
-  questions.push({
-    id: 4,
-    type: 'single-choice',
-    question: 'How much time can you dedicate to learning {topic} per day?',
-    options: [
-      'Less than 30 minutes',
-      '30 minutes - 1 hour',
-      '1-2 hours',
-      '2-4 hours',
-      'More than 4 hours (full-time learning)'
-    ]
-  });
-  
-  // Question 5: Learning Style
-  questions.push({
-    id: 5,
-    type: 'single-choice',
-    question: 'How do you prefer to learn?',
-    options: [
-      'Watching video tutorials',
-      'Reading documentation & articles',
-      'Hands-on projects & practice',
-      'Combination of multiple methods',
-      'Interactive coding challenges'
-    ]
-  });
-  
-  // Question 6: Target Timeline
-  questions.push({
-    id: 6,
-    type: 'single-choice',
-    question: 'What is your target completion timeline?',
-    options: [
-      'Crash course - 1-2 weeks',
-      '1 month - Quick learning',
-      '2-3 months - Moderate pace',
-      '3-6 months - Comprehensive learning',
-      'Flexible timeline - Learn at my own pace'
-    ]
-  });
-  
-  // Question 7: Practical Application Focus
-  if (category === 'technical') {
-    let projectOptions = [
-      'Build real-world projects',
-      'Solve coding challenges',
-      'Contribute to open-source',
-      'Create portfolio pieces',
-      'Focus on theory first, practice later'
-    ];
-    
-    if (topicLower.match(/web dev|javascript|react|angular|vue/)) {
-      projectOptions = [
-        'Build a complete website',
-        'Create web applications',
-        'Develop interactive UI components',
-        'Build responsive layouts',
-        'Work on multiple small projects'
-      ];
-    } else if (topicLower.match(/python/)) {
-      projectOptions = [
-        'Build automation scripts',
-        'Create web applications',
-        'Work on data analysis projects',
-        'Develop games or tools',
-        'Build AI/ML models'
-      ];
-    }
-    
-    questions.push({
-      id: 7,
-      type: 'single-choice',
-      question: 'What type of projects would you like to build?',
-      options: projectOptions
-    });
-  } else if (category === 'language') {
-    questions.push({
-      id: 7,
-      type: 'single-choice',
-      question: 'Which language skill is most important to you?',
-      options: [
-        'Speaking & conversation',
-        'Listening & understanding',
-        'Reading & comprehension',
-        'Writing skills',
-        'All skills equally'
-      ]
-    });
-  } else {
-    questions.push({
-      id: 7,
-      type: 'single-choice',
-      question: 'What is your preferred way to apply this knowledge?',
-      options: [
-        'Real-world projects',
-        'Academic assignments',
-        'Professional work',
-        'Personal practice',
-        'Teaching others'
-      ]
-    });
-  }
-  
-  // Question 8: Depth vs Breadth
-  questions.push({
-    id: 8,
-    type: 'single-choice',
-    question: 'Would you prefer to:',
-    options: [
-      'Go deep - Master core concepts thoroughly',
-      'Go broad - Cover many topics quickly',
-      'Balanced - Mix of depth and breadth',
-      'Focus on practical skills only',
-      'Learn theory and concepts in detail'
-    ]
-  });
-  
-  // Question 9: Challenge Preference
-  questions.push({
-    id: 9,
-    type: 'single-choice',
-    question: 'How do you handle difficult concepts?',
-    options: [
-      'Take it slow with detailed explanations',
-      'Challenge me with advanced material',
-      'Give me medium difficulty content',
-      'Start easy, gradually increase difficulty',
-      'Let me figure things out with minimal guidance'
-    ]
-  });
-  
-  // Question 10: Specific Focus Areas (topic-specific)
-  if (category === 'technical') {
-    let focusOptions = [];
-    
-    if (topicLower.match(/javascript|js/)) {
-      focusOptions = [
-        'ES6+ modern JavaScript features',
-        'DOM manipulation & Browser APIs',
-        'Async programming (Promises, Async/Await)',
-        'Frameworks like React/Vue/Angular',
-        'Node.js & Backend development'
-      ];
-    } else if (topicLower.match(/python/)) {
-      focusOptions = [
-        'Data structures & algorithms',
-        'Web frameworks (Django/Flask)',
-        'Data Science & ML libraries',
-        'Automation & scripting',
-        'General programming concepts'
-      ];
-    } else if (topicLower.match(/react/)) {
-      focusOptions = [
-        'React Hooks & functional components',
-        'State management (Redux/Context)',
-        'React Router & navigation',
-        'API integration & data fetching',
-        'Performance optimization'
-      ];
-    } else if (topicLower.match(/web dev|html|css/)) {
-      focusOptions = [
-        'Responsive design & mobile-first',
-        'CSS frameworks (Tailwind/Bootstrap)',
-        'JavaScript frameworks',
-        'Backend & server-side development',
-        'Full-stack development'
-      ];
-    } else {
-      focusOptions = [
-        'Fundamental concepts & basics',
-        'Practical implementation',
-        'Best practices & patterns',
-        'Advanced topics & optimization',
-        'Real-world problem solving'
-      ];
-    }
-    
-    questions.push({
-      id: 10,
+    },
+    {
+      id: 4,
       type: 'multiple-choice',
-      question: 'Which specific areas interest you most? (Select all that apply)',
+      question: `Which specific areas of ${t} do you want to prioritize? (Select all that apply)`,
       options: focusOptions
-    });
-  } else if (category === 'language') {
-    questions.push({
-      id: 10,
-      type: 'multiple-choice',
-      question: 'Which aspects of {topic} do you want to focus on? (Select all)',
+    },
+    {
+      id: 5,
+      type: 'single-choice',
+      question: `What is your target completion timeline for ${t}?`,
       options: [
-        'Basic grammar & sentence structure',
-        'Vocabulary building',
-        'Pronunciation & accent',
-        'Conversational practice',
-        'Reading literature & media',
-        'Writing skills'
+        `2 Weeks (Fast track / Crash course)`,
+        `1 Month (Recommended standard pace)`,
+        `2-3 Months (In-depth comprehensive mastery)`,
+        `Self-paced (Learn flexibly without pressure)`
       ]
-    });
-  } else {
-    questions.push({
-      id: 10,
-      type: 'multiple-choice',
-      question: 'What aspects of {topic} are you most interested in? (Select all)',
-      options: [
-        'Fundamental principles',
-        'Practical applications',
-        'Advanced concepts',
-        'Case studies & examples',
-        'Industry best practices'
-      ]
-    });
-  }
-  
-  // Question 11: Additional Requirements (optional text)
-  questions.push({
-    id: 11,
-    type: 'text',
-    question: 'Any specific requirements or topics you want to prioritize in {topic}?',
-    placeholder: 'E.g., "Focus on interview preparation" or "Need to learn for a specific project"...'
-  });
-  
-  return questions;
+    },
+    {
+      id: 6,
+      type: 'text',
+      question: `Any specific projects, tools, or requirements you want included in your ${t} course?`,
+      placeholder: `e.g., Build a real-world ${t} application, prepare for upcoming interviews...`
+    }
+  ];
 }
 
 // Generate dynamic questions based on course topic
@@ -587,38 +339,43 @@ router.post(
 
     const { topic } = req.body;
 
-  // DISABLED: Gemini API to avoid rate limits
-  // Using predefined generic questions for all courses
-  /* 
+  // Try AI generation first, fallback to predefined questions if it fails
   // Try AI generation first, fallback to predefined questions if it fails
   if (process.env.GEMINI_API_KEY) {
     try {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const prompt = `Generate 6 personalized questions to understand a learner's needs for the topic: "${topic}". 
-      
-Return ONLY a valid JSON array with NO additional text, explanations, or markdown formatting.
+      const prompt = `Generate exactly 6 personalized questions to understand a learner's needs for the topic: "${topic}".
 
-The questions should help customize the course to their:
-1. Learning goal (specific to ${topic})
-2. Experience level
-3. Time commitment
-4. Learning style preference
-5. Timeline/deadline
-6. Specific focus areas within ${topic}
+RULES:
+- Each question must have a DIFFERENT intent/purpose. No two questions should ask about the same thing.
+- Do NOT ask about experience level twice. Do NOT ask about goals twice.
+- Replace {topic} in question text with the actual topic name.
+- Make ALL options SPECIFIC to "${topic}" — never generic like "Learn the basics".
+- Options must be concrete and actionable for "${topic}".
+
+The 6 questions MUST cover these 6 distinct topics (one each):
+1. What is their PRIMARY GOAL with ${topic}? (career, project, hobby, etc.)
+2. What is their current EXPERIENCE LEVEL with ${topic}?
+3. How much TIME PER DAY can they dedicate to ${topic}?
+4. What SPECIFIC AREAS of ${topic} excite them most? (make options very specific to ${topic})
+5. What is their TARGET TIMELINE to complete the ${topic} course?
+6. Any SPECIFIC REQUIREMENT or custom topic they want covered in ${topic}? (text input)
 
 Format each question as:
 {
   "id": number,
   "type": "text" | "single-choice" | "multiple-choice",
-  "question": "question text with {topic} placeholder",
+  "question": "question text (use actual topic name, not placeholder)",
   "placeholder": "for text type only",
-  "options": ["option1", "option2", ...] // for choice types, 4-6 options relevant to ${topic}
+  "options": ["option1", "option2", ...] // for choice types, 4-6 options VERY SPECIFIC to ${topic}
 }
 
-Make options SPECIFIC to ${topic}, not generic. For example:
-- If topic is "Python", options should be "Build web apps with Django/Flask", "Data analysis with pandas", etc.
-- If topic is "Guitar", options should be "Play rock/blues", "Classical fingerstyle", "Songwriting", etc.
+GOOD example for topic "React":
+- Q4 options: ["React Hooks & functional components", "State management with Redux/Context", "React Router & navigation", "Performance optimization & memoization", "Server-side rendering with Next.js"]
+
+BAD example (too generic):
+- Q4 options: ["Fundamentals", "Advanced topics", "Practical applications", "Best practices"]
 
 Return ONLY the JSON array, nothing else.`;
       
@@ -636,10 +393,19 @@ Return ONLY the JSON array, nothing else.`;
         throw new Error('Invalid questions format received from AI');
       }
 
+      const sanitizedQuestions = questions.map((q) => ({
+        ...q,
+        question: (q.question || '').replace(/\{topic\}/g, topic),
+        placeholder: q.placeholder ? q.placeholder.replace(/\{topic\}/g, topic) : q.placeholder,
+        options: Array.isArray(q.options)
+          ? q.options.map((opt) => (typeof opt === 'string' ? opt.replace(/\{topic\}/g, topic) : opt))
+          : q.options,
+      }));
+
       return res.json({ 
         success: true,
         topic,
-        questions,
+        questions: sanitizedQuestions,
         generatedAt: new Date(),
         source: 'ai'
       });
@@ -648,10 +414,15 @@ Return ONLY the JSON array, nothing else.`;
       // Fall through to fallback
     }
   }
-  */
   
   // Use fallback questions (avoids Gemini API rate limits)
-  const questions = generateFallbackQuestions(topic);
+  const rawQuestions = generateFallbackQuestions(topic);
+  // Replace all {topic} placeholders with actual topic
+  const questions = rawQuestions.map(q => ({
+    ...q,
+    question: q.question.replace(/\{topic\}/g, topic),
+    placeholder: q.placeholder ? q.placeholder.replace(/\{topic\}/g, topic) : q.placeholder,
+  }));
   res.json({ 
     success: true,
     topic,

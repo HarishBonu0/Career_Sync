@@ -42,6 +42,29 @@ const TestPage = () => {
       const parsed = JSON.parse(storedQuestions);
       setQuestions(parsed);
       sessionStorage.setItem('attemptId', evaluationId);
+
+      // Restore saved in-progress answers if page was refreshed
+      const savedAnswers = sessionStorage.getItem(`assessment_answers_${evaluationId}`);
+      if (savedAnswers) {
+        try {
+          const parsedAnswers = JSON.parse(savedAnswers);
+          if (parsedAnswers && typeof parsedAnswers === 'object') {
+            setAnswers(parsedAnswers);
+          }
+        } catch (e) {
+          console.warn('Could not restore saved answers:', e);
+        }
+      }
+
+      // Restore saved timer
+      const savedTime = sessionStorage.getItem(`assessment_time_${evaluationId}`);
+      if (savedTime) {
+        const parsedT = parseInt(savedTime, 10);
+        if (!isNaN(parsedT) && parsedT > 0) {
+          setTimeLeft(parsedT);
+        }
+      }
+
       setLoading(false);
     } catch (err) {
       console.error('Test init failed:', err);
@@ -68,6 +91,8 @@ const TestPage = () => {
       sessionStorage.setItem('testResult', JSON.stringify(result));
       sessionStorage.setItem('testQuestions', JSON.stringify(questions));
       sessionStorage.setItem('userAnswers', JSON.stringify(answers));
+      sessionStorage.removeItem(`assessment_answers_${evaluationId}`);
+      sessionStorage.removeItem(`assessment_time_${evaluationId}`);
       router.push(`/assessments/result/${courseId}?evaluationId=${encodeURIComponent(evaluationId)}`);
     } catch (err) {
       alert('Could not submit: ' + err.message);
@@ -81,6 +106,12 @@ const TestPage = () => {
       handleSubmit();
       return;
     }
+    const evalId = sessionStorage.getItem('attemptId') || sessionStorage.getItem('evaluationId');
+    if (evalId && timeLeft % 5 === 0) {
+      try {
+        sessionStorage.setItem(`assessment_time_${evalId}`, String(timeLeft));
+      } catch {}
+    }
     const t = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(t);
   }, [timeLeft, loading, submitted, handleSubmit]);
@@ -92,7 +123,16 @@ const TestPage = () => {
   };
 
   const handleSelect = (questionId, option) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: option }));
+    setAnswers((prev) => {
+      const next = { ...prev, [questionId]: option };
+      const evalId = sessionStorage.getItem('attemptId') || sessionStorage.getItem('evaluationId');
+      if (evalId) {
+        try {
+          sessionStorage.setItem(`assessment_answers_${evalId}`, JSON.stringify(next));
+        } catch {}
+      }
+      return next;
+    });
   };
 
   const answered = Object.keys(answers).length;

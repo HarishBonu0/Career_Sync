@@ -1,6 +1,21 @@
 // lib/api.ts - MongoDB Atlas API client
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
+export function getAuthHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...extraHeaders,
+  };
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('Career_Sync_token');
+    if (token && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+}
+
+
 class ApiClient {
   private baseUrl: string
 

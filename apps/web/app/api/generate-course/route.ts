@@ -41,22 +41,31 @@ async function annotateResources(resources: any[]): Promise<any[]> {
 }
 
 function normalizeCourseAnswers(rawAnswers: Record<string, unknown>) {
-  const value = (id: number) => rawAnswers[id] ?? rawAnswers[String(id)]
-  const text = (id: number, fallback: string) => {
+  const value = (id: number | string) => rawAnswers[id] ?? rawAnswers[String(id)]
+  const text = (id: number | string, fallback: string) => {
     const current = value(id)
     return Array.isArray(current) ? current.join(', ') : String(current || fallback)
   }
 
+  // Support clean 1-6 schema as well as any legacy question IDs
+  const goal = text(1, text('goal', text(2, 'general mastery')))
+  const experience = text(2, text('experience', text(3, 'beginner')))
+  const timeCommitment = text(3, text('timeCommitment', text(4, '1-2 hours')))
+  const rawFocus = value(4) ?? value(10) ?? value(7) ?? value('focusAreas')
+  const focusAreas = Array.isArray(rawFocus) ? rawFocus : [String(rawFocus || 'comprehensive core concepts')]
+  const timeline = text(5, text('timeline', text(6, '1 month')))
+  const requirements = text(6, text('requirements', text(11, text(10, 'practical applications'))))
+
   return {
     answers: Object.fromEntries(Object.entries(rawAnswers).map(([key, current]) => [String(key), current])),
     userContext: {
-      experience: text(3, 'beginner'),
-      goal: text(2, 'general learning'),
-      timeline: text(6, '1 month'),
-      timeCommitment: text(4, '1-2 hours'),
-      learningStyle: text(5, 'mixed'),
-      focusAreas: Array.isArray(value(7)) ? value(7) : [text(7, 'comprehensive coverage')],
-      requirements: text(10, 'comprehensive coverage'),
+      goal,
+      experience,
+      timeCommitment,
+      learningStyle: 'interactive and hands-on',
+      timeline,
+      focusAreas,
+      requirements,
     },
   }
 }
@@ -771,7 +780,17 @@ export async function POST(request: NextRequest) {
 
     // Extract user answers
     const normalized = normalizeCourseAnswers(answers)
-    const userName = String(answers[1] || 'Student')
+    // Extract real user name: do not use answers[1] because question 1 is the user's learning goal
+    let userName = 'Learner'
+    if (typeof body.userName === 'string' && body.userName.trim()) {
+      userName = body.userName.trim()
+    } else if (typeof (sessionResponse as any) !== 'undefined') {
+      try {
+        const sessionJson = await sessionResponse.clone().json().catch(() => null)
+        if (sessionJson?.user?.name) userName = sessionJson.user.name
+        else if (sessionJson?.user?.email) userName = sessionJson.user.email.split('@')[0]
+      } catch {}
+    }
     const { goal, experience, timeCommitment, learningStyle, timeline, focusAreas, requirements } = normalized.userContext
     const interests = (Array.isArray(focusAreas) ? focusAreas : []).join(', ')
     const preference = String(answers[8] || 'mix of both')
@@ -845,53 +864,76 @@ export async function POST(request: NextRequest) {
     const isProgrammingTopic = ['javascript', 'python', 'react', 'node', 'typescript', 'java', 'cpp', 'c++', 'go', 'rust', 'php', 'ruby', 'swift', 'kotlin', 'scala', 'groovy', 'perl', 'haskell', 'elixir', 'clojure', 'r', 'matlab', 'lua', 'sql', 'nosql', 'mongodb', 'postgresql', 'mysql', 'redis', 'elasticsearch'].includes(topicLower)
     const isWebTopic = ['web development', 'html', 'css', 'responsive design', 'frontend', 'backend'].includes(topicLower)
     
-    // Create topic-specific example modules
-    let exampleModulesText = ''
-    if (isLanguageTopic) {
-      exampleModulesText = `EXAMPLES OF GOOD MODULE TITLES FOR LANGUAGE LEARNING:
-- "Italian Greetings and Basic Phrases" ✓
-- "Italian Present Tense Verbs and Conjugation" ✓  
-- "Italian Food Vocabulary and Ordering at Restaurants" ✓
-- "Italian Grammar: Adjectives and Nouns" ✓
-- "Italian Conversation: Travel and Navigation" ✓
-
-EXAMPLES OF BAD MODULE TITLES:
-- "Introduction to Italian" ✗
-- "Italian Basics" ✗
-- "Italian Fundamentals" ✗
-
-MODULE FOCUS FOR LANGUAGE:
-- Each module focuses on practical conversation or grammar concepts
-- Use real-world scenarios (travel, business, casual conversation)
-- Include vocabulary themes with cultural context
-- Include pronunciation and listening comprehension`
-    } else if (isProgrammingTopic) {
-      exampleModulesText = `EXAMPLES OF GOOD MODULE TITLES FOR PROGRAMMING:
-- "${topic} Variables, Data Types, and Operators" ✓
-- "${topic} Functions and Modules" ✓  
-- "${topic} Object-Oriented Programming" ✓
-- "${topic} APIs and External Libraries" ✓
-
-EXAMPLES OF BAD MODULE TITLES:
-- "Introduction to ${topic}" ✗
-- "${topic} Basics" ✗
-- "${topic} Fundamentals" ✗
-
-MODULE FOCUS FOR PROGRAMMING:
-- Each module covers 2-4 specific technical concepts
-- Use official documentation terminology
-- Include hands-on coding exercises
-- Focus on applicable real-world patterns`
-    } else {
-      exampleModulesText = `EXAMPLES OF GOOD MODULE TITLES:
-- "Foundational Concepts in ${topic}" ✓
-- "${topic}: Core Principles and Applications" ✓  
-- "Advanced ${topic} Techniques" ✓
-
-EXAMPLES OF BAD MODULE TITLES:
-- "Introduction to ${topic}" ✗
-- "${topic} Basics" ✗`
+    // Create topic-specific curriculum guidance
+    const getCurriculumGuidance = (topicName: string): string => {
+      const low = topicName.toLowerCase()
+      if (['react', 'vue', 'angular', 'next', 'next.js', 'svelte'].some(f => low.includes(f))) {
+        return `CURRICULUM PATTERN FOR ${topicName}:
+- Module 1: Architecture, Project Structure, and Component Mindset
+- Module 2: Core Syntax, JSX/Templates, and Props Contract
+- Module 3: State Management, Interactive Events, and Reactive Data Flow
+- Module 4: Hooks / Lifecycle, Side Effects, and Resource Clean-up
+- Module 5: Client-Side Routing, Page Layouts, and Navigation
+- Module 6: API Integration, Asynchronous Data Fetching, and Error Boundaries
+- Module 7: Forms, Controlled Inputs, and Client/Server Validation
+- Module 8: Performance Optimization (Memoization, Code Splitting, Profiling)
+- Module 9: Production Deployment, CI/CD, and End-to-End Testing`
+      }
+      if (['node', 'express', 'django', 'fastapi', 'spring', 'flask', 'nest'].some(f => low.includes(f))) {
+        return `CURRICULUM PATTERN FOR ${topicName}:
+- Module 1: Runtime Environment, Server Initialization, and Configuration
+- Module 2: RESTful Routing, Middleware Pipeline, and Request Lifecycle
+- Module 3: Database Models, Schema Design, and ORM/Query Integration
+- Module 4: User Authentication, Session/JWT Security, and Role Authorization
+- Module 5: Business Logic Layer, Validation, and Structured Error Handling
+- Module 6: Asynchronous Operations, Caching, and Background Jobs
+- Module 7: API Documentation (OpenAPI/Swagger) and Automated Integration Testing
+- Module 8: Containerization, Production Hardening, and Cloud Deployment`
+      }
+      if (['sql', 'postgres', 'postgresql', 'mysql', 'mongodb', 'redis', 'database'].some(f => low.includes(f))) {
+        return `CURRICULUM PATTERN FOR ${topicName}:
+- Module 1: Relational / Document Foundations, Installation, and CLI Setup
+- Module 2: Data Modeling, Schemas, Normalization, and Constraints
+- Module 3: Core Query Syntax (CRUD, Filtering, Sorting, Aggregations)
+- Module 4: Relational Joins, Complex Subqueries, and View Creation
+- Module 5: Indexing Mechanisms, Execution Plans, and Performance Tuning
+- Module 6: ACID Transactions, Concurrency Isolation, and Locking
+- Module 7: Security, Role-Based Access Control, and Backup/Restore Strategies`
+      }
+      if (['machine learning', 'deep learning', 'data science', 'ai', 'artificial intelligence', 'nlp', 'computer vision'].some(f => low.includes(f))) {
+        return `CURRICULUM PATTERN FOR ${topicName}:
+- Module 1: Mathematical Foundations, Problem Formulation, and Environment
+- Module 2: Exploratory Data Analysis, Data Cleansing, and Feature Engineering
+- Module 3: Supervised Learning (Regression and Classification Algorithms)
+- Module 4: Unsupervised Learning, Clustering, and Dimensionality Reduction
+- Module 5: Model Evaluation Metrics, Cross-Validation, and Overfitting Control
+- Module 6: Deep Learning Architectures and Modern Frameworks
+- Module 7: Hyperparameter Optimization and Automated Pipelines
+- Module 8: Model Serving, API Deployment, and Ethical AI Considerations`
+      }
+      if (isLanguageTopic) {
+        return `CURRICULUM PATTERN FOR LANGUAGE (${topicName}):
+- Module 1: Essential Greetings, Phonetics, and Cultural Introductions
+- Module 2: Pronunciation Rules, Core Alphabet/Sounds, and Common Courtesy
+- Module 3: High-Frequency Vocabulary: Daily Life, Food, Numbers, and Time
+- Module 4: Fundamental Grammar: Nouns, Gender, Articles, and Sentence Order
+- Module 5: Present Tense Verb Conjugation and Basic Question Formation
+- Module 6: Real-World Dialogues: Navigation, Shopping, and Travel Scenarios
+- Module 7: Past Tenses and Conversational Storytelling
+- Module 8: Listening Comprehension, Idiomatic Expressions, and Fluency Practice`
+      }
+      return `CURRICULUM PATTERN FOR ${topicName}:
+- Module 1: Core Foundations, Context, and Development Environment
+- Module 2: Fundamental Principles, Key Terminology, and Mechanics
+- Module 3: Practical Methodologies and Hands-on Execution
+- Module 4: Intermediate Architecture, Patterns, and Applied Problem Solving
+- Module 5: Tooling, Ecosystem Integrations, and Modern Workflows
+- Module 6: Advanced Techniques, Edge Cases, and Performance Tuning
+- Module 7: Real-World Case Studies and Production Best Practices
+- Module 8: Comprehensive Capstone Project and Mastery Review`
     }
+
+    const curriculumGuidance = getCurriculumGuidance(topic);
 
     // Build AI prompt with detailed instructions for SPECIFIC, SEARCHABLE module topics
     const prompt = `You are an expert course curriculum designer creating a professional learning path tailored to ${isLanguageTopic ? 'language learning' : isProgrammingTopic ? 'programming education' : 'technical education'}.
@@ -906,12 +948,13 @@ USER PROFILE:
 
 CRITICAL REQUIREMENTS FOR MODULE TITLES:
 1. Create EXACTLY ${numModules} separate modules
-2. Module titles MUST be SPECIFIC and SEARCHABLE (NOT vague titles like "Foundations" or "Basics")
-3. Use CONCRETE terms appropriate for ${isLanguageTopic ? 'language learning' : 'technical concepts'}
-4. Each module must have DISTINCT, practical topics
-5. Avoid generic titles - be specific about what learners will actually study
+2. Module titles MUST be SPECIFIC, AUTHENTIC, and directly correlated with ${topic}
+3. NEVER repeat module titles or reuse generic boilerplate like "Variables, Data Types, and Operators" unless ${topic} is an introductory general programming language
+4. Incorporate the user's selected focus areas: ${interests}
+5. Each module must represent a DISTINCT milestone in mastering ${topic}
 
-${exampleModulesText}
+RECOMMENDED CURRICULUM PATTERN FOR ${topic}:
+${curriculumGuidance}
 
 MODULE STRUCTURE:
 - Each module must focus on ${isLanguageTopic ? '2-3 specific vocabulary themes or grammar concepts' : '2-4 specific, searchable technical concepts'}
@@ -942,12 +985,12 @@ RESPONSE FORMAT - Return ONLY valid JSON:
   "modules": [
     {
       "id": 1,
-      "title": ${isLanguageTopic ? '"' + topic + ' Greetings and Basic Phrases"' : isProgrammingTopic ? '"' + topic + ' Variables, Data Types, and Operators"' : '"Introduction to ' + topic + '"'},
+      "title": ${isLanguageTopic ? '"' + topic + ' Greetings and Pronunciation"' : '"' + topic + ' Foundations and Architecture"'},
       "weekNumber": 1,
       "duration": "3-5 days",
-      "description": ${isLanguageTopic ? '"Learn essential ' + topic + ' greetings, introductions, and basic phrases for everyday communication"' : isProgrammingTopic ? '"Learn ' + topic + ' variables, data types, and operators for fundamental programming"' : '"Explore the foundational concepts of ' + topic + '"'},
-      "objectives": [${isLanguageTopic ? '"Introduce yourself in ' + topic + '", "Use common greetings and polite expressions", "Understand basic ' + topic + ' pronunciation"' : isProgrammingTopic ? '"Understand ' + topic + ' variables and scope", "Master data types", "Learn operators"' : '"Understand core concepts of ' + topic + '"'}],
-      "topics": [${isLanguageTopic ? '"Common greetings (hello, goodbye)", "Introducing yourself", "Numbers 0-10", "Basic courtesy phrases"' : isProgrammingTopic ? '"Variables and constants", "Primitive data types", "Operators", "Type conversion"' : '"Overview of ' + topic + '", "Key concepts", "Applications"'}],
+      "description": ${isLanguageTopic ? '"Learn essential greetings, phonetics, and core conversation phrases in ' + topic + '"' : '"Master core concepts, environment setup, and fundamental architecture of ' + topic + '"'},
+      "objectives": [${isLanguageTopic ? '"Use common greetings and introduce yourself in ' + topic + '", "Master accurate pronunciation"' : '"Understand the core architecture and concepts of ' + topic + '", "Build initial demonstration"'}],
+      "topics": [${isLanguageTopic ? '"Essential phrases", "Alphabet and sounds", "Basic vocabulary"' : '"Foundational concepts of ' + topic + '", "Workflow setup", "Practical patterns"'}],
       "activities": [${isLanguageTopic ? '"Listening and pronunciation", "Speaking practice", "Conversation drills", "Cultural context"' : '"Video tutorials", "Coding exercises", "Practice problems", "Mini project"'}],
       "project": ${isLanguageTopic ? '"Greetings and introductions practice"' : '"' + topic + ' practice exercises"'},
       "estimatedHours": 5,
@@ -1087,21 +1130,34 @@ REMEMBER:
       const fallbackModules = []
       const fallbackUsedVideoIds = new Set<string>()
       
-      const distinctSubtopics = [
-        "Fundamentals and Basics",
-        "Core Concepts and Architecture",
-        "Tools and Environment Setup",
-        "Practical Applications",
-        "Advanced Patterns",
-        "Troubleshooting and Debugging",
-        "Performance and Optimization",
-        "Best Practices and Guidelines",
-        "Real-world Case Studies",
-        "Integration and Deployment",
-        "Security and Best Practices",
-        "Future Trends and Scaling",
-        "Final Capstone Preparation"
-      ]
+      // Build topic-specific subtopics so fallback modules are never generic
+      const buildFallbackSubtopics = (courseTopic: string): string[] => {
+        const t = courseTopic.trim()
+        const tLow = t.toLowerCase()
+        if (['italian','spanish','french','german','portuguese','japanese','chinese','korean','russian','arabic','hindi','mandarin','dutch','swedish'].some((l: string) => tLow.includes(l))) {
+          return [`${t} Greetings and Basic Phrases`,`${t} Pronunciation and Phonetics`,`${t} Numbers, Dates, and Time`,`${t} Essential Vocabulary: Food and Daily Life`,`${t} Grammar: Nouns, Articles, and Gender`,`${t} Verb Conjugation in Present Tense`,`${t} Asking Questions and Negation`,`${t} Travel and Navigation Vocabulary`,`${t} Describing People and Places`,`${t} Shopping and Money Expressions`,`${t} Past Tense and Storytelling`,`${t} Formal vs Informal Speech`,`${t} Conversation: Social Situations`]
+        }
+        if (tLow.match(/react|angular|vue|next\.?js|frontend|html|css|tailwind/)) {
+          return [`${t} Project Setup and Development Environment`,`${t} Core Syntax and Fundamentals`,`${t} Components and Props`,`${t} State Management and Data Flow`,`${t} Event Handling and User Interaction`,`${t} Routing and Navigation`,`${t} API Integration and Async Data`,`${t} Forms and Validation`,`${t} Styling and Responsive Design`,`${t} Performance Optimization`,`${t} Testing and Debugging`,`${t} Deployment and Production Build`,`Advanced ${t} Patterns and Best Practices`]
+        }
+        if (tLow.match(/python|data science|pandas|numpy|matplotlib|scikit/)) {
+          return [`${t} Installation and Development Setup`,`${t} Variables, Data Types, and Operators`,`${t} Control Flow: Conditionals and Loops`,`${t} Functions, Modules, and Packages`,`${t} Data Structures: Lists, Dicts, Sets`,`${t} File I/O and Error Handling`,`${t} Object-Oriented Programming`,`${t} Working with External Libraries`,`${t} Data Manipulation and Analysis`,`${t} Data Visualization`,`${t} Testing and Debugging`,`${t} Real-world Project: End-to-End Pipeline`,`${t} Deployment and Packaging`]
+        }
+        if (tLow.match(/machine learning|deep learning|neural|tensorflow|pytorch|ai |artificial intelligence/)) {
+          return [`${t} Mathematics Foundations: Linear Algebra & Stats`,`${t} Data Collection and Preprocessing`,`${t} Exploratory Data Analysis`,`${t} Supervised Learning: Regression`,`${t} Supervised Learning: Classification`,`${t} Model Evaluation and Metrics`,`${t} Unsupervised Learning and Clustering`,`${t} Neural Networks Architecture`,`${t} Training, Overfitting, and Regularization`,`${t} Hyperparameter Tuning`,`${t} Deployment: APIs and Model Serving`,`${t} Real-world Case Study`,`${t} Ethics, Fairness, and Future Trends`]
+        }
+        if (tLow.match(/javascript|typescript|node|java|kotlin|go|rust|php|ruby|swift|c\+\+|sql|mongodb|postgresql|database|api|backend|microservice/)) {
+          return [`${t} Environment Setup and Tooling`,`${t} Core Syntax: Variables, Types, and Operators`,`${t} Control Flow and Iteration`,`${t} Functions and Modular Code`,`${t} Data Structures in ${t}`,`${t} Object-Oriented Programming Concepts`,`${t} Error Handling and Debugging`,`${t} Working with External APIs`,`${t} Database Integration`,`${t} Testing: Unit and Integration Tests`,`${t} Performance and Optimization`,`${t} Security Best Practices`,`${t} Deployment and Production`]
+        }
+        if (tLow.match(/business|marketing|finance|sales|management|accounting|economics|investing|startup|leadership/)) {
+          return [`${t} Foundational Principles and Frameworks`,`${t} Key Terminology and Industry Concepts`,`${t} Market Analysis and Research`,`${t} Strategic Planning`,`${t} Budgeting and Financial Modelling`,`${t} Customer and Stakeholder Management`,`${t} Data-Driven Decision Making`,`${t} Risk Management`,`${t} Negotiation and Communication`,`${t} Tools and Technology`,`${t} Case Studies: Successes and Failures`,`${t} Building Your Personal Brand`,`${t} Capstone: Business Plan or Simulation`]
+        }
+        if (tLow.match(/design|ux|ui|figma|sketch|art|drawing|painting|music|guitar|piano|photography|video|animation|illustration/)) {
+          return [`${t} Introduction to Tools and Workspace`,`${t} Core Principles and Theory`,`${t} Foundational Techniques`,`${t} Color, Composition, and Aesthetics`,`${t} Building Your First Project`,`${t} Intermediate Techniques`,`${t} Workflow and Process Optimization`,`${t} Critique and Feedback Methods`,`${t} Advanced Techniques`,`${t} Collaboration and Communication`,`${t} Building Your Portfolio`,`${t} Professional Practice and Career Paths`,`${t} Capstone Project`]
+        }
+        return [`${t}: Overview and Key Concepts`,`${t}: Core Principles in Depth`,`${t}: Practical Methods and Techniques`,`${t}: Tools, Frameworks, and Resources`,`${t}: Problem Solving and Case Studies`,`${t}: Intermediate Skill Building`,`${t}: Advanced Applications`,`${t}: Real-world Scenarios and Projects`,`${t}: Common Pitfalls and How to Avoid Them`,`${t}: Best Practices from Experts`,`${t}: Integration with Related Fields`,`${t}: Emerging Trends and Future Directions`,`${t}: Capstone Project and Review`]
+      }
+      const distinctSubtopics = buildFallbackSubtopics(topic)
       
       // Create modules based on timeline with VIDEO INTELLIGENCE
       for (let i = 0; i < numModules; i++) {
@@ -1132,7 +1188,7 @@ REMEMBER:
         
         fallbackModules.push({
           id: moduleNum,
-          title: `Module ${moduleNum}: ${subtopic}`,
+          title: subtopic,
           weekNumber: Math.ceil(moduleNum / 2),
           duration: '3-5 days',
           description: `Learn the essential concepts of ${subtopic.toLowerCase()} within the context of ${topic}.`,

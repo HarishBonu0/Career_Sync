@@ -15,12 +15,11 @@ export function withAuthenticatedUser(req, fields = {}) {
 }
 
 export function userOwnsParam(req, paramUserId) {
-  if (!req.user) return false;
+  if (!req.user || !paramUserId) return false;
   const ownId = req.user.id.toString();
   if (paramUserId === ownId) return true;
-  if (req.user.email && paramUserId === req.user.email) return true;
-  if (paramUserId === 'local') return true;
-  if (mongoose.Types.ObjectId.isValid(paramUserId) && paramUserId === ownId) {
+  if (req.user.email && paramUserId.toLowerCase() === req.user.email.toLowerCase()) return true;
+  if (mongoose.Types.ObjectId.isValid(paramUserId) && paramUserId.toString() === ownId) {
     return true;
   }
   return false;
