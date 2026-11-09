@@ -1,0 +1,41 @@
+{
+  "name": "careersync-api",
+  "version": "1.0.0",
+  "description": "Career Sync - Unified Backend API",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "tsx watch --env-file=.env server.js",
+    "test:services": "tsx scripts/test-services.js",
+    "test:phase0": "node scripts/verify-phase0.mjs",
+    "test:phase1": "node scripts/verify-phase1.mjs",
+    "test:phase2": "node scripts/verify-phase2.mjs",
+    "test:phase3": "node scripts/verify-phase3.mjs",
+    "inspect:phase3": "node scripts/inspect-phase3-data.mjs"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.38.0",
+    "axios": "^1.13.2",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^6.7.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.8.0",
+    "express-validator": "^7.0.1",
+    "google-auth-library": "^11.1.0",
+    "helmet": "^7.0.0",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.21.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.3.0"
+  }
+}
